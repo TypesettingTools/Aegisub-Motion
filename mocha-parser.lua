@@ -1,7 +1,30 @@
+--[[ 
+I THOUGHT I SHOULD PROBABLY INCLUDE SOME LICENSING INFORMATION IN THIS
+BUT I DON'T REALLY KNOW VERY MUCH ABOUT COPYRIGHT LAW AND IT ALSO SEEMS LIKE MOST
+COPYRIGHT NOTICES JUST KIND OF YELL AT YOU IN ALL CAPS. BUT APPARENTLY PUBLIC
+DOMAIN DOES NOT EXIST IN ALL COUNTRIES AND SO I FIGURED I'D STICK THIS HERE SO
+YOU KNOW THAT YOU, HENCEFORTH REFERRED TO AS "THE USER" HAVE THE FOLLOWING
+INALIABLE RIGHTS:
+
+	0. THE USER can use this piece of poorly written code, henceforth referred to as
+		THE SCRIPT, to do the things that it claims it can do.
+	1. THE USER should not expect THE SCRIPT to do things that it does not expressly
+		claim to be able to do, such as make coffee or print money.
+	2. THE USER should realize that starting a list with 0 in a document that
+		contains lua code is actually SOMEWHAT IRONIC.
+	3. THE WRITER, henceforth referred to as I or me, depending on the context, holds
+		no responsibility for any problems that THE SCRIPT may cause, such as
+		if it murders your dog.
+	4. THE USER is expected to understand that this is just some garbage that I made
+		up and that any and all LEGALLY BINDING AGREEMENTS THAT THE USER HAS AGREED
+		TO UPON USAGE OF THE SCRIPT ARE UP TO THE USER TO DISCOVER ON HIS OR HER OWN,
+		POSSIBLY THROUGH CLAIRVOYANCE OR MAYBE A SPIRITUAL MEDIUM.
+]]
+
 script_name = "MOPE"
 script_description = "Mocha Output Parser EXTREME"
-script_author = ""
-script_version = "0.0.1"
+script_author = "torque"
+script_version = "0.0.1-1"
 include("karaskel.lua")
 gui = {}
 
@@ -22,7 +45,8 @@ gui.main = {
 		name = "mocpat"; hint = "Full path to file. No quotes or escapism needed."
 	}
 }
-gui.options = {} -- add checkboxes for each parameter: xpos, ypos, xscl, yscl, zrot (and/or support for shearing/perspective)
+
+gui.options = {} -- add a checkbox for each parameter: pos, scl, rot (and/or support for shearing/perspective)
 
 function init_input(sub, sel, act)
 	local config
@@ -65,7 +89,7 @@ function parse_input(infile)
 		end
 		if care == 1 and sect == 1 then
 			if val[2] ~= "X pixels" then
-				table.insert(xpos,tonumber(val[2]))
+				table.insert(xpos,tonumber(val[2])) -- is tonumber() actually necessary? Oh well.
 				table.insert(ypos,tonumber(val[3]))
 			end
 		elseif care == 1 and sect == 3 then
@@ -96,9 +120,9 @@ end
 function frame_by_frame(sub,sel,opts,mochain) -- for some reason, active_line always returns -1 for me.
 	local meta, styles = karaskel.collect_head(sub,false) -- get the style information
 	mline = {} -- intializing variables
-	mline.line = {} -- get the start frame of the selected line
-	mline.endframe = aegisub.frame_from_ms(sub[sel[1]].end_time)
-	mline.startframe = aegisub.frame_from_ms(sub[sel[1]].start_time)
+	mline.line = {} -- have to declare this for the iterator function below to work
+	mline.endframe = aegisub.frame_from_ms(sub[sel[1]].end_time) -- get the start frame of the selected line
+	mline.startframe = aegisub.frame_from_ms(sub[sel[1]].start_time) -- get the end frame of the selected line
 	mline.numframes = mline.endframe-mline.startframe -- karaskel grabs an extra frame on the end
 	for i, v in pairs(sel) do -- safe to assume all of the lines are the same length. They damn well better be.
 		mline.line[i] = sub[v]
@@ -108,18 +132,27 @@ function frame_by_frame(sub,sel,opts,mochain) -- for some reason, active_line al
 	end
 	mocha = parse_input(mochain)
 	for i,v in pairs(mline.line) do
+		local xscl, yscl = styles[mline.line[i].style].scale_x, styles[mline.line[i].style].scale_y -- get scale information from the style
+		local pa,pb,xpos,ypos = string.find(mline.line[i].text,"\\pos%(([0-9]+%.?[0-9]*),([0-9]+%.?[0-9]*)%)") -- original x/ypos
+		local fxa,fxb,fxc = string.find(mline.line[i].text,"\\fscx([0-9]+%.?[0-9]*)") -- look for override in the line itself
+		local fya,fyb,fyc = string.find(mline.line[i].text,"\\fscy([0-9]+%.?[0-9]*)")
+		if fxc then xscl = fxc end -- overwrite the scale if overrides are found
+		if fyc then yscl = fyc end
+		local diffx, diffy = mocha.xpos[1]-xpos, mocha.ypos[1]-ypos
 		for x = 1,mline.numframes do
 			spline = mline.line[i]
 			spline.start_time = aegisub.ms_from_frame(mline.startframe+x-1)
 			spline.end_time = aegisub.ms_from_frame(mline.startframe+x)
-			spline.text = pos_and_scale(mline.line[i],spline,mocha,styles,x)
-			sub.insert(sel[1]+x,spline) -- requires input in a table format which already makes things easier
+			spline.text = pos_and_scale(spline,mocha,xpos,ypos,diffx,diffy,xscl,yscl,x) -- I AM NOT PASSING ENOUGH PARAMETERS
+			sub.insert(sel[1]+x,spline) -- requires input in a table format.
 		end
 	end
 end
 
-function pos_and_scale(orgline,curfline,mocha,styles,i)
-	newtxt = string.gsub(curfline.text,"\\pos%(([0-9]+%.?[0-9]*),([0-9]+%.?[0-9]*)%)",string.format("\\pos(%g,%g)",round(mocha.xpos[i],2),round(mocha.ypos[i],2)))
+function pos_and_scale(curfline,mocha,oxpos,oypos,diffx,diffy,ofscx,ofscy,i)
+	xpos = mocha.xpos[i]-diffx
+	ypos = mocha.ypos[i]-diffy
+	newtxt = string.gsub(curfline.text,"\\pos%(([0-9]+%.?[0-9]*),([0-9]+%.?[0-9]*)%)",string.format("\\pos(%g,%g)",round(xpos,2),round(ypos,2)))
 	return newtxt
 end
 	
