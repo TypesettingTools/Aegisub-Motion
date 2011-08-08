@@ -1,8 +1,8 @@
 --[[ 
 I THOUGHT I SHOULD PROBABLY INCLUDE SOME LICENSING INFORMATION IN THIS
 BUT I DON'T REALLY KNOW VERY MUCH ABOUT COPYRIGHT LAW AND IT ALSO SEEMS LIKE MOST
-COPYRIGHT NOTICES JUST KIND OF YELL AT YOU IN ALL CAPS. BUT APPARENTLY PUBLIC
-DOMAIN DOES NOT EXIST IN ALL COUNTRIES AND SO I FIGURED I'D STICK THIS HERE SO
+COPYRIGHT NOTICES JUST KIND OF YELL AT YOU IN ALL CAPS. AND APPARENTLY PUBLIC
+DOMAIN DOES NOT EXIST IN ALL COUNTRIES, SO I FIGURED I'D STICK THIS HERE SO
 YOU KNOW THAT YOU, HENCEFORTH REFERRED TO AS "THE USER" HAVE THE FOLLOWING
 INALIABLE RIGHTS:
 
@@ -24,7 +24,7 @@ INALIABLE RIGHTS:
 script_name = "MOPE"
 script_description = "Mocha Output Parser EXTREME"
 script_author = "torque"
-script_version = "0.0.1-1"
+script_version = "0.0.1-2"
 include("karaskel.lua")
 gui = {}
 
@@ -41,24 +41,95 @@ gui.main = {
 	},
 	{
 		class = "textbox";
-			x = 1; y = 1; height = 4; width = 7;
-		name = "mocpat"; hint = "Full path to file. No quotes or escapism needed."
-	}
+			x = 1; y = 1; height = 4; width = 9;
+		name = "mocpat"; hint = "Full path to file. No quotes or escapism needed.";
+		text = "e.g.  C:\\path\\to the\\mocha.output"
+	},
+	{ 
+		class = "label";
+			x = 0; y = 6; height = 1; width = 10;
+		label = "What tracking data should be applied?"
+	},
+	{
+		class = "label";
+			x = 0; y = 7; height = 1; width = 1;
+		label = "Position:"
+	},
+	{
+		class = "checkbox";
+			x = 1; y = 7; height = 1; width = 1;
+		value = true; name = "pos"
+	},
+	{
+		class = "label";
+			x = 2; y = 7; height = 1; width = 1;
+		label = "Scale:"
+	},
+	{
+		class = "checkbox";
+			x = 3; y = 7; height = 1; width = 1;
+		value = true; name = "scl"
+	},
+	{
+		class = "label";
+			x = 4; y = 7; height = 1; width = 1;
+		label = "Rotation:"
+	},
+	{
+		class = "checkbox";
+			x = 5; y = 7; height = 1; width = 1;
+		value = false; name = "rot"
+	},
+	{
+		class = "label";
+			x = 6; y = 7; height = 1; width = 1;
+		label = "Shear:"
+	},
+	{
+		class = "checkbox";
+			x = 7; y = 7; height = 1; width = 1;
+		value = false; name = "shr"
+	},
+	{
+		class = "label";
+			x = 8; y = 7; height = 1; width = 1;
+		label = "Perspective:"
+	},
+	{
+		class = "checkbox";
+			x = 9; y = 7; height = 1; width = 1;
+		value = false; name = "per"
+	},
+	{ 
+		class = "label";
+			x = 0; y = 9; height = 1; width = 10;
+		label = "Enter the file to the path containing your shear/perspective data."
+	},
+	{
+		class = "label";
+			x = 0; y = 11; height = 1; width = 1;
+		label = "File Path:"
+	},
+	{
+		class = "textbox";
+			x = 1; y = 10; height = 4; width = 9;
+		name = "mocper"; hint = "Again, the full path to the file. No quotes or escapism needed.";
+		text = "Rotation, shear and perspective are not supported yet. Filling in this box will currently do nothing."
+	}	
 }
-
-gui.options = {} -- add a checkbox for each parameter: pos, scl, rot (and/or support for shearing/perspective)
 
 function init_input(sub, sel, act)
 	local config
 	local opts = 0
-	local button = {"Let's go", "Never mind"}
-	aegisub.progress.title("Mincing Gerbils")
+	local button = {"Go", "Abort"}
+	aegisub.progress.title("Preparing Gerbils")
 	button, config = aegisub.dialog.display(gui.main, button)
-	if button == "Let's go" then
-		frame_by_frame(sub,sel,opts,config.mocpat)
+	if button == "Go" then
+		aegisub.progress.title("Mincing Gerbils")
+		frame_by_frame(sub,sel,config)
 		aegisub.set_undo_point("Apply motion data") -- this doesn't seem to actually do anything
 	else
-		aegisub.progress.task("Cancelled")
+		aegisub.progress.task("ABORT")
 	end
 end
 
@@ -117,8 +188,8 @@ function parse_input(infile)
 	end
 end
 
-function frame_by_frame(sub,sel,opts,mochain) -- for some reason, active_line always returns -1 for me.
-	local meta, styles = karaskel.collect_head(sub,false) -- get the style information
+function frame_by_frame(sub,sel,opts) -- for some reason, active_line always returns -1 for me.
+	meta, styles = karaskel.collect_head(sub,false) -- get the style information
 	mline = {} -- intializing variables
 	mline.line = {} -- have to declare this for the iterator function below to work
 	mline.endframe = aegisub.frame_from_ms(sub[sel[1]].end_time) -- get the start frame of the selected line
@@ -130,49 +201,61 @@ function frame_by_frame(sub,sel,opts,mochain) -- for some reason, active_line al
 		sub[v] = mline.line[i] -- comment out the original lines
 		mline.line[i].comment = false
 	end
-	mocha = parse_input(mochain)
+	mocha = parse_input(opts.mocpat)
 	for i,v in pairs(mline.line) do
-		local xscl, yscl = styles[mline.line[i].style].scale_x, styles[mline.line[i].style].scale_y -- get scale information from the style
-		local pa,pb,xpos,ypos = string.find(mline.line[i].text,"\\pos%(([0-9]+%.?[0-9]*),([0-9]+%.?[0-9]*)%)") -- original x/ypos
-		local fxa,fxb,fxc = string.find(mline.line[i].text,"\\fscx([0-9]+%.?[0-9]*)") -- look for override in the line itself
-		local fya,fyb,fyc = string.find(mline.line[i].text,"\\fscy([0-9]+%.?[0-9]*)")
-		if fxc then xscl = fxc end -- overwrite the scale if overrides are found
-		if fyc then yscl = fyc end
+		xscl = {styles[v.style].scale_x, false} -- get scale information from the style
+		yscl = {styles[v.style].scale_y, false}
+		pa,pb,xpos,ypos = string.find(v.text,"\\pos%(([0-9]+%.?[0-9]*),([0-9]+%.?[0-9]*)%)") -- original x/ypos
+		fxa,fxb,fxc = string.find(v.text,"\\fscx([0-9]+%.?[0-9]*)") -- look for override in the line itself
+		fya,fyb,fyc = string.find(v.text,"\\fscy([0-9]+%.?[0-9]*)")
+		if fxc then xscl = {fxc, true} end -- overwrite the scale if overrides are found
+		if fyc then yscl = {fyc, true} end
 		local diffx, diffy = mocha.xpos[1]-xpos, mocha.ypos[1]-ypos
+		orgtext = v.text -- tables are passed as references.
 		for x = 1,mline.numframes do
-			spline = mline.line[i]
-			spline.start_time = aegisub.ms_from_frame(mline.startframe+x-1)
-			spline.end_time = aegisub.ms_from_frame(mline.startframe+x)
-			spline.text = pos_and_scale(spline,mocha,xpos,ypos,diffx,diffy,xscl,yscl,x) -- I AM NOT PASSING ENOUGH PARAMETERS
-			sub.insert(sel[1]+x,spline) -- requires input in a table format.
+			v.start_time = aegisub.ms_from_frame(mline.startframe+x-1)
+			v.end_time = aegisub.ms_from_frame(mline.startframe+x)
+			v.text = pos_and_scale(v,mocha,xpos,ypos,diffx,diffy,xscl,yscl,x,opts) -- I AM NOT PASSING ENOUGH PARAMETERS
+			sub.insert(sel[1]+x,v) -- requires input in a table format.
+			v.text = orgtext
 		end
 	end
 end
 
-function pos_and_scale(curfline,mocha,oxpos,oypos,diffx,diffy,ofscx,ofscy,i)
-	xpos = mocha.xpos[i]-diffx
-	ypos = mocha.ypos[i]-diffy
-	newtxt = string.gsub(curfline.text,"\\pos%(([0-9]+%.?[0-9]*),([0-9]+%.?[0-9]*)%)",string.format("\\pos(%g,%g)",round(xpos,2),round(ypos,2)))
+function pos_and_scale(curfline,mocha,oxpos,oypos,diffx,diffy,xscl,yscl,i,opt)
+	if opt.scl and opt.pos then
+		local xsclf = mocha.xscl[i]*xscl[1]/100
+		local xpos = mocha.xpos[i]-(diffx*mocha.xscl[i]/100)
+		local ysclf = mocha.yscl[i]*yscl[1]/100
+		local ypos = mocha.ypos[i]-(diffy*mocha.yscl[i]/100)
+		if xscl[2] and yscl[2] then -- check for override tags
+			newtxt = string.gsub(curfline.text,"\\fscx([0-9]+%.?[0-9]*)",string.format("\\fscx%g",round(xsclf,2)),1) -- allow custom rounding?
+			newtxt = string.gsub(newtxt,"\\fscy([0-9]+%.?[0-9]*)",string.format("\\fscy%g",round(ysclf,2)),1)
+			newtxt = string.gsub(newtxt,"\\pos%(([0-9]+%.?[0-9]*),([0-9]+%.?[0-9]*)%)",string.format("\\pos(%g,%g)",round(xpos,2),round(ypos,2)),1)
+		elseif xscl[2] then
+			newtxt = string.gsub(curfline.text,"\\fscx([0-9]+%.?[0-9]*)",string.format("\\fscx%g",round(xsclf,2)),1)
+			newtxt = string.gsub(newtxt,"\\pos%(([0-9]+%.?[0-9]*),([0-9]+%.?[0-9]*)%)",string.format("\\pos(%g,%g)\\fscy%g",round(xpos,2),round(ypos,2),round(ysclf,2)),1)
+		elseif yscl[2] then
+			newtxt = string.gsub(curfline.text,"\\fscx([0-9]+%.?[0-9]*)",string.format("\\fscy%g",round(ysclf,2)),1)
+			newtxt = string.gsub(newtxt,"\\pos%(([0-9]+%.?[0-9]*),([0-9]+%.?[0-9]*)%)",string.format("\\pos(%g,%g)\\fscx%g",round(xpos,2),round(ypos,2),round(xsclf,2)),1)
+		else
+			newtxt = string.gsub(curfline.text,"\\pos%(([0-9]+%.?[0-9]*),([0-9]+%.?[0-9]*)%)",string.format("\\pos(%g,%g)\\fscx%g\\fscy%g",round(xpos,2),round(ypos,2),round(xsclf,2),round(ysclf,2)),1)
+		end
+		return newtxt
+	elseif opt.pos then
+		xpos = mocha.xpos[i]-diffx
+		ypos = mocha.ypos[i]-diffy
+		newtxt = string.gsub(curfline.text,"\\pos%(([0-9]+%.?[0-9]*),([0-9]+%.?[0-9]*)%)",string.format("\\pos(%g,%g)",round(xpos,2),round(ypos,2)))
+	elseif opt.scl then
+		newtxt = curfline.text -- because I am far too lazy to try to deal with a situation where you would have a scale change and not a position change
+	end
 	return newtxt
 end
 	
-function round(num, idp)
+function round(num, idp) -- also borrowed for the lua-users wiki
 	local mult = 10^(idp or 0)
 	return math.floor(num * mult + 0.5) / mult
 end
-
---[[function make_gui(x)
-	local tab = {}
-	for i, v in ipairs(x) do
-		subta = { 
-			class = "label";
-				x = 0; y = i-1; height = 1; width = 10;
-			label = x[i]
-		}
-		table.insert(tab,subta)
-	end
-	return tab
-end]]
 
 function isvideo() -- a very rudimentary (but hopefully efficient) check to see if there is a video loaded.
 	if aegisub.video_size() then
