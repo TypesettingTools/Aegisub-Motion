@@ -12,7 +12,7 @@ INALIABLE RIGHTS:
 		claim to be able to do, such as make coffee or print money.
 	2. THE USER should realize that starting a list with 0 in a document that
 		contains lua code is actually SOMEWHAT IRONIC.
-	3. THE WRITER, henceforth referred to as I or me, depending on the context, holds
+	3. THE WRITER, henceforth referred to as I or ME, depending on the context, holds
 		no responsibility for any problems that THE SCRIPT may cause, such as
 		if it murders your dog.
 	4. THE USER is expected to understand that this is just some garbage that I made
@@ -184,7 +184,8 @@ function parse_input(infile)
 		return mocha -- return a table because it's prettier that way
 	else
 		--return some system crippling error and wonder how the hell mocha's output is messed up
-		aegisub.log(0,"Somehow, the mocha input is wrong. ABORT ABORT")
+		aegisub.log(0,"The mocha data is not internally equal length. Going into crash mode, t-10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0. Blast off.")
+		error("YOU HAVE FUCKED EVERYTHING UP")
 	end
 end
 
@@ -196,10 +197,17 @@ function frame_by_frame(sub,sel,opts) -- for some reason, active_line always ret
 	mline.startframe = aegisub.frame_from_ms(sub[sel[1]].start_time) -- get the end frame of the selected line
 	mline.numframes = mline.endframe-mline.startframe -- karaskel grabs an extra frame on the end
 	for i, v in pairs(sel) do -- safe to assume all of the lines are the same length. They damn well better be.
-		mline.line[i] = sub[v]
-		mline.line[i].comment = true
-		sub[v] = mline.line[i] -- comment out the original lines
-		mline.line[i].comment = false
+		if styles[sub[v].style] == 5 or string.find(sub[v].text,"\\an5") then -- check for \an5 alignment.
+			table.insert(mline.line,sub[v])
+			mline.line[#mline.line].comment = true
+			sub[v] = mline.line[#mline.line] -- comment out the original line
+			mline.line[#mline.line].comment = false
+		else
+			aegisub.log(2,"Line no. %d of the lines you selected was not aligned properly (no \\an5 found in the line or style) and is being ignored.\n", i)
+		end
+	end
+	if #mline.line == 0 then --check to see if any of the lines passed the check. If none did, ragequit.
+		error("I-It's not like a-any of your subtitle l-lines have the proper alignment, b-baka.")
 	end
 	mocha = parse_input(opts.mocpat)
 	for i,v in pairs(mline.line) do
@@ -255,6 +263,14 @@ end
 function round(num, idp) -- also borrowed for the lua-users wiki
 	local mult = 10^(idp or 0)
 	return math.floor(num * mult + 0.5) / mult
+end
+
+function table.copy(t)
+  local t2 = {}
+  for k,v in pairs(t) do
+    t2[k] = v
+  end
+  return t2
 end
 
 function isvideo() -- a very rudimentary (but hopefully efficient) check to see if there is a video loaded.
