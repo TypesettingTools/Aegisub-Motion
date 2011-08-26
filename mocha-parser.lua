@@ -29,120 +29,120 @@ include("karaskel.lua")
 gui = {}
 
 gui.main = {
-	{ 
+	{ -- 1
 		class = "label";
 			x = 0; y = 0; height = 1; width = 10;
 		label = "Please enter a path to the mocha output. Can only take one file."
 	},
-	{
+--[[	{ -- 2
 		class = "label";
 			x = 0; y = 2; height = 1; width = 1;
 		label = "File Path:"
-	},
-	{
+	},--]]
+	{ -- 2
 		class = "textbox";
-			x = 1; y = 1; height = 4; width = 9;
+			x =0; y = 1; height = 4; width = 10;
 		name = "mocpat"; hint = "Full path to file. No quotes or escapism needed.";
 		text = "e.g.  C:\\path\\to the\\mocha.output"
 	},
-	{ 
+	{ -- 3
 		class = "label";
 			x = 0; y = 6; height = 1; width = 10;
 		label = "What tracking data should be applied?"
 	},
-	{
+	{ -- 4
 		class = "label";
 			x = 0; y = 7; height = 1; width = 1;
 		label = "Position:"
 	},
-	{
+	{ -- 5
 		class = "checkbox";
 			x = 1; y = 7; height = 1; width = 1;
 		value = true; name = "pos"
 	},
-	{
+	{ -- 6
 		class = "label";
 			x = 2; y = 7; height = 1; width = 1;
 		label = "Scale:"
 	},
-	{
+	{ -- 7
 		class = "checkbox";
 			x = 3; y = 7; height = 1; width = 1;
 		value = true; name = "scl"
 	},
-	{
+	{ -- 8
 		class = "label";
 			x = 4; y = 7; height = 1; width = 1;
 		label = "Rotation:"
 	},
-	{
+	{ -- 9
 		class = "checkbox";
 			x = 5; y = 7; height = 1; width = 1;
 		value = false; name = "rot"
 	},
-	{
+	{ -- 10
 		class = "label";
 			x = 6; y = 7; height = 1; width = 1;
 		label = "Shear:"
 	},
-	{
+	{ -- 11
 		class = "checkbox";
 			x = 7; y = 7; height = 1; width = 1;
 		value = false; name = "shr"
 	},
-	{
+	{ -- 12
 		class = "label";
 			x = 8; y = 7; height = 1; width = 1;
 		label = "Perspective:"
 	},
-	{
+	{ -- 13
 		class = "checkbox";
 			x = 9; y = 7; height = 1; width = 1;
 		value = false; name = "per"
 	},
-	{ 
+	{  -- 14
 		class = "label";
 			x = 0; y = 9; height = 1; width = 10;
 		label = "Enter the file to the path containing your shear/perspective data."
 	},
-	{
+--[[	{ -- 16
 		class = "label";
 			x = 0; y = 11; height = 1; width = 1;
 		label = "File Path:"
-	},
-	{
+	},--]]
+	{ -- 15
 		class = "textbox";
-			x = 1; y = 10; height = 4; width = 9;
+			x = 0; y = 10; height = 4; width = 10;
 		name = "mocper"; hint = "Again, the full path to the file. No quotes or escapism needed.";
 		text = "Rotation, shear and perspective are not supported yet. Filling in this box will currently do nothing."
 	},
-	{
+--[[	{ -- 18
 		class = "label";
-			x = 0; y = 11; height = 1; width = 1;
+			x = 0; y = 15; height = 1; width = 1;
 		label = "Errors:"
-	},
-	{
+	},--]]
+	{ -- 16
 		class = "textbox";
-			x = 1; y = 10; height = 4; width = 9;
+			x = 0; y = 14; height = 4; width = 10;
 		name = "preerr"; hint = "Any lines that didn't pass the prerun checks are noted here.";
 	}
 }
 -- check that all the selected lines are the same length (in frames), that they are all aligned \an5 and that
 -- they all have a \pos() tag.
 function prerun_czechs(sub, sel, act)
-	local meta, styles = karaskel.collect_head(sub,false)
+	aegisub.progress.title("Preparing Gerbils")
 	local accd = {}
-	local accd.lines = {}
+	accd.meta, accd.styles = karaskel.collect_head(sub,false) -- dump everything I need later into the table so I don't have to pass o9k variables to the other functions
+	accd.lines = {}
 	accd.endframe = aegisub.frame_from_ms(sub[sel[1]].end_time) -- get the end frame of the first selected line
 	accd.startframe = aegisub.frame_from_ms(sub[sel[1]].start_time) -- get the start frame of the first selected line
 	accd.alignerrs = 0 -- initialize error count
 	accd.timeerrs = 0
 	accd.poserrs = 0
-	local n = 1
 	accd.errmsg = ""
 	for i, v in pairs(sel) do -- burning cpu cycles like they were no thing
 		local opline = table.copy(sub[v]) -- because I needed an excuse to use this function
-		if styles[opline.style].align ~= 5 and not string.find(opline.text,"\\an5") then -- check for \an5 alignment.
+		if accd.styles[opline.style].align ~= 5 and not string.find(opline.text,"\\an5") then -- check for \an5 alignment. Assumes you aren't dumb enough to specify a different alignment in the override tag. This will probably change.
 			accd.errmsg = accd.errmsg..string.format("Line %d (%d of your selection) does not have the proper alignment (\\an5).\nIt will be skipped.\n", v, i)
 			accd.alignerrs = accd.alignerrs + 1
 		else
@@ -150,7 +150,7 @@ function prerun_czechs(sub, sel, act)
 				accd.errmsg = accd.errmsg..string.format("Line %d (%d of your selection) does not match times.\nIt will be adjusted.\n", v, i)
 				accd.timeerrs = accd.timeerrs + 1
 				opline.start_time = aegisub.ms_from_frame(accd.startframe)
-				opline.end_time = aegisub.ms_from_frame(accd.startframe)
+				opline.end_time = aegisub.ms_from_frame(accd.endframe)
 			end
 			if not string.find(opline.text,"\\pos%(([0-9]+%.?[0-9]*),([0-9]+%.?[0-9]*)%)") then
 				accd.errmsg = accd.errmsg..string.format("Line %d (%d of your selection) doesn't have a \\pos() tag.\nIt will be added.\n", v, i)
@@ -165,20 +165,28 @@ function prerun_czechs(sub, sel, act)
 			sub[v] = opline -- comment out the original line
 			opline.comment = false
 			table.insert(accd.lines,opline)
-			n = n + 1
 		end
 	end
-	accd.errmsg = accd.errmsg..string.format("
-	if #accd.lines == 0 then -- check to see if any of the lines passed the check. If none did, ragequit.
+	-- add check to see if header video rez is same as loaded video resolution
+	accd.lvidx, accd.lvidy = aegisub.video_size()
+	accd.shx, accd.shy = accd.meta.res_x, accd.meta.res_y
+	accd.toterrs = accd.alignerrs + accd.timeerrs + accd.poserrs
+	if accd.shx ~= accd.lvidx or accd.shy ~= accd.lvidy then 
+		accd.errmsg = string.format("Header x/y res (%d,%d) does not match video (%d,%d).\n", accd.shx, accd.shy, accd.lvidx, accd.lvidy)..accd.errmsg
+		accd.toterrs = accd.toterrs + 1
+	end
+	if accd.toterrs == 1 then accd.errmsg = string.format("%d error (%d time, %d pos, %d alignment)\n",accd.toterrs,accd.timeerrs,accd.poserrs,accd.alignerrs)..accd.errmsg else accd.errmsg = string.format("%d errors (%d time, %d pos, %d alignment)\n",accd.toterrs,accd.timeerrs,accd.poserrs,accd.alignerrs)..accd.errmsg end
+	if #accd.lines == 0 then -- check to see if any of the lines passed the check. If none did, ERROR.
 		error("I-It's not like a-any of your subtitle l-lines have the proper alignment, b-baka.")
 	end
+	init_input(accd)
 end
 
-function init_input(sub, sel, act)
+function init_input(lines)
+	gui.main[16].text = lines.errmsg
 	local config
 	local opts = 0
 	local button = {"Go", "Abort"}
-	aegisub.progress.title("Preparing Gerbils")
 	button, config = aegisub.dialog.display(gui.main, button)
 	if button == "Go" then
 		aegisub.progress.title("Mincing Gerbils")
@@ -246,12 +254,12 @@ function parse_input(infile)
 end
 
 function frame_by_frame(sub,sel,opts) -- for some reason, active_line always returns -1 for me.
-	meta, styles = karaskel.collect_head(sub,false) -- get the style information
+--[[	meta, styles = karaskel.collect_head(sub,false) -- get the style information
 	mline = {} -- intializing variables
-	mline.line = {} -- have to declare this for the iterator function below to work
-	mline.endframe = aegisub.frame_from_ms(sub[sel[1]].end_time) -- get the start frame of the selected line
-	mline.startframe = aegisub.frame_from_ms(sub[sel[1]].start_time) -- get the end frame of the selected line
-	mline.numframes = mline.endframe-mline.startframe -- karaskel grabs an extra frame on the end
+	mline.line = {} -- have to declare this for the iterator function below to work]]
+--	mline.endframe = aegisub.frame_from_ms(sub[sel[1]].end_time) -- get the start frame of the selected line
+--	mline.startframe = aegisub.frame_from_ms(sub[sel[1]].start_time) -- get the end frame of the selected line
+--	mline.numframes = mline.endframe-mline.startframe -- karaskel grabs an extra frame on the end
 	--[[for i, v in pairs(sel) do -- safe to assume all of the lines are the same length. They damn well better be.
 		if styles[sub[v].style] == 5 or string.find(sub[v].text,"\\an5") then -- check for \an5 alignment.
 			table.insert(mline.line,sub[v])
@@ -332,11 +340,7 @@ function table.copy(t) -- exactly what it says on the tin.
 end
 
 function isvideo() -- a very rudimentary (but hopefully efficient) check to see if there is a video loaded.
-	if aegisub.video_size() then
-		return true
-	else
-		return false
-	end
+	if aegisub.video_size() then return true else return false end
 end
 
 aegisub.register_macro("Mocha Parser","Mocha Output Parser Extreme", prerun_czechs, isvideo)
