@@ -115,8 +115,64 @@ gui.main = {
 			x = 1; y = 10; height = 4; width = 9;
 		name = "mocper"; hint = "Again, the full path to the file. No quotes or escapism needed.";
 		text = "Rotation, shear and perspective are not supported yet. Filling in this box will currently do nothing."
-	}	
+	},
+	{
+		class = "label";
+			x = 0; y = 11; height = 1; width = 1;
+		label = "Errors:"
+	},
+	{
+		class = "textbox";
+			x = 1; y = 10; height = 4; width = 9;
+		name = "preerr"; hint = "Any lines that didn't pass the prerun checks are noted here.";
+	}
 }
+-- check that all the selected lines are the same length (in frames), that they are all aligned \an5 and that
+-- they all have a \pos() tag.
+function prerun_czechs(sub, sel, act)
+	local meta, styles = karaskel.collect_head(sub,false)
+	local accd = {}
+	local accd.lines = {}
+	accd.endframe = aegisub.frame_from_ms(sub[sel[1]].end_time) -- get the end frame of the first selected line
+	accd.startframe = aegisub.frame_from_ms(sub[sel[1]].start_time) -- get the start frame of the first selected line
+	accd.alignerrs = 0 -- initialize error count
+	accd.timeerrs = 0
+	accd.poserrs = 0
+	local n = 1
+	accd.errmsg = ""
+	for i, v in pairs(sel) do -- burning cpu cycles like they were no thing
+		local opline = table.copy(sub[v]) -- because I needed an excuse to use this function
+		if styles[opline.style].align ~= 5 and not string.find(opline.text,"\\an5") then -- check for \an5 alignment.
+			accd.errmsg = accd.errmsg..string.format("Line %d (%d of your selection) does not have the proper alignment (\\an5).\nIt will be skipped.\n", v, i)
+			accd.alignerrs = accd.alignerrs + 1
+		else
+			if aegisub.frame_from_ms(opline.end_time) ~= accd.endframe or aegisub.frame_from_ms(opline.start_time) ~= accd.startframe then
+				accd.errmsg = accd.errmsg..string.format("Line %d (%d of your selection) does not match times.\nIt will be adjusted.\n", v, i)
+				accd.timeerrs = accd.timeerrs + 1
+				opline.start_time = aegisub.ms_from_frame(accd.startframe)
+				opline.end_time = aegisub.ms_from_frame(accd.startframe)
+			end
+			if not string.find(opline.text,"\\pos%(([0-9]+%.?[0-9]*),([0-9]+%.?[0-9]*)%)") then
+				accd.errmsg = accd.errmsg..string.format("Line %d (%d of your selection) doesn't have a \\pos() tag.\nIt will be added.\n", v, i)
+				accd.poserrs = accd.poserrs + 1
+				if string.find(opline.text,"{") then -- idk if it's really worth it to do this check or not
+					opline.text = string.gsub(opline.text,"{",string.format("{\\pos(%g,%g)",opline.center,opline.vcenter))
+				else
+					opline.text = string.format("{\\pos(%g,%g)}",opline.center,opline.vcenter)..opline.text
+				end
+			end
+			opline.comment = true
+			sub[v] = opline -- comment out the original line
+			opline.comment = false
+			table.insert(accd.lines,opline)
+			n = n + 1
+		end
+	end
+	accd.errmsg = accd.errmsg..string.format("
+	if #accd.lines == 0 then -- check to see if any of the lines passed the check. If none did, ragequit.
+		error("I-It's not like a-any of your subtitle l-lines have the proper alignment, b-baka.")
+	end
+end
 
 function init_input(sub, sel, act)
 	local config
@@ -185,7 +241,7 @@ function parse_input(infile)
 	else
 		--return some system crippling error and wonder how the hell mocha's output is messed up
 		aegisub.log(0,"The mocha data is not internally equal length. Going into crash mode, t-10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0. Blast off.")
-		error("YOU HAVE FUCKED EVERYTHING UP")
+		error("YOU HAVE EVERYTHING UP")
 	end
 end
 
@@ -196,21 +252,21 @@ function frame_by_frame(sub,sel,opts) -- for some reason, active_line always ret
 	mline.endframe = aegisub.frame_from_ms(sub[sel[1]].end_time) -- get the start frame of the selected line
 	mline.startframe = aegisub.frame_from_ms(sub[sel[1]].start_time) -- get the end frame of the selected line
 	mline.numframes = mline.endframe-mline.startframe -- karaskel grabs an extra frame on the end
-	for i, v in pairs(sel) do -- safe to assume all of the lines are the same length. They damn well better be.
-		if styles[sub[v].style].align == 5 or string.find(sub[v].text,"\\an5") then -- check for \an5 alignment.
+	--[[for i, v in pairs(sel) do -- safe to assume all of the lines are the same length. They damn well better be.
+		if styles[sub[v].style] == 5 or string.find(sub[v].text,"\\an5") then -- check for \an5 alignment.
 			table.insert(mline.line,sub[v])
 			mline.line[#mline.line].comment = true
 			sub[v] = mline.line[#mline.line] -- comment out the original line
 			mline.line[#mline.line].comment = false
 		else
-			aegisub.log(2,"", i)
+			aegisub.log(2,"Line no. %d of the lines you selected was not aligned properly (no \\an5 found in the line or style) and is being ignored.\n", i)
 		end
 	end
 	if #mline.line == 0 then --check to see if any of the lines passed the check. If none did, ragequit.
 		error("I-It's not like a-any of your subtitle l-lines have the proper alignment, b-baka.")
-	end
+	end]]
 	mocha = parse_input(opts.mocpat)
-	ecks = 0
+	ecks = 1
 	for i,v in pairs(mline.line) do
 		xscl = {styles[v.style].scale_x, false} -- get scale information from the style
 		yscl = {styles[v.style].scale_y, false}
@@ -225,8 +281,8 @@ function frame_by_frame(sub,sel,opts) -- for some reason, active_line always ret
 			v.start_time = aegisub.ms_from_frame(mline.startframe+x-1)
 			v.end_time = aegisub.ms_from_frame(mline.startframe+x)
 			v.text = pos_and_scale(v,mocha,xpos,ypos,diffx,diffy,xscl,yscl,x,opts) -- I AM NOT PASSING ENOUGH PARAMETERS
-			ecks = ecks + 1
 			sub.insert(sel[1]+ecks+i,v) -- requires input in a table format.
+			ecks = ecks + 1
 			v.text = orgtext
 		end
 	end
@@ -267,7 +323,7 @@ function round(num, idp) -- also borrowed for the lua-users wiki
 	return math.floor(num * mult + 0.5) / mult
 end
 
-function table.copy(t)
+function table.copy(t) -- exactly what it says on the tin.
   local t2 = {}
   for k,v in pairs(t) do
     t2[k] = v
@@ -283,4 +339,4 @@ function isvideo() -- a very rudimentary (but hopefully efficient) check to see 
 	end
 end
 
-aegisub.register_macro("Mocha Parser","MOPE", init_input, isvideo)
+aegisub.register_macro("Mocha Parser","Mocha Output Parser Extreme", prerun_czechs, isvideo)
