@@ -123,7 +123,7 @@ gui.main = {
 	},--]]
 	{ -- 16
 		class = "textbox";
-			x = 0; y = 14; height = 4; width = 10;
+			x = 0; y = 15; height = 4; width = 10;
 		name = "preerr"; hint = "Any lines that didn't pass the prerun checks are noted here.";
 	}
 }
@@ -249,7 +249,7 @@ function parse_input(infile)
 	else
 		--return some system crippling error and wonder how the hell mocha's output is messed up
 		aegisub.log(0,"The mocha data is not internally equal length. Going into crash mode, t-10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0. Blast off.")
-		error("YOU HAVE EVERYTHING UP")
+		error("YOU HAVE FUCKED EVERYTHING UP")
 	end
 end
 
