@@ -197,19 +197,20 @@ function frame_by_frame(sub,sel,opts) -- for some reason, active_line always ret
 	mline.startframe = aegisub.frame_from_ms(sub[sel[1]].start_time) -- get the end frame of the selected line
 	mline.numframes = mline.endframe-mline.startframe -- karaskel grabs an extra frame on the end
 	for i, v in pairs(sel) do -- safe to assume all of the lines are the same length. They damn well better be.
-		if styles[sub[v].style] == 5 or string.find(sub[v].text,"\\an5") then -- check for \an5 alignment.
+		if styles[sub[v].style].align == 5 or string.find(sub[v].text,"\\an5") then -- check for \an5 alignment.
 			table.insert(mline.line,sub[v])
 			mline.line[#mline.line].comment = true
 			sub[v] = mline.line[#mline.line] -- comment out the original line
 			mline.line[#mline.line].comment = false
 		else
-			aegisub.log(2,"Line no. %d of the lines you selected was not aligned properly (no \\an5 found in the line or style) and is being ignored.\n", i)
+			aegisub.log(2,"", i)
 		end
 	end
 	if #mline.line == 0 then --check to see if any of the lines passed the check. If none did, ragequit.
 		error("I-It's not like a-any of your subtitle l-lines have the proper alignment, b-baka.")
 	end
 	mocha = parse_input(opts.mocpat)
+	ecks = 0
 	for i,v in pairs(mline.line) do
 		xscl = {styles[v.style].scale_x, false} -- get scale information from the style
 		yscl = {styles[v.style].scale_y, false}
@@ -224,7 +225,8 @@ function frame_by_frame(sub,sel,opts) -- for some reason, active_line always ret
 			v.start_time = aegisub.ms_from_frame(mline.startframe+x-1)
 			v.end_time = aegisub.ms_from_frame(mline.startframe+x)
 			v.text = pos_and_scale(v,mocha,xpos,ypos,diffx,diffy,xscl,yscl,x,opts) -- I AM NOT PASSING ENOUGH PARAMETERS
-			sub.insert(sel[1]+x,v) -- requires input in a table format.
+			ecks = ecks + 1
+			sub.insert(sel[1]+ecks+i,v) -- requires input in a table format.
 			v.text = orgtext
 		end
 	end
