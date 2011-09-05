@@ -129,16 +129,16 @@ function prerun_czechs(sub, sel, act)
 	for i, v in pairs(sel) do -- burning cpu cycles like they were no thing
 		local opline = table.copy(sub[v]) -- because I needed an excuse to use this function
 		karaskel.preproc_line(sub, accd.meta, accd.styles, opline)
-		local _, _, opline.ali = string.find(opline.text,"\\an([1-9])") -- check for \an[1-9] override in line
+		_, _, opline.ali = string.find(opline.text,"\\an([1-9])") -- check for \an[1-9] override in line
 		if not opline.ali then opline.ali = accd.styles[opline.style].align end -- if no override is found, replace with the style's alignment
-		_, _, opline.posx , opline.posy = string.find(opline.text,"\\pos%((%-?[0-9]+%.?[0-9]*),(%-?[0-9]+%.?[0-9]*)%)")
+		_,_,opline.posx, opline.posy = string.find(opline.text,"\\pos%((%-?[0-9]+%.?[0-9]*),(%-?[0-9]+%.?[0-9]*)%)")
 		if not opline.posx then
 			table.insert(accd.poserrs,{i,v})
-			accd.errmsg = accd.errmsg..string.format("Line %d does not seem to have a position override tag.\n",v)
+			accd.errmsg = accd.errmsg..string.format("Line %d does not seem to have a position override tag.\n", v)
 		end
 		if opline.ali ~= 5 then -- check for \an5 alignment.
 			table.insert(accd.alignerrs,{i,v})
-			accd.errmsg = accd.errmsg..string.format("Line %d does not seem aligned \\an5.\n", accd.shx, accd.shy, accd.lvidx, accd.lvidy)..accd.errmsg
+			accd.errmsg = accd.errmsg..string.format("Line %d does not seem aligned \\an5.\n", v)..accd.errmsg
 		end
 		local opstart, opend = aegisub.frame_from_ms(opline.start_time), aegisub.frame_from_ms(opline.end_time)
 		if opstart < accd.startframe then -- make timings flexible. Number of frames has to match
@@ -160,7 +160,7 @@ function prerun_czechs(sub, sel, act)
 		accd.errmsg = string.format("Header x/y res (%d,%d) does not match video (%d,%d).\n", accd.shx, accd.shy, accd.lvidx, accd.lvidy)..accd.errmsg
 	end
 	if accd.toterrs > 0 then
-		accd.errmsg = "The lines noted below may need to be checked.\nThe issues will be forcibly fixed later depending\n"..accd.errmsg
+		accd.errmsg = "The lines noted below may need to be checked.\nThe issues will be forcibly fixed later depending\non what tracking data you choose to apply\n"..accd.errmsg
 	else
 		accd.errmsg = "WORD DOG F'RIZZLE NO ERRORS PEACE OUT"..accd.errmsg 
 	end
@@ -171,28 +171,26 @@ function prerun_czechs(sub, sel, act)
 end
 
 function ficks_pos(line)
-	if not line.ali then
-		return xpos, ypos = line.center, line.vcenter
-	elseif line.ali == 1 then
-	
+	if line.ali == 1 then
+		return line.center, line.vcenter
 	elseif line.ali == 2 then
-	
+
 	elseif line.ali == 3 then
-	
+
 	elseif line.ali == 4 then
-	
+
 	elseif line.ali == 5 then
-	
+
 	elseif line.ali == 6 then
-	
+
 	elseif line.ali == 7 then
-	
+
 	elseif line.ali == 8 then
-	
+
 	elseif line.ali == 9 then
-	
+
 	else
-	
+
 	end
 end
 
