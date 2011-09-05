@@ -19,7 +19,7 @@ INALIABLE RIGHTS:
 		up and that any and all LEGALLY BINDING AGREEMENTS THAT THE USER HAS AGREED
 		TO UPON USAGE OF THE SCRIPT ARE UP TO THE USER TO DISCOVER ON HIS OR HER OWN,
 		POSSIBLY THROUGH CLAIRVOYANCE OR MAYBE A SPIRITUAL MEDIUM.
-]]
+--]]
 
 script_name = "MOPE"
 script_description = "Mocha Output Parser EXTREME"
@@ -34,11 +34,6 @@ gui.main = {
 			x = 0; y = 0; height = 1; width = 10;
 		label = "Please enter a path to the mocha output. Can only take one file."
 	},
---[[	{ -- 2
-		class = "label";
-			x = 0; y = 2; height = 1; width = 1;
-		label = "File Path:"
-	},--]]
 	{ -- 2
 		class = "textbox";
 			x =0; y = 1; height = 4; width = 10;
@@ -105,30 +100,22 @@ gui.main = {
 			x = 0; y = 9; height = 1; width = 10;
 		label = "Enter the file to the path containing your shear/perspective data."
 	},
---[[	{ -- 16
-		class = "label";
-			x = 0; y = 11; height = 1; width = 1;
-		label = "File Path:"
-	},--]]
 	{ -- 15
 		class = "textbox";
 			x = 0; y = 10; height = 4; width = 10;
 		name = "mocper"; hint = "Again, the full path to the file. No quotes or escapism needed.";
 		text = "Rotation, shear and perspective are not supported yet. Filling in this box will currently do nothing."
 	},
---[[	{ -- 18
-		class = "label";
-			x = 0; y = 15; height = 1; width = 1;
-		label = "Errors:"
-	},--]]
 	{ -- 16
 		class = "textbox";
 			x = 0; y = 15; height = 4; width = 10;
 		name = "preerr"; hint = "Any lines that didn't pass the prerun checks are noted here.";
 	}
 }
--- check that all the selected lines are the same length (in frames), that they are all aligned \an5 and that
--- they all have a \pos() tag.
+
+gui.halp = {
+}
+
 function prerun_czechs(sub, sel, act)
 	aegisub.progress.title("Preparing Gerbils")
 	local accd = {}
@@ -136,50 +123,77 @@ function prerun_czechs(sub, sel, act)
 	accd.lines = {}
 	accd.endframe = aegisub.frame_from_ms(sub[sel[1]].end_time) -- get the end frame of the first selected line
 	accd.startframe = aegisub.frame_from_ms(sub[sel[1]].start_time) -- get the start frame of the first selected line
-	accd.alignerrs = 0 -- initialize error count
-	accd.timeerrs = 0
-	accd.poserrs = 0
+	accd.alignerrs = {} -- initialize error count
+	accd.poserrs = {}
 	accd.errmsg = ""
 	for i, v in pairs(sel) do -- burning cpu cycles like they were no thing
 		local opline = table.copy(sub[v]) -- because I needed an excuse to use this function
-		if accd.styles[opline.style].align ~= 5 and not string.find(opline.text,"\\an5") then -- check for \an5 alignment. Assumes you aren't dumb enough to specify a different alignment in the override tag. This will probably change.
-			accd.errmsg = accd.errmsg..string.format("Line %d (%d of your selection) does not have the proper alignment (\\an5).\nIt will be skipped.\n", v, i)
-			accd.alignerrs = accd.alignerrs + 1
-		else
-			if aegisub.frame_from_ms(opline.end_time) ~= accd.endframe or aegisub.frame_from_ms(opline.start_time) ~= accd.startframe then
-				accd.errmsg = accd.errmsg..string.format("Line %d (%d of your selection) does not match times.\nIt will be adjusted.\n", v, i)
-				accd.timeerrs = accd.timeerrs + 1
-				opline.start_time = aegisub.ms_from_frame(accd.startframe)
-				opline.end_time = aegisub.ms_from_frame(accd.endframe)
-			end
-			if not string.find(opline.text,"\\pos%(([0-9]+%.?[0-9]*),([0-9]+%.?[0-9]*)%)") then
-				accd.errmsg = accd.errmsg..string.format("Line %d (%d of your selection) doesn't have a \\pos() tag.\nIt will be added.\n", v, i)
-				accd.poserrs = accd.poserrs + 1
-				if string.find(opline.text,"{") then -- idk if it's really worth it to do this check or not
-					opline.text = string.gsub(opline.text,"{",string.format("{\\pos(%g,%g)",opline.center,opline.vcenter))
-				else
-					opline.text = string.format("{\\pos(%g,%g)}",opline.center,opline.vcenter)..opline.text
-				end
-			end
-			opline.comment = true
-			sub[v] = opline -- comment out the original line
-			opline.comment = false
-			table.insert(accd.lines,opline)
+		karaskel.preproc_line(sub, accd.meta, accd.styles, opline)
+		local _, _, opline.ali = string.find(opline.text,"\\an([1-9])") -- check for \an[1-9] override in line
+		if not opline.ali then opline.ali = accd.styles[opline.style].align end -- if no override is found, replace with the style's alignment
+		_, _, opline.posx , opline.posy = string.find(opline.text,"\\pos%((%-?[0-9]+%.?[0-9]*),(%-?[0-9]+%.?[0-9]*)%)")
+		if not opline.posx then
+			table.insert(accd.poserrs,{i,v})
+			accd.errmsg = accd.errmsg..string.format("Line %d does not seem to have a position override tag.\n",v)
 		end
+		if opline.ali ~= 5 then -- check for \an5 alignment.
+			table.insert(accd.alignerrs,{i,v})
+			accd.errmsg = accd.errmsg..string.format("Line %d does not seem aligned \\an5.\n", accd.shx, accd.shy, accd.lvidx, accd.lvidy)..accd.errmsg
+		end
+		local opstart, opend = aegisub.frame_from_ms(opline.start_time), aegisub.frame_from_ms(opline.end_time)
+		if opstart < accd.startframe then -- make timings flexible. Number of frames has to match
+			accd.startframe = opstart
+		end
+		if opend > accd.endframe then
+			accd.endframe = opend
+		end
+		opline.comment = true -- not sure if this is actually a good place to do the commenting or not.
+		sub[v] = opline -- comment out the original line
+		opline.comment = false
+		table.insert(accd.lines,opline)
 	end
-	-- add check to see if header video rez is same as loaded video resolution
+	-- add check to see if header video resolution is same as loaded video resolution
 	accd.lvidx, accd.lvidy = aegisub.video_size()
 	accd.shx, accd.shy = accd.meta.res_x, accd.meta.res_y
-	accd.toterrs = accd.alignerrs + accd.timeerrs + accd.poserrs
+	accd.toterrs = #accd.alignerrs + #accd.poserrs
 	if accd.shx ~= accd.lvidx or accd.shy ~= accd.lvidy then 
 		accd.errmsg = string.format("Header x/y res (%d,%d) does not match video (%d,%d).\n", accd.shx, accd.shy, accd.lvidx, accd.lvidy)..accd.errmsg
-		accd.toterrs = accd.toterrs + 1
 	end
-	if accd.toterrs == 1 then accd.errmsg = string.format("%d error (%d time, %d pos, %d alignment)\n",accd.toterrs,accd.timeerrs,accd.poserrs,accd.alignerrs)..accd.errmsg else accd.errmsg = string.format("%d errors (%d time, %d pos, %d alignment)\n",accd.toterrs,accd.timeerrs,accd.poserrs,accd.alignerrs)..accd.errmsg end
-	if #accd.lines == 0 then -- check to see if any of the lines passed the check. If none did, ERROR.
-		error("I-It's not like a-any of your subtitle l-lines have the proper alignment, b-baka.")
+	if accd.toterrs > 0 then
+		accd.errmsg = "The lines noted below may need to be checked.\nThe issues will be forcibly fixed later depending\n"..accd.errmsg
+	else
+		accd.errmsg = "WORD DOG F'RIZZLE NO ERRORS PEACE OUT"..accd.errmsg 
+	end
+	if #accd.lines == 0 then -- check to see if any of the lines were... selected? If none were, ERROR.
+		error("SOMEHOW YOU HAVE SELECTED NO LINES WHATSOEVER. THIS IS AN IMPRESSIVE FEAT")
 	end
 	init_input(accd)
+end
+
+function ficks_pos(line)
+	if not line.ali then
+		return xpos, ypos = line.center, line.vcenter
+	elseif line.ali == 1 then
+	
+	elseif line.ali == 2 then
+	
+	elseif line.ali == 3 then
+	
+	elseif line.ali == 4 then
+	
+	elseif line.ali == 5 then
+	
+	elseif line.ali == 6 then
+	
+	elseif line.ali == 7 then
+	
+	elseif line.ali == 8 then
+	
+	elseif line.ali == 9 then
+	
+	else
+	
+	end
 end
 
 function init_input(lines)
