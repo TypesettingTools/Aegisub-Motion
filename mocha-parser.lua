@@ -95,20 +95,45 @@ gui.main = {
 			x = 9; y = 7; height = 1; width = 1;
 		value = false; name = "per"
 	},
-	{  -- 14
+	{ -- 14
 		class = "label";
-			x = 0; y = 9; height = 1; width = 10;
-		label = "Enter the file to the path containing your shear/perspective data."
+			x = 0; y = 8; height = 1; width = 1;
+		label = "Scale ->"
 	},
 	{ -- 15
+		class = "label";
+			x = 2; y = 8; height = 1; width = 1;
+		label = "Border:"
+	},
+	{ -- 16
+		class = "checkbox";
+			x = 3; y = 8; height = 1; width = 1;
+		value = true; name = "bord"
+	},
+	{ -- 17
+		class = "label";
+			x = 4; y = 8; height = 1; width = 1;
+		label = "Shadow:"
+	},
+	{ -- 18
+		class = "checkbox";
+			x = 5; y = 8; height = 1; width = 1;
+		value = true; name = "shadd"
+	},
+	{ -- 19
+		class = "label";
+			x = 0; y = 10; height = 1; width = 10;
+		label = "Enter the file to the path containing your shear/perspective data."
+	},
+	{ -- 20
 		class = "textbox";
-			x = 0; y = 10; height = 4; width = 10;
+			x = 0; y = 11; height = 4; width = 10;
 		name = "mocper"; hint = "Again, the full path to the file. No quotes or escapism needed.";
 		text = "Rotation, shear and perspective are not supported yet. Filling in this box will currently do nothing."
 	},
-	{ -- 16
+	{ -- 21
 		class = "textbox";
-			x = 0; y = 15; height = 4; width = 10;
+			x = 0; y = 16; height = 4; width = 10;
 		name = "preerr"; hint = "Any lines that didn't pass the prerun checks are noted here.";
 	}
 }
@@ -116,29 +141,57 @@ gui.main = {
 gui.halp = {
 }
 
-function prerun_czechs(sub, sel, act)
+function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 for me.
+	local strt
+	for x = 1,#sub do
+		if string.find(sub[x].raw,"%[[E|e]vents%]") then
+			aegisub.log(5,"[",x)
+			strt = x -- start line of dialogue subs
+			break
+		end
+	end
 	aegisub.progress.title("Preparing Gerbils")
 	local accd = {}
-	accd.meta, accd.styles = karaskel.collect_head(sub,false) -- dump everything I need later into the table so I don't have to pass o9k variables to the other functions
+	local _ = nil
+	accd.meta, accd.styles = karaskel.collect_head(sub, false) -- dump everything I need later into the table so I don't have to pass o9k variables to the other functions
 	accd.lines = {}
 	accd.endframe = aegisub.frame_from_ms(sub[sel[1]].end_time) -- get the end frame of the first selected line
 	accd.startframe = aegisub.frame_from_ms(sub[sel[1]].start_time) -- get the start frame of the first selected line
-	accd.alignerrs = {} -- initialize error count
-	accd.poserrs = {}
+	accd.poserrs, accd.alignerrs = {}, {}
 	accd.errmsg = ""
 	for i, v in pairs(sel) do -- burning cpu cycles like they were no thing
 		local opline = table.copy(sub[v]) -- because I needed an excuse to use this function
+		opline.poserrs, opline.alignerrs = {}, {}
+		local fx,fy,ali,t_start,t_end,t_exp,t_eff,frz = nil
 		karaskel.preproc_line(sub, accd.meta, accd.styles, opline)
-		_, _, opline.ali = string.find(opline.text,"\\an([1-9])") -- check for \an[1-9] override in line
-		if not opline.ali then opline.ali = accd.styles[opline.style].align end -- if no override is found, replace with the style's alignment
+		opline.xscl = {accd.styles[opline.style].scale_x, false}
+		opline.yscl = {accd.styles[opline.style].scale_y, false}
+		opline.ali = {accd.styles[opline.style].align, false}
+		opline.frz = {accd.styles[opline.style].angle, false}
+		opline.bord = {accd.styles[opline.style].outline, false}
+		opline.shadow = {accd.styles[opline.style].shadow, false}
+		_,_,fx = string.find(opline.text,"\\fscx([0-9]+%.?[0-9]*)") -- no negatives, faggot
+		_,_,fy = string.find(opline.text,"\\fscy([0-9]+%.?[0-9]*)")
+		_,_,ali = string.find(opline.text,"\\an([1-9])")
+		_,_,frz = string.find(opline.text,"\\frz(%-?[0-9]+%.?[0-9]*)")
+		_,_,bord = string.find(opline.text,"\\bord([0-9]+%.?[0-9]*)")
+		_,_,shad = string.find(opline.text,"\\shad([0-9]+%.?[0-9]*)")
+		_,_,t_start,t_end,t_exp,t_eff = string.find(opline.text,"\\t%((%-?[0-9]+),(%-?[0-9]+),([0-9%.]*),?([\\%.%-&a-zA-Z0-9]+)%)") -- Only will find one. Stick in a while loop or something later.
 		_,_,opline.posx, opline.posy = string.find(opline.text,"\\pos%((%-?[0-9]+%.?[0-9]*),(%-?[0-9]+%.?[0-9]*)%)")
+		_,_,opline.orgx, opline.orgy = string.find(opline.text,"\\org%((%-?[0-9]+%.?[0-9]*),(%-?[0-9]+%.?[0-9]*)%)")
+		if fx then opline.xscl = {fx, true} end -- table shares value and whether or not the override exists in the line
+		if fy then opline.yscl = {fy, true} end
+		if ali then opline.ali = {ali, true} end
+		if frz then opline.frz = {frz, true} end
+		if bord then opline.bord = {bord, true} end
+		if shad then opline.shad = {shad, true} end
 		if not opline.posx then
 			table.insert(accd.poserrs,{i,v})
-			accd.errmsg = accd.errmsg..string.format("Line %d does not seem to have a position override tag.\n", v)
+			accd.errmsg = accd.errmsg..string.format("Line %d does not seem to have a position override tag.\n", v-strt-1)
 		end
-		if opline.ali ~= 5 then -- check for \an5 alignment.
+		if opline.ali[1] ~= 5 then -- check for \an5 alignment.
 			table.insert(accd.alignerrs,{i,v})
-			accd.errmsg = accd.errmsg..string.format("Line %d does not seem aligned \\an5.\n", v)..accd.errmsg
+			accd.errmsg = accd.errmsg..string.format("Line %d does not seem aligned \\an5.\n", v-strt-1)..accd.errmsg
 		end
 		local opstart, opend = aegisub.frame_from_ms(opline.start_time), aegisub.frame_from_ms(opline.end_time)
 		if opstart < accd.startframe then -- make timings flexible. Number of frames has to match
@@ -152,11 +205,11 @@ function prerun_czechs(sub, sel, act)
 		opline.comment = false
 		table.insert(accd.lines,opline)
 	end
-	-- add check to see if header video resolution is same as loaded video resolution
 	accd.lvidx, accd.lvidy = aegisub.video_size()
 	accd.shx, accd.shy = accd.meta.res_x, accd.meta.res_y
+	accd.totframes = accd.endframe - accd.startframe
 	accd.toterrs = #accd.alignerrs + #accd.poserrs
-	if accd.shx ~= accd.lvidx or accd.shy ~= accd.lvidy then 
+	if accd.shx ~= accd.lvidx or accd.shy ~= accd.lvidy then -- check to see if header video resolution is same as loaded video resolution
 		accd.errmsg = string.format("Header x/y res (%d,%d) does not match video (%d,%d).\n", accd.shx, accd.shy, accd.lvidx, accd.lvidy)..accd.errmsg
 	end
 	if accd.toterrs > 0 then
@@ -195,14 +248,14 @@ function ficks_pos(line)
 end
 
 function init_input(lines)
-	gui.main[16].text = lines.errmsg
+	gui.main[21].text = lines.errmsg
 	local config
 	local opts = 0
 	local button = {"Go", "Abort"}
 	button, config = aegisub.dialog.display(gui.main, button)
 	if button == "Go" then
 		aegisub.progress.title("Mincing Gerbils")
-		frame_by_frame(sub,sel,config)
+		frame_by_frame(lines,config)
 		aegisub.set_undo_point("Apply motion data") -- this doesn't seem to actually do anything
 	else
 		aegisub.progress.task("ABORT")
@@ -218,13 +271,13 @@ end
 
 function parse_input(infile)
 	local ftab = {}
-	local xpos, ypos, xscl, yscl, zrot = {}, {}, {}, {}, {}
 	local sect, care = 0, 0
-	mocha = {}
+	local mocha = {}
+	mocha.xpos, mocha.ypos, mocha.xscl, mocha.yscl, mocha.zrot = {}, {}, {}, {}, {}
 	for line in io.lines(infile) do
-		table.insert(ftab,line) -- dump the lines from the file into a table, elegantly named filetable or ftab for short
+		table.insert(ftab,line) -- dump the lines from the file into a table.
 	end
-	for keys, valu in pairs(ftab) do -- some really ugly parsing code yo
+	for keys, valu in pairs(ftab) do -- some really ugly parsing code yo (direct port from my even uglier ruby script).
 		val = valu:split("\t")
 		if val[1] == "Anchor Point" or val[1] == "Position" or val[1] == "Scale" or val[1] == "Rotation" or val[1] == "End of Keyframe Data" then
 			sect = sect + 1
@@ -236,28 +289,23 @@ function parse_input(infile)
 		end
 		if care == 1 and sect == 1 then
 			if val[2] ~= "X pixels" then
-				table.insert(xpos,tonumber(val[2])) -- is tonumber() actually necessary? Oh well.
-				table.insert(ypos,tonumber(val[3]))
+				table.insert(mocha.xpos,tonumber(val[2])) -- is tonumber() actually necessary? Yes, because the output uses E scientific notation on occasion.
+				table.insert(mocha.ypos,tonumber(val[3]))
 			end
 		elseif care == 1 and sect == 3 then
 			if val[2] ~= "X percent" then
-				table.insert(xscl,tonumber(val[2]))
-				table.insert(yscl,tonumber(val[3]))
+				table.insert(mocha.xscl,tonumber(val[2]))
+				table.insert(mocha.yscl,tonumber(val[3]))
 			end
 		elseif care == 1 and sect == 4 then
 			if val[2] ~= "Degrees" then
-				table.insert(zrot,tonumber(val[2]))
+				table.insert(mocha.zrot,tonumber(val[2]))
 			end
 		end
 	end
-	flength = #xpos
-	if flength == #ypos and flength == #xscl and flength == #yscl and flength == #zrot then -- make sure all of the elements are the same length.
-		mocha.xpos = xpos
-		mocha.ypos = ypos
-		mocha.xscl = xscl
-		mocha.yscl = yscl
-		mocha.zrot = zrot
-		return mocha -- return a table because it's prettier that way
+	mocha.flength = #mocha.xpos
+	if mocha.flength == #mocha.ypos and mocha.flength == #mocha.xscl and mocha.flength == #mocha.yscl and mocha.flength == #mocha.zrot then -- make sure all of the elements are the same length (because I don't trust my own code).
+		return mocha -- hurr durr
 	else
 		--return some system crippling error and wonder how the hell mocha's output is messed up
 		aegisub.log(0,"The mocha data is not internally equal length. Going into crash mode, t-10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0. Blast off.")
@@ -265,44 +313,29 @@ function parse_input(infile)
 	end
 end
 
-function frame_by_frame(sub,sel,opts) -- for some reason, active_line always returns -1 for me.
---[[	meta, styles = karaskel.collect_head(sub,false) -- get the style information
-	mline = {} -- intializing variables
-	mline.line = {} -- have to declare this for the iterator function below to work]]
---	mline.endframe = aegisub.frame_from_ms(sub[sel[1]].end_time) -- get the start frame of the selected line
---	mline.startframe = aegisub.frame_from_ms(sub[sel[1]].start_time) -- get the end frame of the selected line
---	mline.numframes = mline.endframe-mline.startframe -- karaskel grabs an extra frame on the end
-	--[[for i, v in pairs(sel) do -- safe to assume all of the lines are the same length. They damn well better be.
-		if styles[sub[v].style] == 5 or string.find(sub[v].text,"\\an5") then -- check for \an5 alignment.
-			table.insert(mline.line,sub[v])
-			mline.line[#mline.line].comment = true
-			sub[v] = mline.line[#mline.line] -- comment out the original line
-			mline.line[#mline.line].comment = false
-		else
-			aegisub.log(2,"Line no. %d of the lines you selected was not aligned properly (no \\an5 found in the line or style) and is being ignored.\n", i)
-		end
-	end
-	if #mline.line == 0 then --check to see if any of the lines passed the check. If none did, ragequit.
-		error("I-It's not like a-any of your subtitle l-lines have the proper alignment, b-baka.")
-	end]]
+function frame_by_frame(line,opts)
 	mocha = parse_input(opts.mocpat)
-	ecks = 1
-	for i,v in pairs(mline.line) do
-		xscl = {styles[v.style].scale_x, false} -- get scale information from the style
-		yscl = {styles[v.style].scale_y, false}
-		pa,pb,xpos,ypos = string.find(v.text,"\\pos%(([0-9]+%.?[0-9]*),([0-9]+%.?[0-9]*)%)") -- original x/ypos
-		fxa,fxb,fxc = string.find(v.text,"\\fscx([0-9]+%.?[0-9]*)") -- look for override in the line itself
-		fya,fyb,fyc = string.find(v.text,"\\fscy([0-9]+%.?[0-9]*)")
-		if fxc then xscl = {fxc, true} end -- overwrite the scale if overrides are found
-		if fyc then yscl = {fyc, true} end
+	local _ = nil
+	if lines.totframes ~= mocha.flength then -- have to check for total length now that we have start time flexibility
+		error("Number of frames from selected lines differs from number of frames tracked")
+	end
+	for i,v in pairs(line.lines) do
+		v.xscl = {styles[v.style].scale_x, false} -- get scale information from the style
+		v.yscl = {styles[v.style].scale_y, false}
+		local rstartf = aegisub.frame_from_ms(v.start_time) - v.startframe + 1
+		local rendf = v.endframe - aegisub.frame_from_ms(v.start_time) + 1
+		_,_,v.xpos,v.ypos = string.find(v.text,"\\pos%((%-?[0-9]+%.?[0-9]*),(%-?[0-9]+%.?[0-9]*)%)") -- original x/ypos (now with 9001% more support for negative position)
+		_,_,fx = string.find(v.text,"\\fscx([0-9]+%.?[0-9]*)") -- look for override in the line itself
+		_,_,fy = string.find(v.text,"\\fscy([0-9]+%.?[0-9]*)")
+		if fxc then v.xscl = {fxc, true} end -- overwrite the scale if overrides are found
+		if fyc then v.yscl = {fyc, true} end -- can't do this in the same way as the \an overrides in the first part because the script will have to replace overrides if they exist (now that I think about this I will need a check for \\an in the line as well)
 		local diffx, diffy = mocha.xpos[1]-xpos, mocha.ypos[1]-ypos
 		orgtext = v.text -- tables are passed as references.
-		for x = 1,mline.numframes do
+		for x = rstartf,mline.totframes-rendf do
 			v.start_time = aegisub.ms_from_frame(mline.startframe+x-1)
 			v.end_time = aegisub.ms_from_frame(mline.startframe+x)
-			v.text = pos_and_scale(v,mocha,xpos,ypos,diffx,diffy,xscl,yscl,x,opts) -- I AM NOT PASSING ENOUGH PARAMETERS
-			sub.insert(sel[1]+ecks+i,v) -- requires input in a table format.
-			ecks = ecks + 1
+			v.text = pos_and_scale(v,mocha,xpos,ypos,diffx,diffy,xscl,yscl,x,opts) -- I AM NOT PASSING ENOUGH PARAMETERS yeah I'm gonna change this into a table
+			sub.insert(sel[1]+1,v) -- this doesn't insert in the correct order. I will fix it later.
 			v.text = orgtext
 		end
 	end
