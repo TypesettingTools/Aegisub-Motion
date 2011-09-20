@@ -331,11 +331,11 @@ function frame_by_frame(sub,accd,opts)
 	local it = 1
 	for i,v in ipairs(accd.lines) do
 		for k,kv in pairs(v) do
-			aegisub.log(0,"%s => %s\n",k,tostring(kv))
+			aegisub.log(5,"%s => %s\n",k,tostring(kv))
 		end
 		local rstartf = v.startframe - accd.startframe + 1 -- start frame of line relative to start frame of tracked data
 		local rendf = v.endframe - accd.startframe -- end frame of line relative to start frame of tracked data
-		aegisub.log(0,"%d => %d\n\n", rstartf,rendf)
+		aegisub.log(5,"%d => %d\n\n", rstartf,rendf)
 		--if v.xpos and opts.pos then
 		v.diffx, v.diffy = mocha.xpos[rstartf] - v.posx, mocha.ypos[rstartf] - v.posy
 		--else
