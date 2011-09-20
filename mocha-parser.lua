@@ -63,7 +63,7 @@ gui.main = {
 	{ -- 7
 		class = "checkbox";
 			x = 3; y = 7; height = 1; width = 1;
-		value = true; name = "scl"
+		value = false; name = "scl"
 	},
 	{ -- 8
 		class = "label";
@@ -98,7 +98,7 @@ gui.main = {
 	{ -- 14
 		class = "label";
 			x = 0; y = 8; height = 1; width = 1;
-		label = "Scale ->"
+		label = "Scale:"
 	},
 	{ -- 15
 		class = "label";
@@ -108,7 +108,7 @@ gui.main = {
 	{ -- 16
 		class = "checkbox";
 			x = 3; y = 8; height = 1; width = 1;
-		value = true; name = "bord"
+		value = false; name = "bord"
 	},
 	{ -- 17
 		class = "label";
@@ -118,7 +118,7 @@ gui.main = {
 	{ -- 18
 		class = "checkbox";
 			x = 5; y = 8; height = 1; width = 1;
-		value = true; name = "shadd"
+		value = false; name = "shadd"
 	},
 	{ -- 19
 		class = "label";
@@ -129,7 +129,7 @@ gui.main = {
 		class = "textbox";
 			x = 0; y = 11; height = 4; width = 10;
 		name = "mocper"; hint = "Again, the full path to the file. No quotes or escapism needed.";
-		text = "Rotation, shear and perspective are not supported yet. Filling in this box will currently do nothing."
+		text = "CURRENTLY ONLY POSITION WORKS, USE AT YOUR OWN RISK"
 	},
 	{ -- 21
 		class = "textbox";
@@ -162,6 +162,7 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
 	for i, v in pairs(sel) do -- burning cpu cycles like they were no thing
 		local opline = table.copy(sub[v]) -- because I needed an excuse to use this function
 		opline.poserrs, opline.alignerrs = {}, {}
+		opline.num = v
 		local fx,fy,ali,t_start,t_end,t_exp,t_eff,frz = nil
 		karaskel.preproc_line(sub, accd.meta, accd.styles, opline)
 		opline.xscl = {accd.styles[opline.style].scale_x, false}
@@ -173,7 +174,7 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
 		_,_,fx = string.find(opline.text,"\\fscx([0-9]+%.?[0-9]*)") -- no negatives, faggot
 		_,_,fy = string.find(opline.text,"\\fscy([0-9]+%.?[0-9]*)")
 		_,_,ali = string.find(opline.text,"\\an([1-9])")
-		_,_,frz = string.find(opline.text,"\\frz(%-?[0-9]+%.?[0-9]*)")
+		_,_,frz = string.find(opline.text,"\\frz(%-?[0-9]+%.?[0-9]*)") -- debug this later
 		_,_,bord = string.find(opline.text,"\\bord([0-9]+%.?[0-9]*)")
 		_,_,shad = string.find(opline.text,"\\shad([0-9]+%.?[0-9]*)")
 		_,_,t_start,t_end,t_exp,t_eff = string.find(opline.text,"\\t%((%-?[0-9]+),(%-?[0-9]+),([0-9%.]*),?([\\%.%-&a-zA-Z0-9]+)%)") -- Only will find one. Stick in a while loop or something later.
@@ -193,17 +194,17 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
 			table.insert(accd.alignerrs,{i,v})
 			accd.errmsg = accd.errmsg..string.format("Line %d does not seem aligned \\an5.\n", v-strt-1)..accd.errmsg
 		end
-		local opstart, opend = aegisub.frame_from_ms(opline.start_time), aegisub.frame_from_ms(opline.end_time)
-		if opstart < accd.startframe then -- make timings flexible. Number of frames has to match
-			accd.startframe = opstart
+		opline.startframe, opline.endframe = aegisub.frame_from_ms(opline.start_time), aegisub.frame_from_ms(opline.end_time)
+		if opline.startframe < accd.startframe then -- make timings flexible. Number of frames total has to match the tracked data but
+			accd.startframe = opline.startframe
 		end
-		if opend > accd.endframe then
-			accd.endframe = opend
+		if opline.endframe > accd.endframe then -- individual lines 
+			accd.endframe = opline.endframe
 		end
+		table.insert(accd.lines,opline)
 		opline.comment = true -- not sure if this is actually a good place to do the commenting or not.
 		sub[v] = opline -- comment out the original line
-		opline.comment = false
-		table.insert(accd.lines,opline)
+		opline.comment = false -- problem is this comments out the lines even if cancelled at main dialogue. Oh well, idgaf.
 	end
 	accd.lvidx, accd.lvidy = aegisub.video_size()
 	accd.shx, accd.shy = accd.meta.res_x, accd.meta.res_y
@@ -215,47 +216,55 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
 	if accd.toterrs > 0 then
 		accd.errmsg = "The lines noted below may need to be checked.\nThe issues will be forcibly fixed later depending\non what tracking data you choose to apply\n"..accd.errmsg
 	else
-		accd.errmsg = "WORD DOG F'RIZZLE NO ERRORS PEACE OUT"..accd.errmsg 
+		accd.errmsg = "None of your selected lines appear to be problematic.\n"..accd.errmsg 
 	end
 	if #accd.lines == 0 then -- check to see if any of the lines were... selected? If none were, ERROR.
 		error("SOMEHOW YOU HAVE SELECTED NO LINES WHATSOEVER. THIS IS AN IMPRESSIVE FEAT")
 	end
-	init_input(accd)
+	init_input(sub,accd)
 end
 
-function ficks_pos(line)
-	if line.ali == 1 then
-		return line.center, line.vcenter
-	elseif line.ali == 2 then
-
-	elseif line.ali == 3 then
-
-	elseif line.ali == 4 then
-
-	elseif line.ali == 5 then
-
-	elseif line.ali == 6 then
-
-	elseif line.ali == 7 then
-
-	elseif line.ali == 8 then
-
-	elseif line.ali == 9 then
-
+function fix_pos(line) -- rotation srsly fucks this up, find a workaround or something. (or just not do the autocorrection at all? ffffff)
+	if line.ali[1] == 1 then -- do line.x and line.y?
+		xdif = line.center - line.left
+		ydif = line.vcenter - line.bottom
+		if line.xpos then
+			line.xpos = line.xpos + xdif
+			line.ypos = line.ypos + ydif
+		else
+			line.xpos = line.center
+			line.ypos = line.vcenter
+		end
+	elseif line.ali[1] == 2 then
+		--line.center, line.bottom
+	elseif line.ali[1] == 3 then
+		--line.right, line.bottom
+	elseif line.ali[1] == 4 then
+		--line.left, line.vcenter
+	elseif line.ali[1] == 5 then
+		--line.center, line.vcenter
+	elseif line.ali[1] == 6 then
+		--line.right, line.vcenter
+	elseif line.ali[1] == 7 then
+		--line.left, line.top
+	elseif line.ali[1] == 8 then
+		--line.center, line.top
+	elseif line.ali[1] == 9 then
+		--line.right, line.top
 	else
-
+		error("No alignment for the given line? This is unpossible")
 	end
 end
 
-function init_input(lines)
-	gui.main[21].text = lines.errmsg
+function init_input(sub,accd)
+	gui.main[21].text = accd.errmsg
 	local config
 	local opts = 0
 	local button = {"Go", "Abort"}
 	button, config = aegisub.dialog.display(gui.main, button)
 	if button == "Go" then
 		aegisub.progress.title("Mincing Gerbils")
-		frame_by_frame(lines,config)
+		frame_by_frame(sub,accd,config)
 		aegisub.set_undo_point("Apply motion data") -- this doesn't seem to actually do anything
 	else
 		aegisub.progress.task("ABORT")
@@ -313,35 +322,69 @@ function parse_input(infile)
 	end
 end
 
-function frame_by_frame(line,opts)
+function frame_by_frame(sub,accd,opts)
 	mocha = parse_input(opts.mocpat)
 	local _ = nil
-	if lines.totframes ~= mocha.flength then -- have to check for total length now that we have start time flexibility
+	if accd.totframes ~= mocha.flength then -- have to check for total length now that we have time flexibility
 		error("Number of frames from selected lines differs from number of frames tracked")
 	end
-	for i,v in pairs(line.lines) do
-		v.xscl = {styles[v.style].scale_x, false} -- get scale information from the style
-		v.yscl = {styles[v.style].scale_y, false}
-		local rstartf = aegisub.frame_from_ms(v.start_time) - v.startframe + 1
-		local rendf = v.endframe - aegisub.frame_from_ms(v.start_time) + 1
-		_,_,v.xpos,v.ypos = string.find(v.text,"\\pos%((%-?[0-9]+%.?[0-9]*),(%-?[0-9]+%.?[0-9]*)%)") -- original x/ypos (now with 9001% more support for negative position)
-		_,_,fx = string.find(v.text,"\\fscx([0-9]+%.?[0-9]*)") -- look for override in the line itself
-		_,_,fy = string.find(v.text,"\\fscy([0-9]+%.?[0-9]*)")
-		if fxc then v.xscl = {fxc, true} end -- overwrite the scale if overrides are found
-		if fyc then v.yscl = {fyc, true} end -- can't do this in the same way as the \an overrides in the first part because the script will have to replace overrides if they exist (now that I think about this I will need a check for \\an in the line as well)
-		local diffx, diffy = mocha.xpos[1]-xpos, mocha.ypos[1]-ypos
-		orgtext = v.text -- tables are passed as references.
-		for x = rstartf,mline.totframes-rendf do
-			v.start_time = aegisub.ms_from_frame(mline.startframe+x-1)
-			v.end_time = aegisub.ms_from_frame(mline.startframe+x)
-			v.text = pos_and_scale(v,mocha,xpos,ypos,diffx,diffy,xscl,yscl,x,opts) -- I AM NOT PASSING ENOUGH PARAMETERS yeah I'm gonna change this into a table
-			sub.insert(sel[1]+1,v) -- this doesn't insert in the correct order. I will fix it later.
+	local it = 1
+	for i,v in ipairs(accd.lines) do
+		for k,kv in pairs(v) do
+			aegisub.log(0,"%s => %s\n",k,tostring(kv))
+		end
+		local rstartf = v.startframe - accd.startframe + 1 -- start frame of line relative to start frame of tracked data
+		local rendf = v.endframe - accd.startframe -- end frame of line relative to start frame of tracked data
+		aegisub.log(0,"%d => %d\n\n", rstartf,rendf)
+		--if v.xpos and opts.pos then
+		v.diffx, v.diffy = mocha.xpos[rstartf] - v.posx, mocha.ypos[rstartf] - v.posy
+		--else
+		--	fix_pos(v)
+		--end
+		local orgtext = v.text -- tables are passed as references.
+		for x = rstartf,rendf do
+			v.start_time = aegisub.ms_from_frame(accd.startframe+x-1)
+			v.end_time = aegisub.ms_from_frame(accd.startframe+x)
+			if opts.pos and opts.scl and opts.rot then -- is there conceivably a better way to do this?
+				v.text = pos_scl_rot(v,mocha,x)
+			elseif opts.pos and opts.scl and not opts.rot then
+				v.text = pos_scl(v,mocha,x)
+			elseif opts.pos and not opts.scl and opts.rot then
+				v.text = pos_rot(v,mocha,x)
+			elseif not opts.pos and opts.scl and opts.rot then
+				v.text = scl_rot(v,mocha,x)
+			elseif opts.pos and not opts.scl and not opts.rot then
+				v.text = jpos(v,mocha,x,diffx,diffy)
+			elseif not opts.pos and opts.scl and not opts.rot then
+				v.text = jscl(v,mocha,x)
+			elseif not opts.pos and not opts.scl and opts.rot then
+				v.text = jrot(v,mocha,x)
+			else
+				v.text = v.text
+			end
+			sub.insert(v.num+it,v) -- I think this is fixed?
+			it = it + 1
 			v.text = orgtext
 		end
 	end
 end
 
-function pos_and_scale(curfline,mocha,oxpos,oypos,diffx,diffy,xscl,yscl,i,opt)
+function jpos(line,mocha,iter)
+	xpos = mocha.xpos[iter]-line.diffx
+	ypos = mocha.ypos[iter]-line.diffy
+	newtxt = string.gsub(line.text,"\\pos%(([0-9]+%.?[0-9]*),([0-9]+%.?[0-9]*)%)",string.format("\\pos(%g,%g)",round(xpos,2),round(ypos,2))) -- custom 
+	return newtxt
+end
+
+function jscl(line)
+
+end
+
+function jrot(line)
+
+end
+
+function pos_scl(curfline,mocha,oxpos,oypos,diffx,diffy,xscl,yscl,i,opt)
 	if opt.scl and opt.pos then
 		local xsclf = mocha.xscl[i]*xscl[1]/100
 		local xpos = mocha.xpos[i]-(diffx*mocha.xscl[i]/100)
