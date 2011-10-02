@@ -404,9 +404,12 @@ function frame_by_frame(sub,accd,opts)
 end
 
 function jpos(line,mocha,iter,opts)
-	xpos = mocha.xpos[iter]-line.xdiff
-	ypos = mocha.ypos[iter]-line.ydiff
-	newtxt = string.gsub(line.text,"\\pos%(([0-9]+%.?[0-9]*),([0-9]+%.?[0-9]*)%)",string.format("\\pos(%g,%g)",round(xpos,opts.pround),round(ypos,opts.pround)))
+	local xpos = mocha.xpos[iter]-line.xdiff
+	local ypos = mocha.ypos[iter]-line.ydiff
+	local tab = string.format("{\\pos(%g,%g)",round(xpos,opts.pround),round(ypos,opts.pround))
+	local newtxt = string.gsub(line.text,"\\pos%(([0-9]+%.?[0-9]*),([0-9]+%.?[0-9]*)%)","") -- ONLY ONE POSITION ALLOWED
+	tag = tag.."}"
+	newtxt = tag..newtxt
 	return newtxt
 end
 
@@ -456,7 +459,7 @@ function pos_scl(line,mocha,iter,rstart,opts)
 	local tag = string.format("{\\pos(%g,%g)\\fscx%g\\fscy%g",round(xpos,opts.pround),round(ypos,opts.pround),round(xscl,opts.sround),round(yscl,opts.sround))
 	local newtxt = string.gsub(line.text,"\\fscx([0-9]+%.?[0-9]*)","",1)
 	newtxt = string.gsub(newtxt,"\\fscy([0-9]+%.?[0-9]*)","",1)
-	newtxt = string.gsub(newtxt,"\\pos%(([0-9]+%.?[0-9]*),([0-9]+%.?[0-9]*)%)","",1)
+	newtxt = string.gsub(newtxt,"\\pos%(([0-9]+%.?[0-9]*),([0-9]+%.?[0-9]*)%)","")
 	if opts.bord then 
 		local xbord = line.xbord[1]*round(mult,opts.sround) -- round beforehand to minimize random float errors
 		local ybord = line.ybord[1]*round(mult,opts.sround)
