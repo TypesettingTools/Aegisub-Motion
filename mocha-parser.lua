@@ -181,11 +181,11 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
 		opline.num = v
 		local fx,fy,ali,t_start,t_end,t_exp,t_eff,frz,xbord,ybord,xshad,yshad = nil
 		karaskel.preproc_line(sub, accd.meta, accd.styles, opline) -- get that extra position data
-		opline.xscl = {accd.styles[opline.style].scale_x, false} -- table[1] is the value table[2] is if the value comes from the line (true) or the header (false)
-		opline.yscl = {accd.styles[opline.style].scale_y, false}
-		opline.ali = {accd.styles[opline.style].align, false}
+		opline.xscl = accd.styles[opline.style].scale_x -- table[1] is the value table[2] is if the value comes from the line (true) or the header (false)
+		opline.yscl = accd.styles[opline.style].scale_y
+		opline.ali = {accd.styles[opline.style].align, false} -- this tag is necessary
 		opline.frz = {accd.styles[opline.style].angle, false}
-		opline.xbord = {accd.styles[opline.style].outline, false} -- because we're trying to cover ALL RELEVANT TAGS
+		opline.xbord = {accd.styles[opline.style].outline, false}
 		opline.ybord = {accd.styles[opline.style].outline, false}
 		opline.xshad = {accd.styles[opline.style].shadow, false}
 		opline.yshad = {accd.styles[opline.style].shadow, false}
@@ -199,8 +199,8 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
 		_,_,opline.xpos,opline.ypos = string.find(opline.text,"\\pos%((%-?[0-9]+%.?[0-9]*),(%-?[0-9]+%.?[0-9]*)%)") -- I think I'll set it to explicitly ignore lines without \pos
 		_,_,opline.xorg,opline.yorg = string.find(opline.text,"\\org%((%-?[0-9]+%.?[0-9]*),(%-?[0-9]+%.?[0-9]*)%)")
 		--aegisub.log(5,"%s, %s, %s\n",tostring(opline.ali[1]),tostring(opline.ali[2]),tostring(ali))
-		if fx then opline.xscl = {tonumber(fx), true} end
-		if fy then opline.yscl = {tonumber(fy), true} end
+		if fx then opline.xscl = tonumber(fx) end
+		if fy then opline.yscl = tonumber(fy) end
 		if ali then opline.ali = {tonumber(ali), true} end
 		--aegisub.log(5,"%s, %s, %s\n",tostring(opline.ali[1]),tostring(opline.ali[2]),tostring(ali))
 		if frz then opline.frz = {tonumber(frz), true} end
@@ -389,7 +389,7 @@ function frame_by_frame(sub,accd,opts)
 			elseif opts.pos and not opts.scl and not opts.rot then -- pos
 				v.text = jpos(v,mocha,x,opts)
 			elseif not opts.pos and opts.scl and not opts.rot then -- scl
-				v.text = jscl(v,mocha,x,opts)
+				v.text = jscl(v,mocha,x,rstartf,opts)
 			elseif not opts.pos and not opts.scl and opts.rot then -- rot
 				-- v.text = jrot(v,mocha,x,opts)
 				error("NO ROTATION SUPPORT")
@@ -410,51 +410,37 @@ function jpos(line,mocha,iter,opts)
 	return newtxt
 end
 
-function jscl(line) -- I actually have no idea why you would want to do this but WHATEVER
-	if line.xscl[2] and line.yscl[2] then -- check for override tags
-		newtxt = string.gsub(line.text,"\\fscx([0-9]+%.?[0-9]*)",string.format("\\fscx%g",round(xsclf,opts.sround)),1) -- allow custom rounding?
-		newtxt = string.gsub(newtxt,"\\fscy([0-9]+%.?[0-9]*)",string.format("\\fscy%g",round(ysclf,opts.sround)),1)
-	elseif line.xscl[2] then
-		newtxt = string.gsub(line.text,"\\fscx([0-9]+%.?[0-9]*)",string.format("\\fscx%g\\fscy%g",round(xsclf,opts.sround),round(ysclf,opts.sround)),1)
-	elseif line.yscl[2] then
-		newtxt = string.gsub(line.text,"\\fscx([0-9]+%.?[0-9]*)",string.format("\\fscx%g\\fscy%g",round(xsclf,opts.sround),round(ysclf,opts.sround)),1)
-	else
-		newtxt = string.gsub(line.text,"{",string.format("\\fscx%g\\fscy%g",round(xsclf,opts.sround),round(ysclf,opts.sround)),1) -- will only grab the first {
-	end
-	if opts.bord then -- There HAS to be a better way to do this.
+function jscl(line,mocha,iter,rstart,opts) -- I actually have no idea why you would want to do this but WHATEVER
+	local tag = string.format("{\\fscx%g\\fscy%g",round(line.xscl,opts.sround),round(line.yscl,opts.sround))
+	local newtxt = string.gsub(line.text,"\\fscx([0-9]+%.?[0-9]*)","",1) -- safe, because it just returns the untouched string if no match
+	newtxt = string.gsub(newtext,"\\fscy([0-9]+%.?[0-9]*)","",1)
+	if opts.bord then 
 		local xbord = line.xbord[1]*round(mocha.xscl[iter]/mocha.xscl[rstart],opts.sround) -- round beforehand to minimize random float errors
 		local ybord = line.ybord[1]*round(mocha.yscl[iter]/mocha.yscl[rstart],opts.sround)
-		if xbord == ybord and line.xbord[2] then -- hm
-			newtxt = string.gsub(newtxt,"\\bord(%-?[0-9]+%.?[0-9]*)",string.format("\\bord%g",round(xbord,opts.sround)),1)
-		elseif line.xbord[1] == line.ybord[1] and line.xbord[2] == nil then
-			newtxt = string.gsub(newtxt,"\\xbord(%-?[0-9]+%.?[0-9]*)",string.format("\\bord%g",round(xbord,opts.sround)),1)
-			newtxt = string.gsub(newtxt,"\\ybord(%-?[0-9]+%.?[0-9]*)","",1)
+		if xbord == ybord then
+			tag = tag..string.format("\\bord%g",round(xbord,opts.sround))
 		else
-			if line.xbord[2] == nil then
-				newtxt = string.gsub(newtxt,"\\xbord(%-?[0-9]+%.?[0-9]*)",string.format("\\xbord%g",round(xbord,opts.sround)),1)
-			end
-			if line.ybord[2] == nil then
-				newtxt = string.gsub(newtxt,"\\ybord(%-?[0-9]+%.?[0-9]*)",string.format("\\ybord%g",round(ybord,opts.sround)),1)
-			end
+			tag = tag..string.format("\\xbord%g\\ybord%g",round(xbord,opts.sround),round(ybord,opts.sround))
 		end
+		newtxt = string.gsub(newtext,"\\xbord([0-9]+%.?[0-9]*)","",1)
+		newtxt = string.gsub(newtext,"\\ybord([0-9]+%.?[0-9]*)","",1)
+		newtxt = string.gsub(newtext,"\\bord([0-9]+%.?[0-9]*)","",1)
 	end
-	if opts.bord then -- There HAS to be a better way to do this.
-		local xshad = line.xshad[1]*round(mocha.xscl[iter]/mocha.xscl[rstart],opts.sround) -- round beforehand to minimize random float errors
-		local yshad = line.yshad[1]*round(mocha.yscl[iter]/mocha.yscl[rstart],opts.sround)
-		if xshad == yshad and line.xshad[2] then -- hm
-			newtxt = string.gsub(newtxt,"\\bord(%-?[0-9]+%.?[0-9]*)",string.format("\\shad%g",round(xshad,opts.sround)),1)
-		elseif line.xshad[1] == line.yshad[1] and line.xshad[2] == nil then
-			newtxt = string.gsub(newtxt,"\\xshad(%-?[0-9]+%.?[0-9]*)",string.format("\\shad%g",round(xshad,opts.sround)),1)
-			newtxt = string.gsub(newtxt,"\\yshad(%-?[0-9]+%.?[0-9]*)","",1)
+	if opts.shad then
+		local xshad = line.xshad[1]*round(mocha.xscl[iter]/mocha.xscl[rstart],opts.sround) -- scale shadow the same way as everything else
+		local yshad = line.yshad[1]*round(mocha.yscl[iter]/mocha.yscl[rstart],opts.sround) -- hope it turns out as desired
+		if xshad == yshad then
+			tag = tag..string.format("\\shad%g",round(xshad,opts.sround))
 		else
-			if line.xshad[2] == nil then
-				newtxt = string.gsub(newtxt,"\\xshad(%-?[0-9]+%.?[0-9]*)",string.format("\\xshad%g",round(xshad,opts.sround)),1)
-			end
-			if line.yshad[2] == nil then
-				newtxt = string.gsub(newtxt,"\\yshad(%-?[0-9]+%.?[0-9]*)",string.format("\\yshad%g",round(yshad,opts.sround)),1)
-			end
+			tag = tag..string.format("\\xbord%g\\ybord%g",round(xshad,opts.sround),round(yshad,opts.sround))
 		end
+		newtxt = string.gsub(newtext,"\\xshad(%-?[0-9]+%.?[0-9]*)","",1)
+		newtxt = string.gsub(newtext,"\\yshad(%-?[0-9]+%.?[0-9]*)","",1)
+		newtxt = string.gsub(newtext,"\\shad(%-?[0-9]+%.?[0-9]*)","",1)
 	end
+	tag = tag.."}"
+	newtxt = tag..newtxt
+	return newtxt
 end
 
 function jrot(line)
@@ -462,58 +448,41 @@ function jrot(line)
 end
 
 function pos_scl(line,mocha,iter,rstart,opts)
-	local xsclf = mocha.xscl[iter]*line.xscl[1]/mocha.xscl[rstart] -- DIVISION IS SLOW
-	local ysclf = mocha.yscl[iter]*line.yscl[1]/mocha.yscl[rstart]
-	local xpos = mocha.xpos[iter]-(line.xdiff*mocha.xscl[iter])/mocha.xscl[rstart] -- currently just a guess?
-	local ypos = mocha.ypos[iter]-(line.ydiff*mocha.yscl[iter])/mocha.yscl[rstart]
-	if line.xscl[2] and line.yscl[2] then -- check for override tags
-		newtxt = string.gsub(line.text,"\\fscx([0-9]+%.?[0-9]*)",string.format("\\fscx%g",round(xsclf,opts.sround)),1) -- allow custom rounding?
-		newtxt = string.gsub(newtxt,"\\fscy([0-9]+%.?[0-9]*)",string.format("\\fscy%g",round(ysclf,opts.sround)),1)
-		newtxt = string.gsub(newtxt,"\\pos%(([0-9]+%.?[0-9]*),([0-9]+%.?[0-9]*)%)",string.format("\\pos(%g,%g)",round(xpos,opts.pround),round(ypos,opts.pround)),1)
-	elseif line.xscl[2] then
-		newtxt = string.gsub(line.text,"\\fscx([0-9]+%.?[0-9]*)",string.format("\\fscx%g\\fscy%g",round(xsclf,opts.sround),round(ysclf,opts.sround)),1)
-		newtxt = string.gsub(newtxt,"\\pos%(([0-9]+%.?[0-9]*),([0-9]+%.?[0-9]*)%)",string.format("\\pos(%g,%g)",round(xpos,opts.pround),round(ypos,opts.pround)),1)
-	elseif line.yscl[2] then
-		newtxt = string.gsub(line.text,"\\fscx([0-9]+%.?[0-9]*)",string.format("\\fscx%g\\fscy%g",round(xsclf,opts.sround),round(ysclf,opts.sround)),1)
-		newtxt = string.gsub(newtxt,"\\pos%(([0-9]+%.?[0-9]*),([0-9]+%.?[0-9]*)%)",string.format("\\pos(%g,%g)",round(xpos,opts.pround),round(ypos,opts.pround)),1)
-	else
-		newtxt = string.gsub(line.text,"\\pos%(([0-9]+%.?[0-9]*),([0-9]+%.?[0-9]*)%)",string.format("\\pos(%g,%g)\\fscx%g\\fscy%g",round(xpos,opts.pround),round(ypos,opts.pround),round(xsclf,2),round(ysclf,2)),1)
-	end
-	--if opt.bord and line.bord[2] then
-	if opts.bord then -- There HAS to be a better way to do this.
-		local xbord = line.xbord[1]*round(mocha.xscl[iter]/mocha.xscl[rstart],opts.sround) -- round beforehand to minimize random float errors
-		local ybord = line.ybord[1]*round(mocha.yscl[iter]/mocha.yscl[rstart],opts.sround)
-		if xbord == ybord and line.xbord[2] then -- hm
-			newtxt = string.gsub(newtxt,"\\bord(%-?[0-9]+%.?[0-9]*)",string.format("\\bord%g",round(xbord,opts.sround)),1)
-		elseif line.xbord[1] == line.ybord[1] and line.xbord[2] == nil then
-			newtxt = string.gsub(newtxt,"\\xbord(%-?[0-9]+%.?[0-9]*)",string.format("\\bord%g",round(xbord,opts.sround)),1)
-			newtxt = string.gsub(newtxt,"\\ybord(%-?[0-9]+%.?[0-9]*)","",1)
+	local xscl = mocha.xscl[iter]*line.xscl/mocha.xscl[rstart] -- DIVISION IS SLOW
+	local yscl = mocha.yscl[iter]*line.yscl/mocha.yscl[rstart]
+	local mult = mocha.yscl[iter]/mocha.yscl[rstart]
+	local xpos = mocha.xpos[iter]-(line.xdiff*mult) -- currently just a guess?
+	local ypos = mocha.ypos[iter]-(line.ydiff*mult)
+	local tag = string.format("{\\pos(%g,%g)\\fscx%g\\fscy%g",round(xpos,opts.pround),round(ypos,opts.pround),round(xscl,opts.sround),round(yscl,opts.sround))
+	local newtxt = string.gsub(line.text,"\\fscx([0-9]+%.?[0-9]*)","",1)
+	newtxt = string.gsub(newtxt,"\\fscy([0-9]+%.?[0-9]*)","",1)
+	newtxt = string.gsub(newtxt,"\\pos%(([0-9]+%.?[0-9]*),([0-9]+%.?[0-9]*)%)","",1)
+	if opts.bord then 
+		local xbord = line.xbord[1]*round(mult,opts.sround) -- round beforehand to minimize random float errors
+		local ybord = line.ybord[1]*round(mult,opts.sround)
+		if xbord == ybord then
+			tag = tag..string.format("\\bord%g",round(xbord,opts.sround))
 		else
-			if line.xbord[2] == nil then
-				newtxt = string.gsub(newtxt,"\\xbord(%-?[0-9]+%.?[0-9]*)",string.format("\\xbord%g",round(xbord,opts.sround)),1)
-			end
-			if line.ybord[2] == nil then
-				newtxt = string.gsub(newtxt,"\\ybord(%-?[0-9]+%.?[0-9]*)",string.format("\\ybord%g",round(ybord,opts.sround)),1)
-			end
+			tag = tag..string.format("\\xbord%g\\ybord%g",round(xbord,opts.sround),round(ybord,opts.sround))
 		end
+		newtxt = string.gsub(newtext,"\\xbord([0-9]+%.?[0-9]*)","",1)
+		newtxt = string.gsub(newtext,"\\ybord([0-9]+%.?[0-9]*)","",1)
+		newtxt = string.gsub(newtext,"\\bord([0-9]+%.?[0-9]*)","",1)
 	end
-	if opts.bord then -- There HAS to be a better way to do this.
-		local xshad = line.xshad[1]*round(mocha.xscl[iter]/mocha.xscl[rstart],opts.sround) -- round beforehand to minimize random float errors
-		local yshad = line.yshad[1]*round(mocha.yscl[iter]/mocha.yscl[rstart],opts.sround)
-		if xshad == yshad and line.xshad[2] then -- hm
-			newtxt = string.gsub(newtxt,"\\bord(%-?[0-9]+%.?[0-9]*)",string.format("\\shad%g",round(xshad,opts.sround)),1)
-		elseif line.xshad[1] == line.yshad[1] and line.xshad[2] == nil then
-			newtxt = string.gsub(newtxt,"\\xshad(%-?[0-9]+%.?[0-9]*)",string.format("\\shad%g",round(xshad,opts.sround)),1)
-			newtxt = string.gsub(newtxt,"\\yshad(%-?[0-9]+%.?[0-9]*)","",1)
+	if opts.shad then
+		local xshad = line.xshad[1]*round(mocha.xscl[iter]/mocha.xscl[rstart],opts.sround) -- scale shadow the same way as everything else
+		local yshad = line.yshad[1]*round(mocha.yscl[iter]/mocha.yscl[rstart],opts.sround) -- hope it turns out as desired
+		if xshad == yshad then
+			tag = tag..string.format("\\shad%g",round(xshad,opts.sround))
 		else
-			if line.xshad[2] == nil then
-				newtxt = string.gsub(newtxt,"\\xshad(%-?[0-9]+%.?[0-9]*)",string.format("\\xshad%g",round(xshad,opts.sround)),1)
-			end
-			if line.yshad[2] == nil then
-				newtxt = string.gsub(newtxt,"\\yshad(%-?[0-9]+%.?[0-9]*)",string.format("\\yshad%g",round(yshad,opts.sround)),1)
-			end
+			tag = tag..string.format("\\xbord%g\\ybord%g",round(xshad,opts.sround),round(yshad,opts.sround))
 		end
+		newtxt = string.gsub(newtext,"\\xshad(%-?[0-9]+%.?[0-9]*)","",1)
+		newtxt = string.gsub(newtext,"\\yshad(%-?[0-9]+%.?[0-9]*)","",1)
+		newtxt = string.gsub(newtext,"\\shad(%-?[0-9]+%.?[0-9]*)","",1)
 	end
+	tag = tag.."}"
+	newtxt = tag..newtxt
 	return newtxt
 end
 
