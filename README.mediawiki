@@ -1,9 +1,9 @@
-Position and scale now both work (I think).
+ <nowiki>Position and scale now both work (I think).
 If you are applying scale data, you can also optionally choose to scale border and shadow (on by default).
-I have only tested them once. Your mileage may vary.
+I have only tested them once. Your mileage may vary.</nowiki>
 
 ''Scaled output will only display properly when played back with libass. VSfilter only accepts integer values for scale.''
 This issue may or may not be dealt with later.
 
-This script is a horrible amalgam of duct tape, ugly string matching and generally all around terrible code. 
-If for some reason you actually want to use it, feel free to contact me on rizon.
+ <nowiki>This script is a horrible amalgam of duct tape, ugly string matching and generally all around terrible code.
+ If for some reason you actually want to use it, feel free to contact me on rizon.</nowiki>
