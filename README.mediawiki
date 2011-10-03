@@ -1,6 +1,5 @@
 Position and scale now both work (I think).<br>If you are applying scale data, you can also optionally choose to scale border and shadow (on by default).<br>I have only tested them once. Your mileage may vary.
 
-''Scaled output will only display properly when played back with libass. VSfilter only accepts integer values for scale.''
-This issue may or may not be dealt with later.
+''Scaled output will only display properly when played back with libass. VSfilter only accepts integer values for scale.''<br>This issue may or may not be dealt with later (If I can be bothered with staged transforms).
 
 This script is a horrible amalgam of duct tape, ugly string matching and generally all around terrible code.<br>If for some reason you actually want to use it, feel free to contact me on rizon.
