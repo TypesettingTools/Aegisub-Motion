@@ -69,7 +69,7 @@ gui.main = {
 	{ -- 8
 		class = "checkbox";
 			x = 1; y = 8; height = 1; width = 1;
-		value = false; name = "scl"
+		value = true; name = "scl"
 	},
 	{ -- 9
 		class = "intedit"; -- these are both retardedly wide and retardedly tall. They are downright frustrating to position in the interface.
@@ -129,7 +129,7 @@ gui.main = {
 	{ -- 16
 		class = "checkbox";
 			x = 3; y = 8; height = 1; width = 1;
-		value = false; name = "bord"
+		value = true; name = "bord"
 	},
 	{ -- 17
 		class = "label";
@@ -139,7 +139,7 @@ gui.main = {
 	{ -- 18
 		class = "checkbox";
 			x = 5; y = 8; height = 1; width = 1;
-		value = false; name = "shad"
+		value = true; name = "shad"
 	},
 	{ -- 19
 		class = "label";
@@ -150,7 +150,7 @@ gui.main = {
 		class = "textbox";
 			x = 0; y = 12; height = 4; width = 10;
 		name = "mocper"; hint = "Again, the full path to the file. No quotes or escapism needed.";
-		text = "CURRENTLY ONLY POSITION WORKS, I HAVE NFI IF SCALE DOES. I'VE YET TO TEST IT."
+		text = "POSITION AND SCALE SHOULD BOTH WORK, ALTHOUGH\nI'VE ONLY TESTED SCALE ONCE. YMMV."
 	}
 }
 
@@ -425,9 +425,9 @@ function jscl(line,mocha,iter,rstart,opts) -- I actually have no idea why you wo
 		else
 			tag = tag..string.format("\\xbord%g\\ybord%g",round(xbord,opts.sround),round(ybord,opts.sround))
 		end
-		newtxt = string.gsub(newtext,"\\xbord([0-9]+%.?[0-9]*)","",1)
-		newtxt = string.gsub(newtext,"\\ybord([0-9]+%.?[0-9]*)","",1)
-		newtxt = string.gsub(newtext,"\\bord([0-9]+%.?[0-9]*)","",1)
+		newtxt = string.gsub(newtxt,"\\xbord([0-9]+%.?[0-9]*)","",1)
+		newtxt = string.gsub(newtxt,"\\ybord([0-9]+%.?[0-9]*)","",1)
+		newtxt = string.gsub(newtxt,"\\bord([0-9]+%.?[0-9]*)","",1)
 	end
 	if opts.shad then
 		local xshad = line.xshad[1]*round(mocha.xscl[iter]/mocha.xscl[rstart],opts.sround) -- scale shadow the same way as everything else
@@ -437,9 +437,9 @@ function jscl(line,mocha,iter,rstart,opts) -- I actually have no idea why you wo
 		else
 			tag = tag..string.format("\\xbord%g\\ybord%g",round(xshad,opts.sround),round(yshad,opts.sround))
 		end
-		newtxt = string.gsub(newtext,"\\xshad(%-?[0-9]+%.?[0-9]*)","",1)
-		newtxt = string.gsub(newtext,"\\yshad(%-?[0-9]+%.?[0-9]*)","",1)
-		newtxt = string.gsub(newtext,"\\shad(%-?[0-9]+%.?[0-9]*)","",1)
+		newtxt = string.gsub(newtxt,"\\xshad(%-?[0-9]+%.?[0-9]*)","",1)
+		newtxt = string.gsub(newtxt,"\\yshad(%-?[0-9]+%.?[0-9]*)","",1)
+		newtxt = string.gsub(newtxt,"\\shad(%-?[0-9]+%.?[0-9]*)","",1)
 	end
 	tag = tag.."}"
 	newtxt = tag..newtxt
@@ -468,9 +468,9 @@ function pos_scl(line,mocha,iter,rstart,opts)
 		else
 			tag = tag..string.format("\\xbord%g\\ybord%g",round(xbord,opts.sround),round(ybord,opts.sround))
 		end
-		newtxt = string.gsub(newtext,"\\xbord([0-9]+%.?[0-9]*)","",1)
-		newtxt = string.gsub(newtext,"\\ybord([0-9]+%.?[0-9]*)","",1)
-		newtxt = string.gsub(newtext,"\\bord([0-9]+%.?[0-9]*)","",1)
+		newtxt = string.gsub(newtxt,"\\xbord([0-9]+%.?[0-9]*)","",1)
+		newtxt = string.gsub(newtxt,"\\ybord([0-9]+%.?[0-9]*)","",1)
+		newtxt = string.gsub(newtxt,"\\bord([0-9]+%.?[0-9]*)","",1)
 	end
 	if opts.shad then
 		local xshad = line.xshad[1]*round(mocha.xscl[iter]/mocha.xscl[rstart],opts.sround) -- scale shadow the same way as everything else
@@ -480,9 +480,9 @@ function pos_scl(line,mocha,iter,rstart,opts)
 		else
 			tag = tag..string.format("\\xbord%g\\ybord%g",round(xshad,opts.sround),round(yshad,opts.sround))
 		end
-		newtxt = string.gsub(newtext,"\\xshad(%-?[0-9]+%.?[0-9]*)","",1)
-		newtxt = string.gsub(newtext,"\\yshad(%-?[0-9]+%.?[0-9]*)","",1)
-		newtxt = string.gsub(newtext,"\\shad(%-?[0-9]+%.?[0-9]*)","",1)
+		newtxt = string.gsub(newtxt,"\\xshad(%-?[0-9]+%.?[0-9]*)","",1)
+		newtxt = string.gsub(newtxt,"\\yshad(%-?[0-9]+%.?[0-9]*)","",1)
+		newtxt = string.gsub(newtxt,"\\shad(%-?[0-9]+%.?[0-9]*)","",1)
 	end
 	tag = tag.."}"
 	newtxt = tag..newtxt
