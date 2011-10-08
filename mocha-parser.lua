@@ -150,7 +150,6 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
   accd.poserrs, accd.alignerrs = {}, {}
   accd.errmsg = ""
   for i, v in pairs(sel) do -- burning cpu cycles like they were no thing
-    aegisub.log(0,accd.errmsg.."\n")
     local opline = table.copy(sub[v]) -- I have no idea if a shallow copy is even an intelligent thing to do here
     opline.poserrs, opline.alignerrs = {}, {}
     opline.num = v -- this is for, uh, later.
@@ -197,13 +196,11 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
     end
     if not opline.xpos then -- no way it would not find both trololo
       table.insert(accd.poserrs,{i,v})
-      aegisub.log(0,accd.errmsg.."\n")
       accd.errmsg = accd.errmsg..string.format("Line %d does not seem to have a position override tag.\n", v-strt-1)
     end
     --aegisub.log(5,"%d",opline.ali[1])
     if tonumber(opline.ali[1]) ~= 5 then -- the fuck is going on here
       table.insert(accd.alignerrs,{i,v})
-      aegisub.log(0,accd.errmsg.."\n")
       accd.errmsg = accd.errmsg..string.format("Line %d does not seem aligned \\an5.\n", v-strt-1)
     end
     opline.startframe, opline.endframe = aegisub.frame_from_ms(opline.start_time), aegisub.frame_from_ms(opline.end_time)
@@ -223,11 +220,9 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
   accd.totframes = accd.endframe - accd.startframe
   accd.toterrs = #accd.alignerrs + #accd.poserrs
   if accd.shx ~= accd.lvidx or accd.shy ~= accd.lvidy then -- check to see if header video resolution is same as loaded video resolution
-    aegisub.log(0,accd.errmsg.."\n")
     accd.errmsg = string.format("Header x/y res (%d,%d) does not match video (%d,%d).\n", accd.shx, accd.shy, accd.lvidx, accd.lvidy)..accd.errmsg
   end
   if accd.toterrs > 0 then
-    aegisub.log(0,accd.errmsg.."\n")
     accd.errmsg = "The lines noted below may need to be checked.\nThe problem lines will be ignored, depending\non what tracking data you choose to apply\n"..accd.errmsg
   else
     accd.errmsg = "None of your selected lines appear to be problematic.\n"..accd.errmsg 
