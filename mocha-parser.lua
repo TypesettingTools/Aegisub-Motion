@@ -21,10 +21,10 @@ INALIABLE RIGHTS:
 		POSSIBLY THROUGH CLAIRVOYANCE OR MAYBE A SPIRITUAL MEDIUM.
 --]]
 
-script_name = "MOPE"
-script_description = "Mocha Output Parser EXTREME"
+script_name = "Aegisub-Mocha"
+script_description = "Mocha output parser for Aegisub"
 script_author = "torque"
-script_version = "0.0.1-3" -- no, I have no idea how this versioning system works either.
+script_version = "0.0.0-0.1+2ABF41" -- no, I have no idea how this versioning system works either.
 include("karaskel.lua")
 include("utils.lua") -- because it saves me like 5 lines of code this way
 gui = {}
@@ -72,55 +72,30 @@ gui.main = {
 		value = true; name = "scl"
 	},
 	{ -- 9
-		class = "intedit"; -- these are both retardedly wide and retardedly tall. They are downright frustrating to position in the interface.
-			x = 7; y = 7; height = 1; width = 3;
-		value = 2; name = "pround"; min = 0; max = 5;
-	},
-	{ -- 10
-		class = "intedit";
-			x = 7; y = 8; height = 1; width = 3;
-		value = 2; name = "sround"; min = 0; max = 5;
-	},
---[[	{ -- 9
 		class = "label";
-			x = 4; y = 7; height = 1; width = 1;
+			x = 0; y = 9; height = 1; width = 1;
 		label = "Rotation:"
 	},
 	{ -- 10
 		class = "checkbox";
-			x = 5; y = 7; height = 1; width = 1;
-		value = false; name = "rot"
+			x = 1; y = 9; height = 1; width = 1;
+		value = true; name = "rot"
 	},
 	{ -- 11
-		class = "label";
-			x = 6; y = 7; height = 1; width = 1;
-		label = "Shear:"
+		class = "intedit"; -- these are both retardedly wide and retardedly tall. They are downright frustrating to position in the interface.
+			x = 7; y = 7; height = 1; width = 3;
+		value = 2; name = "pround"; min = 0; max = 5;
 	},
 	{ -- 12
-		class = "checkbox";
-			x = 7; y = 7; height = 1; width = 1;
-		value = false; name = "shr"
-	},--
-	{ -- 13
-		class = "label";
-			x = 8; y = 7; height = 1; width = 1;
-		label = "Perspective:"
-	},
-	{ -- 14
-		class = "checkbox";
-			x = 9; y = 7; height = 1; width = 1;
-		value = false; name = "per"
-	},--
-	{ -- 14
-		class = "label";
-			x = 0; y = 8; height = 1; width = 1;
-		label = "Round:"
-	},
-	{ -- 6
 		class = "intedit";
-			x = 1; y = 8; height = 1; width = 2;
-		value = 1; name = "pround"; min = 0; max = 5;
-	},--]]
+			x = 7; y = 8; height = 1; width = 3;
+		value = 2; name = "sround"; min = 0; max = 5;
+	},
+	{ -- 13
+		class = "intedit";
+			x = 7; y = 9; height = 1; width = 3;
+		value = 2; name = "rround"; min = 0; max = 5;
+	},
 	{ -- 15 - yo dawg these numbers is wrong
 		class = "label";
 			x = 2; y = 8; height = 1; width = 1;
@@ -150,7 +125,7 @@ gui.main = {
 		class = "textbox";
 			x = 0; y = 12; height = 4; width = 10;
 		name = "mocper"; hint = "Again, the full path to the file. No quotes or escapism needed.";
-		text = "POSITION AND SCALE SHOULD BOTH WORK, ALTHOUGH\nI'VE ONLY TESTED SCALE ONCE. YMMV."
+		text = "POSITION, SCALE AND ROTATION ARE ALL VALID CHOICES BUT UH I HAVEN'T TESTED ROTATION. AT ALL."
 	}
 }
 
@@ -161,7 +136,6 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
 	local strt
 	for x = 1,#sub do
 		if string.find(sub[x].raw,"%[[E|e]vents%]") then
-			aegisub.log(5,"[",x)
 			strt = x -- start line of dialogue subs
 			break
 		end
@@ -178,49 +152,47 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
 	for i, v in pairs(sel) do -- burning cpu cycles like they were no thing
 		local opline = table.copy(sub[v]) -- I have no idea if a shallow copy is even an intelligent thing to do here
 		opline.poserrs, opline.alignerrs = {}, {}
-		opline.num = v
-		local fx,fy,ali,t_start,t_end,t_exp,t_eff,frz,xbord,ybord,xshad,yshad = nil
+		opline.num = v -- this is for, uh, later.
+		local _,fx,fy,ali,t_start,t_end,t_exp,t_eff,frz,xbord,ybord,xshad,yshad = nil
 		karaskel.preproc_line(sub, accd.meta, accd.styles, opline) -- get that extra position data
-		opline.xscl = accd.styles[opline.style].scale_x -- table[1] is the value table[2] is if the value comes from the line (true) or the header (false)
+		opline.xscl = accd.styles[opline.style].scale_x -- 
 		opline.yscl = accd.styles[opline.style].scale_y
-		opline.ali = {accd.styles[opline.style].align, false} -- this tag is necessary
-		opline.frz = {accd.styles[opline.style].angle, false}
-		opline.xbord = {accd.styles[opline.style].outline, false}
-		opline.ybord = {accd.styles[opline.style].outline, false}
-		opline.xshad = {accd.styles[opline.style].shadow, false}
-		opline.yshad = {accd.styles[opline.style].shadow, false}
+		opline.ali = {accd.styles[opline.style].align, false} -- durf
+		opline.zrot = accd.styles[opline.style].angle
+		opline.xbord = accd.styles[opline.style].outline
+		opline.ybord = accd.styles[opline.style].outline
+		opline.xshad = accd.styles[opline.style].shadow
+		opline.yshad = accd.styles[opline.style].shadow
 		_,_,fx = string.find(opline.text,"\\fscx([0-9]+%.?[0-9]*)") -- no negatives, faggot
 		_,_,fy = string.find(opline.text,"\\fscy([0-9]+%.?[0-9]*)")
 		_,_,ali = string.find(opline.text,"\\an([1-9])")
 		_,_,frz = string.find(opline.text,"\\frz(%-?[0-9]+%.?[0-9]*)") -- debug this later
 		_,_,bord = string.find(opline.text,"\\bord([0-9]+%.?[0-9]*)")
 		_,_,shad = string.find(opline.text,"\\shad(%-?[0-9]+%.?[0-9]*)")
-		_,_,t_start,t_end,t_exp,t_eff = string.find(opline.text,"\\t%((%-?[0-9]+),(%-?[0-9]+),([0-9%.]*),?([\\%.%-&a-zA-Z0-9]+)%)") -- Only will find one. Stick in a while loop or something later.
-		_,_,opline.xpos,opline.ypos = string.find(opline.text,"\\pos%((%-?[0-9]+%.?[0-9]*),(%-?[0-9]+%.?[0-9]*)%)") -- I think I'll set it to explicitly ignore lines without \pos
-		_,_,opline.xorg,opline.yorg = string.find(opline.text,"\\org%((%-?[0-9]+%.?[0-9]*),(%-?[0-9]+%.?[0-9]*)%)")
-		--aegisub.log(5,"%s, %s, %s\n",tostring(opline.ali[1]),tostring(opline.ali[2]),tostring(ali))
+		_,_,t_start,t_end,t_exp,t_eff = string.find(opline.text,"\\t%((%-?[0-9]+),(%-?[0-9]+),([0-9%.]*),?([\\%.%-&a-zA-Z0-9]+)%)") -- not technically valid because something like t(1.1,\fscx200) will not be captured.
+		_,_,opline.xpos,opline.ypos = string.find(opline.text,"\\pos%((%-?[0-9]+%.?[0-9]*),(%-?[0-9]+%.?[0-9]*)%)") -- hmmm
+		_,_,opline.xorg,opline.yorg = string.find(opline.text,"\\org%((%-?[0-9]+%.?[0-9]*),(%-?[0-9]+%.?[0-9]*)%)") -- idklol
 		if fx then opline.xscl = tonumber(fx) end
 		if fy then opline.yscl = tonumber(fy) end
-		if ali then opline.ali = {tonumber(ali), true} end
-		--aegisub.log(5,"%s, %s, %s\n",tostring(opline.ali[1]),tostring(opline.ali[2]),tostring(ali))
-		if frz then opline.frz = {tonumber(frz), true} end
+		if ali then opline.ali = {tonumber(ali), true} end -- really do need this
+		if frz then opline.zrot = tonumber(frz) end
 		if bord then
-			opline.xbord = {tonumber(bord), true}
-			opline.ybord = {tonumber(bord), true}
+			opline.xbord = tonumber(bord)
+			opline.ybord = tonumber(bord)
 		else -- only check for xbord/ybord if bord is not found (because bord overrides them)
 			_,_,xbord = string.find(opline.text,"\\xbord([0-9]+%.?[0-9]*)") 
 			_,_,ybord = string.find(opline.text,"\\ybord([0-9]+%.?[0-9]*)")
-			if xbord then opline.xbord = {xbord, nil}; opline.ybord = {0, nil} end
-			if ybord then opline.ybord = {ybord, nil}; if xbord[2] ~= nil then xbord = {0, nil} end; end
+			if xbord then opline.xbord = tonumber(xbord); opline.ybord = 0 end -- if xbord is defined without ybord, then ybord defaults to 0
+			if ybord then opline.ybord = tonumber(ybord); if not xbord then opline.xbord = 0 end; end -- and vice versa
 		end
 		if shad then 
-			opline.xshad = {shad, true}
-			opline.yshad = {shad, true}
+			opline.xshad = tonumber(shad)
+			opline.yshad = tonumber(shad)
 		else
 			_,_,xshad = string.find(opline.text,"\\xshad(%-?[0-9]+%.?[0-9]*)")
 			_,_,yshad = string.find(opline.text,"\\yshad(%-?[0-9]+%.?[0-9]*)")
-			if xbord then opline.xshad = {xshad, nil}; opline.yshad = {0, nil} end
-			if ybord then opline.yshad = {yshad, nil}; if xshad[2] ~= nil then xshad = {0, nil} end; end
+			if xbord then opline.xshad = tonumber(xshad); opline.yshad = 0 end
+			if ybord then opline.yshad = tonumber(yshad); if not xshad then opline.xshad = 0 end; end
 		end
 		if not opline.xpos then -- no way it would not find both trololo
 			table.insert(accd.poserrs,{i,v})
@@ -259,38 +231,6 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
 		error("SOMEHOW YOU HAVE SELECTED NO LINES WHATSOEVER. THIS IS AN IMPRESSIVE FEAT")
 	end
 	init_input(sub,accd)
-end
-
-function fix_pos(line) -- rotation srsly fucks this up, find a workaround or something. (or just not do the autocorrection at all? ffffff)
-	if line.ali[1] == 1 then -- do line.x and line.y?
-		xdif = line.center - line.left
-		ydif = line.vcenter - line.bottom
-		if line.xpos then
-			line.xpos = line.xpos + xdif
-			line.ypos = line.ypos + ydif
-		else
-			line.xpos = line.center
-			line.ypos = line.vcenter
-		end
-	elseif line.ali[1] == 2 then
-		--line.center, line.bottom
-	elseif line.ali[1] == 3 then
-		--line.right, line.bottom
-	elseif line.ali[1] == 4 then
-		--line.left, line.vcenter
-	elseif line.ali[1] == 5 then
-		--line.center, line.vcenter
-	elseif line.ali[1] == 6 then
-		--line.right, line.vcenter
-	elseif line.ali[1] == 7 then
-		--line.left, line.top
-	elseif line.ali[1] == 8 then
-		--line.center, line.top
-	elseif line.ali[1] == 9 then
-		--line.right, line.top
-	else
-		error("No alignment for the given line? This is unpossible")
-	end
 end
 
 function init_input(sub,accd)
@@ -366,57 +306,106 @@ function frame_by_frame(sub,accd,opts)
 		local rstartf = v.startframe - accd.startframe + 1 -- start frame of line relative to start frame of tracked data
 		local rendf = v.endframe - accd.startframe -- end frame of line relative to start frame of tracked data
 		aegisub.log(5,"%d => %d\n\n", rstartf,rendf)
-		--if v.xpos and opts.pos then
-		v.xdiff, v.ydiff = mocha.xpos[rstartf] - v.xpos, mocha.ypos[rstartf] - v.ypos
-		--else
-		--	fix_pos(v)
-		--end
+		if v.xorg and opts.rot then
+			v.xorgd, v.yorgd = mocha.xpos[rstartf] - v.xorg, mocha.ypos[rstartf] - v.yorg -- not going to actually use this until I test it more.
+			v.zrotd = mocha.zrot[rstartf] - v.zrot
+		end
+		if v.xpos and opts.pos then
+			v.xdiff, v.ydiff = mocha.xpos[rstartf] - v.xpos, mocha.ypos[rstartf] - v.ypos
+		end
 		local orgtext = v.text -- tables are passed as references.
-		for x = rstartf,rendf do
-			v.start_time = aegisub.ms_from_frame(accd.startframe+x-1)
-			v.end_time = aegisub.ms_from_frame(accd.startframe+x)
-			if opts.pos and opts.scl and opts.rot then -- is there conceivably a better way to do this?
-				--v.text = pos_scl_rot(v,mocha,x)
-				error("NO ROTATION SUPPORT")
-			elseif opts.pos and opts.scl and not opts.rot then -- pos + scl
-				v.text = pos_scl(v,mocha,x,rstartf,opts)
-			elseif opts.pos and not opts.scl and opts.rot then -- pos + rot
-				--v.text = pos_rot(v,mocha,x)
-				error("NO ROTATION SUPPORT")
-			elseif not opts.pos and opts.scl and opts.rot then -- scl + rot
-				--v.text = scl_rot(v,mocha,x,opts)
-				error("NO ROTATION SUPPORT")
-			elseif opts.pos and not opts.scl and not opts.rot then -- pos
-				v.text = jpos(v,mocha,x,opts)
-			elseif not opts.pos and opts.scl and not opts.rot then -- scl
-				v.text = jscl(v,mocha,x,rstartf,opts)
-			elseif not opts.pos and not opts.scl and opts.rot then -- rot
-				-- v.text = jrot(v,mocha,x,opts)
-				error("NO ROTATION SUPPORT")
+		if opts.pos and not v.xpos then
+			aegisub.log(1,"Line %d is being skipped because it is missing a \\pos() tag and you said to track position. Moron.",v.num) -- yeah that should do it.
+		else
+			if opts.pos and opts.scl and opts.rot then -- is there conceivably a better way to do this? Yes, move it out of the fucking inner for loop you fucktard
+				for x = rstartf,rendf do -- this sure looks a lot more retarded BUT AT LEAST IT RUNS O9k LESS WORTHLESS IF STATEMENTS
+					v.start_time = aegisub.ms_from_frame(accd.startframe+x-1)
+					v.end_time = aegisub.ms_from_frame(accd.startframe+x)
+					v.text = pos_scl_rot(v,mocha,x,rstartf,opts)
+					sub.insert(v.num+it,v)
+					it = it + 1
+					v.text = orgtext
+				end
+			elseif opts.pos and opts.scl then -- pos + scl
+				for x = rstartf,rendf do
+					v.start_time = aegisub.ms_from_frame(accd.startframe+x-1)
+					v.end_time = aegisub.ms_from_frame(accd.startframe+x)
+					v.text = pos_scl(v,mocha,x,rstartf,opts)
+					sub.insert(v.num+it,v)
+					it = it + 1
+					v.text = orgtext
+				end
+			elseif opts.pos and opts.rot then -- pos + rot
+				for x = rstartf,rendf do
+					v.start_time = aegisub.ms_from_frame(accd.startframe+x-1)
+					v.end_time = aegisub.ms_from_frame(accd.startframe+x)
+					v.text = pos_rot(v,mocha,x,opts)
+					sub.insert(v.num+it,v)
+					it = it + 1
+					v.text = orgtext
+				end
+			elseif opts.scl and opts.rot then -- scl + rot
+				for x = rstartf,rendf do
+					v.start_time = aegisub.ms_from_frame(accd.startframe+x-1)
+					v.end_time = aegisub.ms_from_frame(accd.startframe+x)
+					v.text = scl_rot(v,mocha,x,rstartf,opts)
+					sub.insert(v.num+it,v)
+					it = it + 1
+					v.text = orgtext
+				end
+			elseif opts.pos then -- pos
+				for x = rstartf,rendf do
+					v.start_time = aegisub.ms_from_frame(accd.startframe+x-1)
+					v.end_time = aegisub.ms_from_frame(accd.startframe+x)
+					v.text = jpos(v,mocha,x,opts)
+					sub.insert(v.num+it,v)
+					it = it + 1
+					v.text = orgtext
+				end
+			elseif not opts.pos then -- scl
+				for x = rstartf,rendf do
+					v.start_time = aegisub.ms_from_frame(accd.startframe+x-1)
+					v.end_time = aegisub.ms_from_frame(accd.startframe+x)
+					v.text = jscl(v,mocha,x,rstartf,opts)
+					sub.insert(v.num+it,v)
+					it = it + 1
+					v.text = orgtext
+				end
+			elseif not opts.pos then -- rot
+				for x = rstartf,rendf do
+					v.start_time = aegisub.ms_from_frame(accd.startframe+x-1)
+					v.end_time = aegisub.ms_from_frame(accd.startframe+x)
+					v.text = jrot(v,mocha,x,opts)
+					sub.insert(v.num+it,v)
+					it = it + 1
+					v.text = orgtext
+				end
 			else
-				v.text = v.text
+				for x = rstartf,rendf do
+					v.start_time = aegisub.ms_from_frame(accd.startframe+x-1)
+					v.end_time = aegisub.ms_from_frame(accd.startframe+x)
+					sub.insert(v.num+it,v)
+					it = it + 1
+					v.text = orgtext
+				end
 			end
-			sub.insert(v.num+it,v) -- Well it works so stuff and things
-			it = it + 1
-			v.text = orgtext
 		end
 	end
-end
+end  -- end end end end end end end end end end end end end end end end end end
 
 function jpos(line,mocha,iter,opts)
 	local xpos = mocha.xpos[iter]-line.xdiff
 	local ypos = mocha.ypos[iter]-line.ydiff
-	local tab = string.format("{\\pos(%g,%g)",round(xpos,opts.pround),round(ypos,opts.pround))
-	local newtxt = string.gsub(line.text,"\\pos%(([0-9]+%.?[0-9]*),([0-9]+%.?[0-9]*)%)","") -- ONLY ONE POSITION ALLOWED
-	tag = tag.."}"
+	local tag = string.format("{\\pos(%g,%g)}",round(xpos,opts.pround),round(ypos,opts.pround))
+	local newtxt = string.gsub(line.text,"\\pos%((%-?[0-9]+%.?[0-9]*),(%-?[0-9]+%.?[0-9]*)%)","") -- ONLY ONE POSITION ALLOWED
 	newtxt = tag..newtxt
 	return newtxt
 end
 
 function jscl(line,mocha,iter,rstart,opts) -- I actually have no idea why you would want to do this but WHATEVER
 	local tag = string.format("{\\fscx%g\\fscy%g",round(line.xscl,opts.sround),round(line.yscl,opts.sround))
-	local newtxt = string.gsub(line.text,"\\fscx([0-9]+%.?[0-9]*)","",1) -- safe, because it just returns the untouched string if no match
-	newtxt = string.gsub(newtext,"\\fscy([0-9]+%.?[0-9]*)","",1)
+	local newtxt = string.gsub(line.text,"\\fscx([0-9]+%.?[0-9]*)","") -- safe, because it just returns the untouched string if no match
+	newtxt = string.gsub(newtext,"\\fscy([0-9]+%.?[0-9]*)","") -- remove all of them because default behavior is to use the last override tag
 	if opts.bord then 
 		local xbord = line.xbord[1]*round(mocha.xscl[iter]/mocha.xscl[rstart],opts.sround) -- round beforehand to minimize random float errors
 		local ybord = line.ybord[1]*round(mocha.yscl[iter]/mocha.yscl[rstart],opts.sround)
@@ -425,9 +414,9 @@ function jscl(line,mocha,iter,rstart,opts) -- I actually have no idea why you wo
 		else
 			tag = tag..string.format("\\xbord%g\\ybord%g",round(xbord,opts.sround),round(ybord,opts.sround))
 		end
-		newtxt = string.gsub(newtxt,"\\xbord([0-9]+%.?[0-9]*)","",1)
-		newtxt = string.gsub(newtxt,"\\ybord([0-9]+%.?[0-9]*)","",1)
-		newtxt = string.gsub(newtxt,"\\bord([0-9]+%.?[0-9]*)","",1)
+		newtxt = string.gsub(newtxt,"\\xbord([0-9]+%.?[0-9]*)","")
+		newtxt = string.gsub(newtxt,"\\ybord([0-9]+%.?[0-9]*)","")
+		newtxt = string.gsub(newtxt,"\\bord([0-9]+%.?[0-9]*)","")
 	end
 	if opts.shad then
 		local xshad = line.xshad[1]*round(mocha.xscl[iter]/mocha.xscl[rstart],opts.sround) -- scale shadow the same way as everything else
@@ -437,29 +426,32 @@ function jscl(line,mocha,iter,rstart,opts) -- I actually have no idea why you wo
 		else
 			tag = tag..string.format("\\xbord%g\\ybord%g",round(xshad,opts.sround),round(yshad,opts.sround))
 		end
-		newtxt = string.gsub(newtxt,"\\xshad(%-?[0-9]+%.?[0-9]*)","",1)
-		newtxt = string.gsub(newtxt,"\\yshad(%-?[0-9]+%.?[0-9]*)","",1)
-		newtxt = string.gsub(newtxt,"\\shad(%-?[0-9]+%.?[0-9]*)","",1)
+		newtxt = string.gsub(newtxt,"\\xshad(%-?[0-9]+%.?[0-9]*)","")
+		newtxt = string.gsub(newtxt,"\\yshad(%-?[0-9]+%.?[0-9]*)","")
+		newtxt = string.gsub(newtxt,"\\shad(%-?[0-9]+%.?[0-9]*)","")
 	end
 	tag = tag.."}"
 	newtxt = tag..newtxt
 	return newtxt
 end
 
-function jrot(line)
-	error("I honestly have no idea how you managed to get this error, but FUCK YOU")
+function jrot(line,mocha,iter,opts) -- WHAT HAVE I DONE
+	local tag = string.format("{\\org(%g,%g)\\frz%g}",round(mocha.xpos[iter],opts.rround),round(mocha.ypos[iter],opts.rround),round(mocha.zrot[iter]-line.zrotd,opts.rround))
+	local newtxt = string.gsub(line.text,"\\org%((%-?[0-9]+%.?[0-9]*),(%-?[0-9]+%.?[0-9]*)%)","") -- not sure if overwriting the origin is the right thing to do but the one time I tried it it seemed to work well enough >__>
+	newtxt = string.gsub(newtxt,"\\frz(%-?[0-9]+%.?[0-9]*)","")
+	newtxt = tag..newtxt
 end
 
 function pos_scl(line,mocha,iter,rstart,opts)
 	local xscl = mocha.xscl[iter]*line.xscl/mocha.xscl[rstart] -- DIVISION IS SLOW
 	local yscl = mocha.yscl[iter]*line.yscl/mocha.yscl[rstart]
-	local mult = mocha.yscl[iter]/mocha.yscl[rstart]
-	local xpos = mocha.xpos[iter]-(line.xdiff*mult) -- currently just a guess?
+	local mult = mocha.yscl[iter]/mocha.yscl[rstart] -- wait if xscl and yscl are different then what
+	local xpos = mocha.xpos[iter]-(line.xdiff*mult) -- seems to be the right way to do it
 	local ypos = mocha.ypos[iter]-(line.ydiff*mult)
 	local tag = string.format("{\\pos(%g,%g)\\fscx%g\\fscy%g",round(xpos,opts.pround),round(ypos,opts.pround),round(xscl,opts.sround),round(yscl,opts.sround))
-	local newtxt = string.gsub(line.text,"\\fscx([0-9]+%.?[0-9]*)","",1)
-	newtxt = string.gsub(newtxt,"\\fscy([0-9]+%.?[0-9]*)","",1)
-	newtxt = string.gsub(newtxt,"\\pos%(([0-9]+%.?[0-9]*),([0-9]+%.?[0-9]*)%)","")
+	local newtxt = string.gsub(line.text,"\\fscx([0-9]+%.?[0-9]*)","")
+	newtxt = string.gsub(newtxt,"\\fscy([0-9]+%.?[0-9]*)","")
+	newtxt = string.gsub(newtxt,"\\pos%((%-?[0-9]+%.?[0-9]*),(%-?[0-9]+%.?[0-9]*)%)","") -- fuck
 	if opts.bord then 
 		local xbord = line.xbord[1]*round(mult,opts.sround) -- round beforehand to minimize random float errors
 		local ybord = line.ybord[1]*round(mult,opts.sround)
@@ -468,9 +460,9 @@ function pos_scl(line,mocha,iter,rstart,opts)
 		else
 			tag = tag..string.format("\\xbord%g\\ybord%g",round(xbord,opts.sround),round(ybord,opts.sround))
 		end
-		newtxt = string.gsub(newtxt,"\\xbord([0-9]+%.?[0-9]*)","",1)
-		newtxt = string.gsub(newtxt,"\\ybord([0-9]+%.?[0-9]*)","",1)
-		newtxt = string.gsub(newtxt,"\\bord([0-9]+%.?[0-9]*)","",1)
+		newtxt = string.gsub(newtxt,"\\xbord([0-9]+%.?[0-9]*)","")
+		newtxt = string.gsub(newtxt,"\\ybord([0-9]+%.?[0-9]*)","")
+		newtxt = string.gsub(newtxt,"\\bord([0-9]+%.?[0-9]*)","")
 	end
 	if opts.shad then
 		local xshad = line.xshad[1]*round(mocha.xscl[iter]/mocha.xscl[rstart],opts.sround) -- scale shadow the same way as everything else
@@ -480,10 +472,101 @@ function pos_scl(line,mocha,iter,rstart,opts)
 		else
 			tag = tag..string.format("\\xbord%g\\ybord%g",round(xshad,opts.sround),round(yshad,opts.sround))
 		end
-		newtxt = string.gsub(newtxt,"\\xshad(%-?[0-9]+%.?[0-9]*)","",1)
-		newtxt = string.gsub(newtxt,"\\yshad(%-?[0-9]+%.?[0-9]*)","",1)
-		newtxt = string.gsub(newtxt,"\\shad(%-?[0-9]+%.?[0-9]*)","",1)
+		newtxt = string.gsub(newtxt,"\\xshad(%-?[0-9]+%.?[0-9]*)","")
+		newtxt = string.gsub(newtxt,"\\yshad(%-?[0-9]+%.?[0-9]*)","")
+		newtxt = string.gsub(newtxt,"\\shad(%-?[0-9]+%.?[0-9]*)","")
 	end
+	tag = tag.."}"
+	newtxt = tag..newtxt
+	return newtxt
+end
+
+function pos_rot(line,mocha,iter,opts)
+	local xpos = mocha.xpos[iter]-line.xdiff
+	local ypos = mocha.ypos[iter]-line.ydiff
+	local tag = string.format("{\\pos(%g,%g)\\org(%g,%g)\\frz%g}",round(xbord,opts.sround),round(ybord,opts.sround),round(mocha.xpos[iter],opts.rround),round(mocha.ypos[iter],opts.rround),round(mocha.zrot[iter]-line.zrotd,opts.rround))
+	local newtxt = string.gsub(line.text,"\\pos%((%-?[0-9]+%.?[0-9]*),(%-?[0-9]+%.?[0-9]*)%)","")
+	newtxt = string.gsub(newtxt,"\\org%((%-?[0-9]+%.?[0-9]*),(%-?[0-9]+%.?[0-9]*)%)","") -- idklol
+	newtxt = string.gsub(newtxt,"\\frz(%-?[0-9]+%.?[0-9]*)","")
+	newtxt = tag..newtxt
+	newtxt = tag..newtxt
+	return newtxt
+end
+
+function scl_rot(line,mocha,iter,rstart,opts) -- This is dumb, and I refuse to test this myself
+	local tag = string.format("{\\fscx%g\\fscy%g",round(line.xscl,opts.sround),round(line.yscl,opts.sround))
+	local newtxt = string.gsub(line.text,"\\fscx([0-9]+%.?[0-9]*)","") -- choppypasta
+	newtxt = string.gsub(newtext,"\\fscy([0-9]+%.?[0-9]*)","")
+	newtxt = string.gsub(newtxt,"\\org%((%-?[0-9]+%.?[0-9]*),(%-?[0-9]+%.?[0-9]*)%)","") -- comment here
+	newtxt = string.gsub(newtxt,"\\frz(%-?[0-9]+%.?[0-9]*)","")
+	if opts.bord then 
+		local xbord = line.xbord[1]*round(mocha.xscl[iter]/mocha.xscl[rstart],opts.sround) -- round beforehand to minimize random float errors
+		local ybord = line.ybord[1]*round(mocha.yscl[iter]/mocha.yscl[rstart],opts.sround)
+		if xbord == ybord then
+			tag = tag..string.format("\\bord%g",round(xbord,opts.sround))
+		else
+			tag = tag..string.format("\\xbord%g\\ybord%g",round(xbord,opts.sround),round(ybord,opts.sround))
+		end
+		newtxt = string.gsub(newtxt,"\\xbord([0-9]+%.?[0-9]*)","")
+		newtxt = string.gsub(newtxt,"\\ybord([0-9]+%.?[0-9]*)","")
+		newtxt = string.gsub(newtxt,"\\bord([0-9]+%.?[0-9]*)","")
+	end
+	if opts.shad then
+		local xshad = line.xshad[1]*round(mocha.xscl[iter]/mocha.xscl[rstart],opts.sround) -- scale shadow the same way as everything else
+		local yshad = line.yshad[1]*round(mocha.yscl[iter]/mocha.yscl[rstart],opts.sround) -- hope it turns out as desired
+		if xshad == yshad then
+			tag = tag..string.format("\\shad%g",round(xshad,opts.sround))
+		else
+			tag = tag..string.format("\\xbord%g\\ybord%g",round(xshad,opts.sround),round(yshad,opts.sround))
+		end
+		newtxt = string.gsub(newtxt,"\\xshad(%-?[0-9]+%.?[0-9]*)","")
+		newtxt = string.gsub(newtxt,"\\yshad(%-?[0-9]+%.?[0-9]*)","")
+		newtxt = string.gsub(newtxt,"\\shad(%-?[0-9]+%.?[0-9]*)","")
+	end
+	tag = tag..string.format("\\org(%g,%g)\\frz%g",round(mocha.xpos[iter],opts.rround),round(mocha.ypos[iter],opts.rround),round(mocha.zrot[iter]-line.zrotd,opts.rround))
+	tag = tag.."}"
+	newtxt = tag..newtxt
+	return newtxt
+end
+
+function pos_scl_rot(line,mocha,iter,rstart,opts) -- idk if I did this right lolz
+	local xscl = mocha.xscl[iter]*line.xscl/mocha.xscl[rstart] -- DIVISION IS SLOW
+	local yscl = mocha.yscl[iter]*line.yscl/mocha.yscl[rstart]
+	local mult = mocha.yscl[iter]/mocha.yscl[rstart] -- wait if xscl and yscl are different then what
+	local xpos = mocha.xpos[iter]-(line.xdiff*mult) -- seems to be the right way to do it
+	local ypos = mocha.ypos[iter]-(line.ydiff*mult)
+	local tag = string.format("{\\pos(%g,%g)\\fscx%g\\fscy%g",round(xpos,opts.pround),round(ypos,opts.pround),round(xscl,opts.sround),round(yscl,opts.sround))
+	local newtxt = string.gsub(line.text,"\\fscx([0-9]+%.?[0-9]*)","")
+	newtxt = string.gsub(newtxt,"\\fscy([0-9]+%.?[0-9]*)","")
+	newtxt = string.gsub(newtxt,"\\pos%((%-?[0-9]+%.?[0-9]*),(%-?[0-9]+%.?[0-9]*)%)","") -- fuck
+	newtxt = string.gsub(newtxt,"\\org%((%-?[0-9]+%.?[0-9]*),(%-?[0-9]+%.?[0-9]*)%)","") -- not sure if overwriting the origin is the right thing to do but the one time I tried it it seemed to work well enough >__>
+	newtxt = string.gsub(newtxt,"\\frz(%-?[0-9]+%.?[0-9]*)","")
+	if opts.bord then 
+		local xbord = line.xbord[1]*round(mult,opts.sround) -- round beforehand to minimize random float errors
+		local ybord = line.ybord[1]*round(mult,opts.sround) -- or maybe that's rly fucking dumb? idklol
+		if xbord == ybord then
+			tag = tag..string.format("\\bord%g",round(xbord,opts.sround))
+		else
+			tag = tag..string.format("\\xbord%g\\ybord%g",round(xbord,opts.sround),round(ybord,opts.sround))
+		end
+		newtxt = string.gsub(newtxt,"\\xbord([0-9]+%.?[0-9]*)","")
+		newtxt = string.gsub(newtxt,"\\ybord([0-9]+%.?[0-9]*)","")
+		newtxt = string.gsub(newtxt,"\\bord([0-9]+%.?[0-9]*)","")
+	end
+	if opts.shad then
+		local xshad = line.xshad[1]*round(mocha.xscl[iter]/mocha.xscl[rstart],opts.sround) -- scale shadow the same way as everything else
+		local yshad = line.yshad[1]*round(mocha.yscl[iter]/mocha.yscl[rstart],opts.sround) -- hope it turns out as desired
+		if xshad == yshad then
+			tag = tag..string.format("\\shad%g",round(xshad,opts.sround))
+		else
+			tag = tag..string.format("\\xbord%g\\ybord%g",round(xshad,opts.sround),round(yshad,opts.sround))
+		end
+		newtxt = string.gsub(newtxt,"\\xshad(%-?[0-9]+%.?[0-9]*)","")
+		newtxt = string.gsub(newtxt,"\\yshad(%-?[0-9]+%.?[0-9]*)","")
+		newtxt = string.gsub(newtxt,"\\shad(%-?[0-9]+%.?[0-9]*)","")
+	end
+	tag = tag..string.format("{\\org(%g,%g)\\frz%g}",round(mocha.xpos[iter],opts.rround),round(mocha.ypos[iter],opts.rround),round(mocha.zrot[iter]-line.zrotd,opts.rround)) -- copypasta
+	newtxt = tag..newtxt
 	tag = tag.."}"
 	newtxt = tag..newtxt
 	return newtxt
@@ -505,4 +588,4 @@ function isvideo() -- a very rudimentary (but hopefully efficient) check to see 
 	if aegisub.video_size() then return true else return false end
 end
 
-aegisub.register_macro("Mocha Parser","Mocha Output Parser Extreme", prerun_czechs, isvideo)
+aegisub.register_macro("Mocha Parser","Applies motion tracking data collected by Mocha to selected subtitles.", prerun_czechs, isvideo)
