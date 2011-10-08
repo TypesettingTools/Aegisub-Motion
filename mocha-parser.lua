@@ -135,7 +135,7 @@ gui.halp = {
 function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 for me.
   local strt
   for x = 1,#sub do
-    if string.find(sub[x].raw,"%[[E|e]vents%]") then
+    if string.find(sub[x].raw,"%[[E|e]vents%]") then -- BECAUSE I SAID SO
       strt = x -- start line of dialogue subs
       break
     end
@@ -150,6 +150,7 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
   accd.poserrs, accd.alignerrs = {}, {}
   accd.errmsg = ""
   for i, v in pairs(sel) do -- burning cpu cycles like they were no thing
+    aegisub.log(0,accd.errmsg.."\n")
     local opline = table.copy(sub[v]) -- I have no idea if a shallow copy is even an intelligent thing to do here
     opline.poserrs, opline.alignerrs = {}, {}
     opline.num = v -- this is for, uh, later.
@@ -174,7 +175,7 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
     _,_,opline.xorg,opline.yorg = string.find(opline.text,"\\org%((%-?[0-9]+%.?[0-9]*),(%-?[0-9]+%.?[0-9]*)%)") -- idklol
     if fx then opline.xscl = tonumber(fx) end
     if fy then opline.yscl = tonumber(fy) end
-    if ali then opline.ali = {tonumber(ali), true} end -- really do need this
+    if ali then opline.ali = {tonumber(ali), true} end -- really do need this...?
     if frz then opline.zrot = tonumber(frz) end
     if bord then
       opline.xbord = tonumber(bord)
@@ -196,18 +197,20 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
     end
     if not opline.xpos then -- no way it would not find both trololo
       table.insert(accd.poserrs,{i,v})
+      aegisub.log(0,accd.errmsg.."\n")
       accd.errmsg = accd.errmsg..string.format("Line %d does not seem to have a position override tag.\n", v-strt-1)
     end
     --aegisub.log(5,"%d",opline.ali[1])
     if tonumber(opline.ali[1]) ~= 5 then -- the fuck is going on here
       table.insert(accd.alignerrs,{i,v})
-      accd.errmsg = accd.errmsg..string.format("Line %d does not seem aligned \\an5.\n", v-strt-1)..accd.errmsg
+      aegisub.log(0,accd.errmsg.."\n")
+      accd.errmsg = accd.errmsg..string.format("Line %d does not seem aligned \\an5.\n", v-strt-1)
     end
     opline.startframe, opline.endframe = aegisub.frame_from_ms(opline.start_time), aegisub.frame_from_ms(opline.end_time)
     if opline.startframe < accd.startframe then -- make timings flexible. Number of frames total has to match the tracked data but
       accd.startframe = opline.startframe
     end
-    if opline.endframe > accd.endframe then -- individual lines 
+    if opline.endframe > accd.endframe then -- individual lines can be shorter than the whole scene
       accd.endframe = opline.endframe
     end
     table.insert(accd.lines,opline)
@@ -220,9 +223,11 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
   accd.totframes = accd.endframe - accd.startframe
   accd.toterrs = #accd.alignerrs + #accd.poserrs
   if accd.shx ~= accd.lvidx or accd.shy ~= accd.lvidy then -- check to see if header video resolution is same as loaded video resolution
+    aegisub.log(0,accd.errmsg.."\n")
     accd.errmsg = string.format("Header x/y res (%d,%d) does not match video (%d,%d).\n", accd.shx, accd.shy, accd.lvidx, accd.lvidy)..accd.errmsg
   end
   if accd.toterrs > 0 then
+    aegisub.log(0,accd.errmsg.."\n")
     accd.errmsg = "The lines noted below may need to be checked.\nThe problem lines will be ignored, depending\non what tracking data you choose to apply\n"..accd.errmsg
   else
     accd.errmsg = "None of your selected lines appear to be problematic.\n"..accd.errmsg 
@@ -407,8 +412,8 @@ function jscl(line,mocha,iter,rstart,opts) -- I actually have no idea why you wo
   local newtxt = string.gsub(line.text,"\\fscx([0-9]+%.?[0-9]*)","") -- safe, because it just returns the untouched string if no match
   newtxt = string.gsub(newtext,"\\fscy([0-9]+%.?[0-9]*)","") -- remove all of them because default behavior is to use the last override tag
   if opts.bord then 
-    local xbord = line.xbord[1]*round(mocha.xscl[iter]/mocha.xscl[rstart],opts.sround) -- round beforehand to minimize random float errors
-    local ybord = line.ybord[1]*round(mocha.yscl[iter]/mocha.yscl[rstart],opts.sround)
+    local xbord = line.xbord*round(mocha.xscl[iter]/mocha.xscl[rstart],opts.sround) -- round beforehand to minimize random float errors
+    local ybord = line.ybord*round(mocha.yscl[iter]/mocha.yscl[rstart],opts.sround)
     if xbord == ybord then
       tag = tag..string.format("\\bord%g",round(xbord,opts.sround))
     else
@@ -419,8 +424,8 @@ function jscl(line,mocha,iter,rstart,opts) -- I actually have no idea why you wo
     newtxt = string.gsub(newtxt,"\\bord([0-9]+%.?[0-9]*)","")
   end
   if opts.shad then
-    local xshad = line.xshad[1]*round(mocha.xscl[iter]/mocha.xscl[rstart],opts.sround) -- scale shadow the same way as everything else
-    local yshad = line.yshad[1]*round(mocha.yscl[iter]/mocha.yscl[rstart],opts.sround) -- hope it turns out as desired
+    local xshad = line.xshad*round(mocha.xscl[iter]/mocha.xscl[rstart],opts.sround) -- scale shadow the same way as everything else
+    local yshad = line.yshad*round(mocha.yscl[iter]/mocha.yscl[rstart],opts.sround) -- hope it turns out as desired
     if xshad == yshad then
       tag = tag..string.format("\\shad%g",round(xshad,opts.sround))
     else
@@ -453,8 +458,8 @@ function pos_scl(line,mocha,iter,rstart,opts)
   newtxt = string.gsub(newtxt,"\\fscy([0-9]+%.?[0-9]*)","")
   newtxt = string.gsub(newtxt,"\\pos%((%-?[0-9]+%.?[0-9]*),(%-?[0-9]+%.?[0-9]*)%)","") -- fuck
   if opts.bord then 
-    local xbord = line.xbord[1]*round(mult,opts.sround) -- round beforehand to minimize random float errors
-    local ybord = line.ybord[1]*round(mult,opts.sround)
+    local xbord = line.xbord*round(mult,opts.sround) -- round beforehand to minimize random float errors
+    local ybord = line.ybord*round(mult,opts.sround)
     if xbord == ybord then
       tag = tag..string.format("\\bord%g",round(xbord,opts.sround))
     else
@@ -465,8 +470,8 @@ function pos_scl(line,mocha,iter,rstart,opts)
     newtxt = string.gsub(newtxt,"\\bord([0-9]+%.?[0-9]*)","")
   end
   if opts.shad then
-    local xshad = line.xshad[1]*round(mocha.xscl[iter]/mocha.xscl[rstart],opts.sround) -- scale shadow the same way as everything else
-    local yshad = line.yshad[1]*round(mocha.yscl[iter]/mocha.yscl[rstart],opts.sround) -- hope it turns out as desired
+    local xshad = line.xshad*round(mocha.xscl[iter]/mocha.xscl[rstart],opts.sround) -- scale shadow the same way as everything else
+    local yshad = line.yshad*round(mocha.yscl[iter]/mocha.yscl[rstart],opts.sround) -- hope it turns out as desired
     if xshad == yshad then
       tag = tag..string.format("\\shad%g",round(xshad,opts.sround))
     else
@@ -500,8 +505,8 @@ function scl_rot(line,mocha,iter,rstart,opts) -- This is dumb, and I refuse to t
   newtxt = string.gsub(newtxt,"\\org%((%-?[0-9]+%.?[0-9]*),(%-?[0-9]+%.?[0-9]*)%)","") -- comment here
   newtxt = string.gsub(newtxt,"\\frz(%-?[0-9]+%.?[0-9]*)","")
   if opts.bord then 
-    local xbord = line.xbord[1]*round(mocha.xscl[iter]/mocha.xscl[rstart],opts.sround) -- round beforehand to minimize random float errors
-    local ybord = line.ybord[1]*round(mocha.yscl[iter]/mocha.yscl[rstart],opts.sround)
+    local xbord = line.xbord*round(mocha.xscl[iter]/mocha.xscl[rstart],opts.sround) -- round beforehand to minimize random float errors
+    local ybord = line.ybord*round(mocha.yscl[iter]/mocha.yscl[rstart],opts.sround)
     if xbord == ybord then
       tag = tag..string.format("\\bord%g",round(xbord,opts.sround))
     else
@@ -512,8 +517,8 @@ function scl_rot(line,mocha,iter,rstart,opts) -- This is dumb, and I refuse to t
     newtxt = string.gsub(newtxt,"\\bord([0-9]+%.?[0-9]*)","")
   end
   if opts.shad then
-    local xshad = line.xshad[1]*round(mocha.xscl[iter]/mocha.xscl[rstart],opts.sround) -- scale shadow the same way as everything else
-    local yshad = line.yshad[1]*round(mocha.yscl[iter]/mocha.yscl[rstart],opts.sround) -- hope it turns out as desired
+    local xshad = line.xshad*round(mocha.xscl[iter]/mocha.xscl[rstart],opts.sround) -- scale shadow the same way as everything else
+    local yshad = line.yshad*round(mocha.yscl[iter]/mocha.yscl[rstart],opts.sround) -- hope it turns out as desired
     if xshad == yshad then
       tag = tag..string.format("\\shad%g",round(xshad,opts.sround))
     else
@@ -542,8 +547,8 @@ function pos_scl_rot(line,mocha,iter,rstart,opts) -- idk if I did this right lol
   newtxt = string.gsub(newtxt,"\\org%((%-?[0-9]+%.?[0-9]*),(%-?[0-9]+%.?[0-9]*)%)","") -- not sure if overwriting the origin is the right thing to do but the one time I tried it it seemed to work well enough >__>
   newtxt = string.gsub(newtxt,"\\frz(%-?[0-9]+%.?[0-9]*)","")
   if opts.bord then 
-    local xbord = line.xbord[1]*round(mult,opts.sround) -- round beforehand to minimize random float errors
-    local ybord = line.ybord[1]*round(mult,opts.sround) -- or maybe that's rly fucking dumb? idklol
+    local xbord = line.xbord*round(mult,opts.sround) -- round beforehand to minimize random float errors
+    local ybord = line.ybord*round(mult,opts.sround) -- or maybe that's rly fucking dumb? idklol
     if xbord == ybord then
       tag = tag..string.format("\\bord%g",round(xbord,opts.sround))
     else
@@ -554,8 +559,8 @@ function pos_scl_rot(line,mocha,iter,rstart,opts) -- idk if I did this right lol
     newtxt = string.gsub(newtxt,"\\bord([0-9]+%.?[0-9]*)","")
   end
   if opts.shad then
-    local xshad = line.xshad[1]*round(mocha.xscl[iter]/mocha.xscl[rstart],opts.sround) -- scale shadow the same way as everything else
-    local yshad = line.yshad[1]*round(mocha.yscl[iter]/mocha.yscl[rstart],opts.sround) -- hope it turns out as desired
+    local xshad = line.xshad*round(mocha.xscl[iter]/mocha.xscl[rstart],opts.sround) -- scale shadow the same way as everything else
+    local yshad = line.yshad*round(mocha.yscl[iter]/mocha.yscl[rstart],opts.sround) -- hope it turns out as desired
     if xshad == yshad then
       tag = tag..string.format("\\shad%g",round(xshad,opts.sround))
     else
