@@ -163,15 +163,20 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
     opline.ybord = accd.styles[opline.style].outline
     opline.xshad = accd.styles[opline.style].shadow
     opline.yshad = accd.styles[opline.style].shadow
-    _,_,fx = string.find(opline.text,"\\fscx([0-9]+%.?[0-9]*)") -- no negatives, faggot
-    _,_,fy = string.find(opline.text,"\\fscy([0-9]+%.?[0-9]*)")
-    _,_,ali = string.find(opline.text,"\\an([1-9])")
-    _,_,frz = string.find(opline.text,"\\frz(%-?[0-9]+%.?[0-9]*)") -- debug this later
-    _,_,bord = string.find(opline.text,"\\bord([0-9]+%.?[0-9]*)")
-    _,_,shad = string.find(opline.text,"\\shad(%-?[0-9]+%.?[0-9]*)")
-    _,_,t_start,t_end,t_exp,t_eff = string.find(opline.text,"\\t%((%-?[0-9]+),(%-?[0-9]+),([0-9%.]*),?([\\%.%-&a-zA-Z0-9]+)%)") -- not technically valid because something like t(1.1,\fscx200) will not be captured.
-    _,_,opline.xpos,opline.ypos = string.find(opline.text,"\\pos%((%-?[0-9]+%.?[0-9]*),(%-?[0-9]+%.?[0-9]*)%)") -- hmmm
-    _,_,opline.xorg,opline.yorg = string.find(opline.text,"\\org%((%-?[0-9]+%.?[0-9]*),(%-?[0-9]+%.?[0-9]*)%)") -- idklol
+    for a in string.gfind(opline.text,"%{(.-)%}") do --- this will find comment/override tags yo
+      --nothing
+    end
+    _,_,fx = string.find(opline.text,"\\fscx([%d%.]+)")
+    _,_,fy = string.find(opline.text,"\\fscy([%d%.]+)")
+    for a in string.gfind(opline.text,"\\an([1-9])") do -- the last \an is the one that is used
+      ali = a
+    end
+    _,_,frz = string.find(opline.text,"\\frz([%-%d%.]+)")
+    _,_,bord = string.find(opline.text,"\\bord([%d%.]+)")
+    _,_,shad = string.find(opline.text,"\\shad([%-%d%.])")
+    _,_,t_start,t_end,t_exp,t_eff = string.find(opline.text,"\\t%(([%-%d]+),?([%-%d]+),?([%d%.]*),?([\\%.%-&%w]+)%)") -- not technically valid because something like t(1.1,\fscx200) will not be captured.
+    _,_,opline.xpos,opline.ypos = string.find(opline.text,"\\pos%(([%-%d%.]+),([%-%d%.]+)%)") -- The first \pos is the one that is used
+    _,_,opline.xorg,opline.yorg = string.find(opline.text,"\\org%(([%-%d%.]+),([%-%d%.]+)%)") -- idklol
     if fx then opline.xscl = tonumber(fx) end
     if fy then opline.yscl = tonumber(fy) end
     if ali then opline.ali = {tonumber(ali), true} end -- really do need this...?
@@ -180,19 +185,19 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
       opline.xbord = tonumber(bord)
       opline.ybord = tonumber(bord)
     else -- only check for xbord/ybord if bord is not found (because bord overrides them)
-      _,_,xbord = string.find(opline.text,"\\xbord([0-9]+%.?[0-9]*)") 
-      _,_,ybord = string.find(opline.text,"\\ybord([0-9]+%.?[0-9]*)")
-      if xbord then opline.xbord = tonumber(xbord); opline.ybord = 0 end -- if xbord is defined without ybord, then ybord defaults to 0
-      if ybord then opline.ybord = tonumber(ybord); if not xbord then opline.xbord = 0 end; end -- and vice versa
+      _,_,xbord = string.find(opline.text,"\\xbord([%d%.]+)") 
+      _,_,ybord = string.find(opline.text,"\\ybord([%d%.]+)")
+      if xbord then opline.xbord = tonumber(xbord) end -- That was some hilarious bullshit lie and I don't know why I thought that
+      if ybord then opline.ybord = tonumber(ybord) end
     end
     if shad then 
       opline.xshad = tonumber(shad)
       opline.yshad = tonumber(shad)
     else
-      _,_,xshad = string.find(opline.text,"\\xshad(%-?[0-9]+%.?[0-9]*)")
-      _,_,yshad = string.find(opline.text,"\\yshad(%-?[0-9]+%.?[0-9]*)")
-      if xbord then opline.xshad = tonumber(xshad); opline.yshad = 0 end
-      if ybord then opline.yshad = tonumber(yshad); if not xshad then opline.xshad = 0 end; end
+      _,_,xshad = string.find(opline.text,"\\xshad([%-%d%.]+)")
+      _,_,yshad = string.find(opline.text,"\\yshad([%-%d%.]+)")
+      if xbord then opline.xshad = tonumber(xshad) end -- Yeah seriously I think I was suffering from brain damage or something.
+      if ybord then opline.yshad = tonumber(yshad) end
     end
     if not opline.xpos then -- no way it would not find both trololo
       table.insert(accd.poserrs,{i,v})
