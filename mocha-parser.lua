@@ -241,7 +241,6 @@ end
 function init_input(sub,accd)
   gui.main[2].text = accd.errmsg -- insert our error messages
   local config
-  local opts = 0
   local button = {"Go", "Abort"}
   button, config = aegisub.dialog.display(gui.main, button)
   if button == "Go" then
