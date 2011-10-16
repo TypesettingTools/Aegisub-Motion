@@ -1,5 +1,3 @@
-Position and scale work, but have had minimal testing. I have added rotation support, but I have yet to test it, and it will probably be a long time before I do, so YMMV.
+This is the volatile branch. I made this branch because I wanted to be able to attempt to mass-implement new features without worrying about horribly breaking the working version of the script.
 
-'''''Scaled output will only display properly when played back with libass. VSfilter only accepts integer values for scale.'''''<br>This issue may or may not be dealt with later (If I can be bothered with staged transforms).
-
-This script is a horrible amalgam of duct tape, ugly string matching and generally all around terrible code.<br>If for some reason you actually want to use it, feel free to contact me on rizon.
+As its name implies this is "unstable" and odds are it won't work. Once I've actually tested the new features and worked out the bugs, I will merge it with the master.
