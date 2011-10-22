@@ -47,7 +47,7 @@ gui.main = {
     label = "   Please enter a path to the mocha output. Can only take one file."},
   { class = "label";
       x = 0; y = 6; height = 1; width = 10;
-    label = "What tracking data should be applied?            Rounding"}, -- allows more accurate positioning >_>
+    label = "What tracking data should be applied?              Rounding"}, -- allows more accurate positioning >_>
   { class = "label";
       x = 0; y = 7; height = 1; width = 1;
     label = "Position:"},
@@ -131,6 +131,7 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
   accd.startframe = aegisub.frame_from_ms(sub[sel[1]].start_time) -- get the start frame of the first selected line
   accd.poserrs, accd.alignerrs = {}, {}
   accd.errmsg = ""
+  local numlines = #sel
   for i, v in pairs(sel) do -- burning cpu cycles like they were no thing
     local opline = table.copy(sub[v]) -- I have no idea if a shallow copy is even an intelligent thing to do here
     opline.poserrs, opline.alignerrs = {}, {}
@@ -208,7 +209,7 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
       aegisub.log(5,"Line %d: endframe changed from %d to %d\n",v-strt,accd.endframe,opline.endframe)
       accd.endframe = opline.endframe
     end
-    table.insert(accd.lines,opline)
+    accd.lines[numlines-i+1] = opline -- does table.insert do a shallow copy as well? The answer is yes.
     opline.comment = true -- not sure if this is actually a good place to do the commenting or not.
     sub[v] = opline -- comment out the original line
     opline.comment = false -- lines remain commented if cancelled at main dialogue. Oh well, idgaf.
@@ -225,6 +226,7 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
   else
     accd.errmsg = "None of your selected lines appear to be problematic.\n"..accd.errmsg 
   end
+  aegisub.set_undo_point("Comments")
   init_input(sub,accd)
 end
 
@@ -234,7 +236,7 @@ function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   if button == "Go" then
     config.reverse = false -- since I haven't added it to the interface yet
     if config.reverse then
-      aegisub.progress.title("slibreG gnicniM")
+      aegisub.progress.title("slibreG gnicniM") -- BECAUSE ITS FUNNY GEDDIT
     else
       aegisub.progress.title("Mincing Gerbils")
     end
@@ -245,7 +247,7 @@ function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   else
     aegisub.progress.task("ABORT")
   end
-  aegisub.set_undo_point("fan hitting the shit") -- I'm about 80% sure this is obsolete
+  aegisub.set_undo_point("fan hitting the shit") -- Hm.
 end
 
 function help(su,ac)
@@ -303,7 +305,6 @@ function frame_by_frame(sub,accd,opts)
   mocha = parse_input(opts.mocpat)
   assert(accd.totframes==mocha.flength,"Number of frames from selected lines differs from number of frames tracked.")
   local _ = nil
-  local it = 1
   if not opts.scl then
     for k,d in ipairs(mocha.xscl) do
       d = mocha.xscl[rstartf]
@@ -358,7 +359,6 @@ function frame_by_frame(sub,accd,opts)
       aegisub.log(1,"Line %d is being skipped because it is missing a \\pos() tag and you said to track position. Moron.",v.num) -- yeah that should do it.
     else
       local tag = "{"
-      local rat = {}
       for x = rstartf,rendf do
         v.ratx = mocha.xscl[iter]/mocha.xscl[rstart] -- DIVISION IS SLOW
         v.raty = mocha.yscl[iter]/mocha.yscl[rstart]
@@ -370,8 +370,7 @@ function frame_by_frame(sub,accd,opts)
         end
         tag = tag.."}"
         v.text = tag..v.text -- insert the new tags in a separate block before the 
-        sub.insert(v.num+it,v)
-        it = it + 1
+        sub.insert(v.num+1,v)
         v.text = orgtext
       end
     end
