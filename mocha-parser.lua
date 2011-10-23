@@ -131,6 +131,7 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
   accd.startframe = aegisub.frame_from_ms(sub[sel[1]].start_time) -- get the start frame of the first selected line
   accd.poserrs, accd.alignerrs = {}, {}
   accd.errmsg = ""
+  local numlines = #sel
   for i, v in pairs(sel) do -- burning cpu cycles like they were no thing
     local opline = table.copy(sub[v]) -- I have no idea if a shallow copy is even an intelligent thing to do here
     opline.poserrs, opline.alignerrs = {}, {}
@@ -208,7 +209,7 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
       aegisub.log(5,"Line %d: endframe changed from %d to %d\n",v-strt,accd.endframe,opline.endframe)
       accd.endframe = opline.endframe
     end
-    table.insert(accd.lines,opline) -- does table.insert do a shallow copy as well? The answer is yes.
+    accd.lines[numlines-i+1] = opline -- does table.insert do a shallow copy as well? The answer is yes.
     opline.comment = true -- not sure if this is actually a good place to do the commenting or not.
     sub[v] = opline
     opline.comment = false -- because fuck you shallow copy.
@@ -302,7 +303,6 @@ end
 function frame_by_frame(sub,accd,opts)
   mocha = parse_input(opts.mocpat)
   assert(accd.totframes==mocha.flength,"Number of frames from selected lines differs from number of frames tracked.")
-  local it = 1
   local _ = nil
   if not opts.scl then
     for k,d in ipairs(mocha.xscl) do
@@ -317,22 +317,24 @@ function frame_by_frame(sub,accd,opts)
     table.insert(eraser,"\\pos%([%-%d%.]+,[%-%d%.]+%)")
   end
   if opts.scl then
+    if opts.vsfilter then
+      table.insert(operations,VScalify)
+    else
+      table.insert(operations,scalify)
+    end
     table.insert(eraser,"\\fscx[%d%.]+")
     table.insert(eraser,"\\fscy[%d%.]+")
     if opts.bord then
       table.insert(eraser,"\\xbord[%d%.]+")
       table.insert(eraser,"\\ybord[%d%.]+")
       table.insert(eraser,"\\bord[%d%.]+")
+      table.insert(operations,bordicate)
     end
     if opts.shad then
       table.insert(eraser,"\\xshad[%-%d%.]+")
       table.insert(eraser,"\\yshad[%-%d%.]+")
       table.insert(eraser,"\\shad[%-%d%.]+")
-    end
-    if opts.vsfilter then
-      table.insert(operations,VScalify)
-    else
-      table.insert(operations,scalify)
+      table.insert(operations,shadinate)
     end
   end
   if opts.vsfilter then
@@ -345,7 +347,6 @@ function frame_by_frame(sub,accd,opts)
     table.insert(eraser,"\\frz[%-%d%.]+")
   end
   for i,v in ipairs(accd.lines) do
-    aegisub.log(0,"loop %d\n",i)
     local rstartf = v.startframe - accd.startframe + 1 -- start frame of line relative to start frame of tracked data
     local rendf = v.endframe - accd.startframe -- end frame of line relative to start frame of tracked data
     if v.xorg and opts.rot then
@@ -365,87 +366,65 @@ function frame_by_frame(sub,accd,opts)
     else
       for x = rstartf,rendf do
         local tag = "{"
-        aegisub.log(0,"innerloop %d\n",x)
         v.ratx = mocha.xscl[x]/mocha.xscl[rstartf] -- DIVISION IS SLOW
         v.raty = mocha.yscl[x]/mocha.yscl[rstartf]
         v.start_time = aegisub.ms_from_frame(accd.startframe+x-1)
         v.end_time = aegisub.ms_from_frame(accd.startframe+x)
         for vk,kv in ipairs(operations) do -- iterate through the necessary operations
-          tag = tag..kv(v,mocha,x,rstartf,opts)
+          tag = tag..kv(v,mocha,opts,x)
         end
         tag = tag.."}"
-        aegisub.log(0,"%s\n",tag)
         v.text = tag..v.text -- insert the new tags in a separate block before the main one
-        sub.insert(v.num+it,v) -- this isn't working?
-        it = it + 1
+        sub.insert(v.num+x-rstartf+1,v) -- this isn't working?
         v.text = orgtext
       end
     end
   end
 end
--- C:\@projects\mocha-parser tests\mocha.test
-function possify(line,mocha,iter,rstart,opts)
+
+function possify(line,mocha,opts,iter)
   local xpos = mocha.xpos[iter]-(line.xdiff*line.ratx)
   local ypos = mocha.ypos[iter]-(line.ydiff*line.raty)
   return string.format("\\pos(%g,%g)",round(xpos,opts.pround),round(ypos,opts.pround))
 end
 
-function scalify(line,mocha,iter,rstart,opts)
+function scalify(line,mocha,opts)
   local xscl = line.xscl*line.ratx
   local yscl = line.yscl*line.raty
-  local tag = string.format("\\fscx%g\\fscy%g",round(xscl,opts.sround),round(yscl,opts.sround))
-  if opts.bord then -- there's no nonretarded way to do this is there
-    local xbord = line.xbord*round(line.ratx,opts.sround) -- round beforehand to minimize random float errors
-    local ybord = line.ybord*round(line.raty,opts.sround) -- or maybe that's rly fucking dumb? idklol
-    if xbord == ybord then
-      tag = tag..string.format("\\bord%g",round(xbord,opts.sround))
-    else
-      tag = tag..string.format("\\xbord%g\\ybord%g",round(xbord,opts.sround),round(ybord,opts.sround))
-    end
-  end
-  if opts.shad then
-    local xshad = line.xshad*round(line.ratx,opts.sround) -- scale shadow the same way as everything else
-    local yshad = line.yshad*round(line.raty,opts.sround) -- hope it turns out as desired
-    if xshad == yshad then
-      tag = tag..string.format("\\shad%g",round(xshad,opts.sround))
-    else
-      tag = tag..string.format("\\xshad%g\\yshad%g",round(xshad,opts.sround),round(yshad,opts.sround))
-    end  
-  end
-  return tag
+  return string.format("\\fscx%g\\fscy%g",round(xscl,opts.sround),round(yscl,opts.sround))
 end
 
-function VScalify(line,mocha,iter,rstart,opts)
+function bordicate(line,mocha,opts)
+  local xbord = line.xbord*round(line.ratx,opts.sround) -- round beforehand to minimize random float errors
+  local ybord = line.ybord*round(line.raty,opts.sround) -- or maybe that's rly fucking dumb? idklol
+  if xbord == ybord then
+    return string.format("\\bord%g",round(xbord,opts.sround))
+  else
+    return string.format("\\xbord%g\\ybord%g",round(xbord,opts.sround),round(ybord,opts.sround))
+  end
+end
+
+function shadinate(line,mocha,opts)
+  local xshad = line.xshad*round(line.ratx,opts.sround) -- scale shadow the same way as everything else
+  local yshad = line.yshad*round(line.raty,opts.sround) -- hope it turns out as desired
+  if xshad == yshad then
+    return string.format("\\shad%g",round(xshad,opts.sround))
+  else
+    return string.format("\\xshad%g\\yshad%g",round(xshad,opts.sround),round(yshad,opts.sround))
+  end
+end
+
+function VScalify(line,mocha,opts)
   local xscl = round(line.xscl*line.ratx,2)
   local yscl = round(line.yscl*line.raty,2)
   local xlowend, xhighend, xdecimal = math.floor(xscl),math.ceil(xscl),xscl%1*100
   local xstart, xend = -xdecimal, 100-xdecimal
-  local tag = string.format("\\fscx%d\\t(%d,%d,\\fscx%d)",xlowend,xstart,xend,xhighend)
   local ylowend, yhighend, ydecimal = math.floor(yscl),math.ceil(yscl),yscl%1*100
   local ystart, yend = -ydecimal, 100-ydecimal
-  tag = tag..string.format("\\fscy%d\\t(%d,%d,\\fscy%d)",ylowend,ystart,yend,yhighend)
-  if opts.bord then -- there's no nonretarded way to do this is there
-    local xbord = line.xbord*round(line.ratx,opts.sround) -- round beforehand to minimize random float errors
-    local ybord = line.ybord*round(line.raty,opts.sround) -- or maybe that's rly fucking dumb? idklol
-    if xbord == ybord then
-      tag = tag..string.format("\\bord%g",round(xbord,opts.sround))
-    else
-      tag = tag..string.format("\\xbord%g\\ybord%g",round(xbord,opts.sround),round(ybord,opts.sround))
-    end
-  end
-  if opts.shad then
-    local xshad = line.xshad*round(line.ratx,opts.sround) -- scale shadow the same way as everything else
-    local yshad = line.yshad*round(line.raty,opts.sround) -- hope it turns out as desired
-    if xshad == yshad then
-      tag = tag..string.format("\\shad%g",round(xshad,opts.sround))
-    else
-      tag = tag..string.format("\\xshad%g\\yshad%g",round(xshad,opts.sround),round(yshad,opts.sround))
-    end  
-  end
-  return tag
+  return string.format("\\fscx%d\\t(%d,%d,\\fscx%d)\\fscy%d\\t(%d,%d,\\fscy%d)",xlowend,xstart,xend,xhighend,ylowend,ystart,yend,yhighend)
 end
 
-function rotate(line,mocha,iter,rstart,opts)
+function rotate(line,mocha,opts,iter)
   return string.format("\\org(%g,%g)\\frz%g",round(mocha.xpos[iter],opts.rround),round(mocha.ypos[iter],opts.rround),round(mocha.zrot[iter]-line.zrotd,opts.rround)) -- copypasta
 end
 
@@ -455,10 +434,10 @@ function round(num, idp) -- borrowed from the lua-users wiki (all of the intelli
 end
 
 function string:split(sep) -- borrowed from the lua-users wiki (single character split ONLY)
-        local sep, fields = sep or ":", {}
-        local pattern = string.format("([^%s]+)", sep)
-        self:gsub(pattern, function(c) fields[#fields+1] = c end)
-        return fields
+  local sep, fields = sep or ":", {}
+  local pattern = string.format("([^%s]+)", sep)
+  self:gsub(pattern, function(c) fields[#fields+1] = c end)
+  return fields
 end
 
 function isvideo() -- a very rudimentary (but hopefully efficient) check to see if there is a video loaded.
