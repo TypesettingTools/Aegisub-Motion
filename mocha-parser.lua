@@ -210,7 +210,8 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
     end
     table.insert(accd.lines,opline) -- does table.insert do a shallow copy as well? The answer is yes.
     opline.comment = true -- not sure if this is actually a good place to do the commenting or not.
-    sub[v] = opline -- comment out the original line
+    sub[v] = opline
+    opline.comment = false -- because fuck you shallow copy.
   end
   accd.lvidx, accd.lvidy = aegisub.video_size()
   accd.shx, accd.shy = accd.meta.res_x, accd.meta.res_y
@@ -290,7 +291,6 @@ function parse_input(infile)
   end
   mocha.flength = #mocha.xpos
   if mocha.flength == #mocha.ypos and mocha.flength == #mocha.xscl and mocha.flength == #mocha.yscl and mocha.flength == #mocha.zrot then -- make sure all of the elements are the same length (because I don't trust my own code).
-      aegisub.log(0,"mend: %g\n",collectgarbage("count"))
     return mocha -- hurr durr
   else
     --return some system crippling error and wonder how the hell mocha's output is messed up
@@ -313,21 +313,21 @@ function frame_by_frame(sub,accd,opts)
   local operations = {} -- create a table and put the necessary functions into it, which will save a lot of if operations in the inner loop. This was the most elegant solution I came up with.
   local eraser = {}
   if opts.pos then
-    table.insert(operations, possify)
-    table.insert(eraser, "\\pos%([%-%d%.]+,[%-%d%.]+%)")
+    table.insert(operations,possify)
+    table.insert(eraser,"\\pos%([%-%d%.]+,[%-%d%.]+%)")
   end
   if opts.scl then
-    table.insert(eraser, "\\fscx[%d%.]+")
-    table.insert(eraser, "\\fscy[%d%.]+")
+    table.insert(eraser,"\\fscx[%d%.]+")
+    table.insert(eraser,"\\fscy[%d%.]+")
     if opts.bord then
-      table.insert(eraser, "\\xbord[%d%.]+")
-      table.insert(eraser, "\\ybord[%d%.]+")
-      table.insert(eraser, "\\bord[%d%.]+")
+      table.insert(eraser,"\\xbord[%d%.]+")
+      table.insert(eraser,"\\ybord[%d%.]+")
+      table.insert(eraser,"\\bord[%d%.]+")
     end
     if opts.shad then
-      table.insert(eraser, "\\xshad[%-%d%.]+")
-      table.insert(eraser, "\\yshad[%-%d%.]+")
-      table.insert(eraser, "\\shad[%-%d%.]+")
+      table.insert(eraser,"\\xshad[%-%d%.]+")
+      table.insert(eraser,"\\yshad[%-%d%.]+")
+      table.insert(eraser,"\\shad[%-%d%.]+")
     end
     if opts.vsfilter then
       table.insert(operations,VScalify)
@@ -336,16 +336,13 @@ function frame_by_frame(sub,accd,opts)
     end
   end
   if opts.vsfilter then
-    if not opts.scale then
-      init_input(sub,accd)
-    end
     opts.pround = 1
     opts.sround = 2
   end
   if opts.rot then
     table.insert(operations,rotate)
-    table.insert(eraser, "\\org%([%-%d%.]+,[%-%d%.]+%)")
-    table.insert(eraser, "\\frz[%-%d%.]+")
+    table.insert(eraser,"\\org%([%-%d%.]+,[%-%d%.]+%)")
+    table.insert(eraser,"\\frz[%-%d%.]+")
   end
   for i,v in ipairs(accd.lines) do
     aegisub.log(0,"loop %d\n",i)
@@ -358,10 +355,11 @@ function frame_by_frame(sub,accd,opts)
     if v.xpos and opts.pos then
       v.xdiff, v.ydiff = mocha.xpos[rstartf] - v.xpos, mocha.ypos[rstartf] - v.ypos
     end
-    local orgtext = v.text -- tables are passed as references.
     for ie, ei in ipairs(eraser) do
       v.text = string.gsub(v.text,ei,"")
     end
+    v.text = string.gsub(v.text,"{}","") -- Aesthetics, my friend. Aesthetics.
+    local orgtext = v.text -- tables are passed as references.
     if opts.pos and not v.xpos then
       aegisub.log(1,"Line %d is being skipped because it is missing a \\pos() tag and you said to track position. Moron.",v.num) -- yeah that should do it.
     else
