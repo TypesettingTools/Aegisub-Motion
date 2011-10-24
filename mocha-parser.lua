@@ -26,10 +26,10 @@ INALIABLE RIGHTS:
     FROM LOOKING AT AT ANY TIME.
 --]]
 
-script_name = "Aegisub-Mocha"
-script_description = "Mocha output parser for Aegisub" -- also it suffers from memory leaks?
+script_name = "Aegisub-Motion"
+script_description = "Adobe After Effects 6.0 keyframe data parser for Aegisub" -- also it suffers from memory leaks?
 script_author = "torque"
-script_version = "0.0.0-2.718281828" -- no, I have no idea how this versioning system works either.
+script_version = "0.0.1+0.7320508075" -- no, I have no idea how this versioning system works either.
 include("karaskel.lua")
 include("utils.lua") -- because it saves me like 5 lines of code this way
 gui = {}
@@ -89,22 +89,22 @@ gui.main = {
     value = true; name = "shad"},
   { class = "label";
       x = 0; y = 11; height = 1; width = 10;
-    label = "  Enter the file to the path containing your shear/perspective data."},
+    label = "This is the MOTD:"}, --"  Enter the file to the path containing your shear/perspective data."},
   { class = "textbox";
       x = 0; y = 12; height = 4; width = 10;
     name = "mocper"; hint = "Again, the full path to the file. No quotes or escapism needed.";
     text = "I AM ACTUALLY SOMEWHAT SURPRISED THIS COMPILED, MUCH LESS RAN THIS FAR."},
   { class = "label";
       x = 0; y = 16; height = 1; width = 3;
-    label = "Vsfilter Compatibility:"},
+    label = "VSfilter Compatibility:"},
   { class = "checkbox";
       x = 3; y = 16; height = 1; width = 1;
     value = false; name = "vsfilter"},
   { class = "label";
-      x = 4; y = 16; height = 1; width = 1;
-    label = "Reverse:"},
+      x = 9; y = 16; height = 1; width = 2;
+    label = ":esreveR"},
   { class = "checkbox";
-      x = 5; y = 16; height = 1; width = 1;
+      x = 8; y = 16; height = 1; width = 1;
     value = false; name = "reverse"}
 }
 
@@ -118,7 +118,7 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
   local strt
   for x = 1,#sub do -- so if there are like 10000 different styles then this is probably a really bad idea but I DON'T GIVE A FUCK
     if sub[x].class == "dialogue" then -- BECAUSE I SAID SO
-      strt = x -- start line of dialogue subs
+      strt = x-1 -- start line of dialogue subs
       break
     end
   end
@@ -222,9 +222,9 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
     accd.errmsg = string.format("Header x/y res (%d,%d) does not match video (%d,%d).\n", accd.shx, accd.shy, accd.lvidx, accd.lvidy)..accd.errmsg
   end
   if accd.toterrs > 0 then
-    accd.errmsg = "The lines noted below may need to be checked.\nThe problem lines will be ignored, depending\non what tracking data you choose to apply\n"..accd.errmsg
+    accd.errmsg = "The lines noted below need to be checked.\n"..accd.errmsg
   else
-    accd.errmsg = "None of your selected lines appear to be problematic.\n"..accd.errmsg 
+    accd.errmsg = "None of the selected lines seem to be problematic.\n"..accd.errmsg 
   end
   init_input(sub,accd)
 end
@@ -246,7 +246,7 @@ function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   else
     aegisub.progress.task("ABORT")
   end
-  aegisub.set_undo_point("fan hitting the shit") -- Hm.
+  aegisub.set_undo_point("Fan hitting the shit.")
 end
 
 function help(su,ac)
@@ -306,8 +306,17 @@ function frame_by_frame(sub,accd,opts)
   local _ = nil
   if not opts.scl then
     for k,d in ipairs(mocha.xscl) do
-      d = mocha.xscl[rstartf]
-      mocha.yscl[k] = mocha.yscl[rstartf] -- so that yscl is changed too. 
+      d = 100
+      mocha.yscl[k] = 100 -- so that yscl is changed too. 
+    end
+  end
+  if opts.reverse then -- reverse the order of the tracking data
+    for i,v in ipairs(mocha.xpos) do
+      v = mocha.xpos[accd.totframes-i+1] -- these indicies starting with 1 are starting to get annoying
+      mocha.ypos[i] = mocha.ypos[accd.totframes-i+1]
+      mocha.xscl[i] = mocha.xscl[accd.totframes-i+1]
+      mocha.yscl[i] = mocha.yscl[accd.totframes-i+1]
+      mocha.zrot[i] = mocha.zrot[accd.totframes-i+1]
     end
   end
   local operations = {} -- create a table and put the necessary functions into it, which will save a lot of if operations in the inner loop. This was the most elegant solution I came up with.
@@ -340,6 +349,7 @@ function frame_by_frame(sub,accd,opts)
   if opts.vsfilter then
     opts.pround = 1
     opts.sround = 2
+    opts.rround = 2
   end
   if opts.rot then
     table.insert(operations,rotate)
@@ -444,4 +454,4 @@ function isvideo() -- a very rudimentary (but hopefully efficient) check to see 
   if aegisub.video_size() then return true else return false end
 end
 
-aegisub.register_macro("Mocha Parser","Applies motion tracking data collected by Mocha to selected subtitles.", prerun_czechs, isvideo)
+aegisub.register_macro("Aegisub-Motion","Applies properly formatted motion tracking data to selected subtitles.", prerun_czechs, isvideo)
