@@ -27,7 +27,9 @@ INALIABLE RIGHTS:
   6. This LICENSE AGREEMENT, which is IMPLICITLY AGREED TO upon usage of the script,
     regardless of whether or not THE USER has actually read it, IS RETROACTIVELY
     EXTENSIBLE. This means that ANY SUBSEQUENT TERMS ADDED TO IT IMMEDIATELY APPLY
-    TO ALL OF THE USER'S ACTIONS IN THE PAST
+    TO ALL OF THE USER'S ACTIONS IN THE PAST, and THE USER should be VERY CAREFUL that
+    they have not previously VIOLATED any FUTURE TERMS AND CONDITIONS lest they be
+    legally OPPRESSED by ME in a COURT OF LAW.
 --]]
 
 script_name = "Aegisub-Motion"
