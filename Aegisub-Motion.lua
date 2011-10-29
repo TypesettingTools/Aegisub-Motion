@@ -24,12 +24,16 @@ INALIABLE RIGHTS:
     EVAPORATION of ALL OF MY FREE TIME, I have decided to make ARBITRARY PARTS of
     this script PROPRIETARY CODE that THE USER IS ABSOLUTELY AND EXPLICITLY VERBOTEN
     FROM LOOKING AT AT ANY TIME.
+  6. This LICENSE AGREEMENT, which is IMPLICITLY AGREED TO upon usage of the script,
+    regardless of whether or not THE USER has actually read it, IS RETROACTIVELY
+    EXTENSIBLE. This means that ANY SUBSEQUENT TERMS ADDED TO IT IMMEDIATELY APPLY
+    TO ALL OF THE USER'S ACTIONS IN THE PAST
 --]]
 
 script_name = "Aegisub-Motion"
 script_description = "Adobe After Effects 6.0 keyframe data parser for Aegisub" -- also it suffers from memory leaks?
 script_author = "torque"
-script_version = "0.0.1+0.7320508075" -- no, I have no idea how this versioning system works either.
+script_version = "0.0x00DEAF" -- no, I have no idea how this versioning system works either.
 include("karaskel.lua")
 include("utils.lua") -- because it saves me like 5 lines of code this way
 gui = {}
@@ -41,7 +45,10 @@ gui.main = {
     text = "e.g.  C:\\path\\to the\\mocha.output"},
   { class = "textbox";
       x = 0; y = 17; height = 4; width = 10;
-    name = "preerr"; hint = "Any lines that didn't pass the prerun checks are noted here.";},
+    name = "preerr"; hint = "Any lines that didn't pass the prerun checks are noted here."},
+  { class = "textbox";
+      x = 0; y = 12; height = 4; width = 10;
+    name = "mocper"; hint = "YOUR FRIENDLY NEIGHBORHOOD MATH.RANDOM() AT WORK"},
   { class = "label";
       x = 0; y = 0; height = 1; width = 10;
     label = "   Please enter a path to the mocha output. Can only take one file."},
@@ -90,10 +97,6 @@ gui.main = {
   { class = "label";
       x = 0; y = 11; height = 1; width = 10;
     label = "This is the MOTD:"}, --"  Enter the file to the path containing your shear/perspective data."},
-  { class = "textbox";
-      x = 0; y = 12; height = 4; width = 10;
-    name = "mocper"; hint = "Again, the full path to the file. No quotes or escapism needed.";
-    text = "I AM ACTUALLY SOMEWHAT SURPRISED THIS COMPILED, MUCH LESS RAN THIS FAR."},
   { class = "label";
       x = 0; y = 16; height = 1; width = 3;
     label = "VSfilter Compatibility:"},
@@ -106,6 +109,13 @@ gui.main = {
   { class = "checkbox";
       x = 8; y = 16; height = 1; width = 1;
     value = false; name = "reverse"}
+}
+
+gui.motd = { -- pointless because math.random doesn't work properly
+  "The culprit was a huge truck.";
+  "Error 0x0054AF: Program Requested to Be Terminated in an Unusual Fashion";
+  "A thousand million official pretenders.";
+  "Powered by 100% genuine sweatshop child laborers"
 }
 
 gui.halp = {
@@ -209,7 +219,7 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
       aegisub.log(5,"Line %d: endframe changed from %d to %d\n",v-strt,accd.endframe,opline.endframe)
       accd.endframe = opline.endframe
     end
-    accd.lines[numlines-i+1] = opline -- does table.insert do a shallow copy as well? The answer is yes.
+    accd.lines[numlines-i+1] = opline -- does table.insert do a shallow copy as well? The answer is yes. Fuck this won't work if randomly leaving out lines.
     opline.comment = true -- not sure if this is actually a good place to do the commenting or not.
     sub[v] = opline
     opline.comment = false -- because fuck you shallow copy.
@@ -231,9 +241,10 @@ end
 
 function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   gui.main[2].text = accd.errmsg -- insert our error messages
+  tonumber(tostring(os.time()):reverse()) -- because it uh makes the seed difference larger
+  gui.main[3].text = tostring(math.random()) -- :z
   local button, config = aegisub.dialog.display(gui.main, {"Go","Abort","Help"})
   if button == "Go" then
-    config.reverse = false -- since I haven't added it to the interface yet
     if config.reverse then
       aegisub.progress.title("slibreG gnicniM") -- BECAUSE ITS FUNNY GEDDIT
     else
@@ -310,15 +321,6 @@ function frame_by_frame(sub,accd,opts)
       mocha.yscl[k] = 100 -- so that yscl is changed too. 
     end
   end
-  if opts.reverse then -- reverse the order of the tracking data
-    for i,v in ipairs(mocha.xpos) do
-      v = mocha.xpos[accd.totframes-i+1] -- these indicies starting with 1 are starting to get annoying
-      mocha.ypos[i] = mocha.ypos[accd.totframes-i+1]
-      mocha.xscl[i] = mocha.xscl[accd.totframes-i+1]
-      mocha.yscl[i] = mocha.yscl[accd.totframes-i+1]
-      mocha.zrot[i] = mocha.zrot[accd.totframes-i+1]
-    end
-  end
   local operations = {} -- create a table and put the necessary functions into it, which will save a lot of if operations in the inner loop. This was the most elegant solution I came up with.
   local eraser = {}
   if opts.pos then
@@ -359,6 +361,9 @@ function frame_by_frame(sub,accd,opts)
   for i,v in ipairs(accd.lines) do
     local rstartf = v.startframe - accd.startframe + 1 -- start frame of line relative to start frame of tracked data
     local rendf = v.endframe - accd.startframe -- end frame of line relative to start frame of tracked data
+    if opts.reverse then
+      rstartf, rendf = rendf, rstartf
+    end
     if v.xorg and opts.rot then
       v.xorgd, v.yorgd = mocha.xpos[rstartf] - v.xorg, mocha.ypos[rstartf] - v.yorg -- not going to actually use this until I test it more.
       v.zrotd = mocha.zrot[rstartf] - v.zrot -- idr there was something silly about this
@@ -371,29 +376,50 @@ function frame_by_frame(sub,accd,opts)
     end
     v.text = string.gsub(v.text,"{}","") -- Aesthetics, my friend. Aesthetics.
     local orgtext = v.text -- tables are passed as references.
+    if opts.reverse then
+      rstartf, rendf = rendf, rstartf
+    end
     if opts.pos and not v.xpos then
       aegisub.log(1,"Line %d is being skipped because it is missing a \\pos() tag and you said to track position. Moron.",v.num) -- yeah that should do it.
     else
-      for x = rstartf,rendf do
-        local tag = "{"
-        v.ratx = mocha.xscl[x]/mocha.xscl[rstartf] -- DIVISION IS SLOW
-        v.raty = mocha.yscl[x]/mocha.yscl[rstartf]
-        v.start_time = aegisub.ms_from_frame(accd.startframe+x-1)
-        v.end_time = aegisub.ms_from_frame(accd.startframe+x)
-        for vk,kv in ipairs(operations) do -- iterate through the necessary operations
-          tag = tag..kv(v,mocha,opts,x)
+      if opts.reverse then
+        for x = rstartf,rendf do
+          local tag = "{"
+          local iter = rendf-x+1 -- hm
+          v.ratx = mocha.xscl[iter]/mocha.xscl[rendf] -- DIVISION IS SLOW
+          v.raty = mocha.yscl[iter]/mocha.yscl[rendf]
+          v.start_time = aegisub.ms_from_frame(accd.startframe+iter-1)
+          v.end_time = aegisub.ms_from_frame(accd.startframe+iter)
+          for vk,kv in ipairs(operations) do -- iterate through the necessary operations
+            tag = tag..kv(v,mocha,opts,iter)
+          end
+          tag = tag.."}"
+          v.text = tag..v.text -- insert the new tags in a separate block before the main one
+          sub.insert(v.num+1,v)
+          v.text = orgtext
         end
-        tag = tag.."}"
-        v.text = tag..v.text -- insert the new tags in a separate block before the main one
-        sub.insert(v.num+x-rstartf+1,v) -- this isn't working?
-        v.text = orgtext
+      else
+        for x = rstartf,rendf do
+          local tag = "{"
+          v.ratx = mocha.xscl[x]/mocha.xscl[rstartf] -- DIVISION IS SLOW
+          v.raty = mocha.yscl[x]/mocha.yscl[rstartf]
+          v.start_time = aegisub.ms_from_frame(accd.startframe+x-1)
+          v.end_time = aegisub.ms_from_frame(accd.startframe+x)
+          for vk,kv in ipairs(operations) do -- iterate through the necessary operations
+            tag = tag..kv(v,mocha,opts,x)
+          end
+          tag = tag.."}"
+          v.text = tag..v.text -- insert the new tags in a separate block before the main one
+          sub.insert(v.num+x-rstartf+1,v)
+          v.text = orgtext
+        end
       end
     end
   end
 end
 
 function possify(line,mocha,opts,iter)
-  local xpos = mocha.xpos[iter]-(line.xdiff*line.ratx)
+  local xpos = mocha.xpos[iter]-(line.xdiff*line.ratx) -- allocating memory like a bawss
   local ypos = mocha.ypos[iter]-(line.ydiff*line.raty)
   return string.format("\\pos(%g,%g)",round(xpos,opts.pround),round(ypos,opts.pround))
 end
@@ -438,6 +464,9 @@ function rotate(line,mocha,opts,iter)
   return string.format("\\org(%g,%g)\\frz%g",round(mocha.xpos[iter],opts.rround),round(mocha.ypos[iter],opts.rround),round(mocha.zrot[iter]-line.zrotd,opts.rround)) -- copypasta
 end
 
+function reverse_table(tab)
+end
+
 function round(num, idp) -- borrowed from the lua-users wiki (all of the intelligent code you see in here is)
   local mult = 10^(idp or 0)
   return math.floor(num * mult + 0.5) / mult
@@ -454,4 +483,4 @@ function isvideo() -- a very rudimentary (but hopefully efficient) check to see 
   if aegisub.video_size() then return true else return false end
 end
 
-aegisub.register_macro("Aegisub-Motion","Applies properly formatted motion tracking data to selected subtitles.", prerun_czechs, isvideo)
+aegisub.register_macro("Apply motion data","Applies properly formatted motion tracking data to selected subtitles.", prerun_czechs, isvideo)
