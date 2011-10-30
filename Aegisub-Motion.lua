@@ -98,18 +98,18 @@ gui.main = {
     value = true; name = "shad"},
   { class = "label";
       x = 0; y = 11; height = 1; width = 10;
-    label = "This is the MOTD:"}, --"  Enter the file to the path containing your shear/perspective data."},
+    label = "                                                      MOTD"}, --"  Enter the file to the path containing your shear/perspective data."},
   { class = "label";
-      x = 0; y = 16; height = 1; width = 3;
+      x = 0; y = 10; height = 1; width = 3;
     label = "VSfilter Compatibility:"},
   { class = "checkbox";
-      x = 3; y = 16; height = 1; width = 1;
+      x = 3; y = 10; height = 1; width = 1;
     value = false; name = "vsfilter"},
   { class = "label";
-      x = 9; y = 16; height = 1; width = 2;
+      x = 9; y = 10; height = 1; width = 2;
     label = ":esreveR"},
   { class = "checkbox";
-      x = 8; y = 16; height = 1; width = 1;
+      x = 8; y = 10; height = 1; width = 1;
     value = false; name = "reverse"}
 }
 
@@ -243,8 +243,8 @@ end
 
 function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   gui.main[2].text = accd.errmsg -- insert our error messages
-  tonumber(tostring(os.time()):reverse()) -- because it uh makes the seed difference larger
-  gui.main[3].text = tostring(math.random()) -- :z
+  math.randomseed(tonumber(tostring(os.time()):reverse())) -- because it uh makes the seed difference larger
+  gui.main[3].text = tostring(math.random(100)) -- :z
   local button, config = aegisub.dialog.display(gui.main, {"Go","Abort","Help"})
   if button == "Go" then
     if config.reverse then
