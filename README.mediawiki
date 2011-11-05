@@ -1,4 +1,4 @@
-Position and scale seem to work as expected.<br>Rotation has had no testing, and will not until I have an actual reason to test it. Your mileage may vary.
+Position, scale and rotation seem to work as expected, though they have all only had somewhat limited testing.
 
 '''''A VSfilter compatibility mode has been implemented for allowing VSfilter to work with scale data. It helps to stabilize the way vsfilter renders non-integer scale values, but libASS's rendering job is still superior. Also, as it uses a lot of staged transforms, I have no idea how much it increases the rendering cost. I'm guessing a fair amount.'''''
 
