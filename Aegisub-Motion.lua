@@ -53,7 +53,7 @@ gui.main = {
     name = "mocper"; hint = "YOUR FRIENDLY NEIGHBORHOOD MATH.RANDOM() AT WORK"},
   { class = "label";
       x = 0; y = 0; height = 1; width = 10;
-    label = "   Please enter a path to the mocha output. Can only take one file."},
+    label = "  Please enter the filepath to the motion data. Can only take one file."},
   { class = "label";
       x = 0; y = 6; height = 1; width = 10;
     label = "What tracking data should be applied?              Rounding"}, -- allows more accurate positioning >_>
@@ -115,9 +115,8 @@ gui.main = {
 
 gui.motd = { -- pointless because math.random doesn't work properly
   "The culprit was a huge truck.";
-  "Error 0x0054AF: Program Requested to Be Terminated in an Unusual Fashion";
-  "A thousand million official pretenders.";
-  "Powered by 100% genuine sweatshop child laborers"
+  "Error 0x0045AF: Runtime requested to be terminated in an unusual fashion.";
+  "Powered by 100% genuine sweatshop child laborers."
 }
 
 gui.halp = {
@@ -176,7 +175,8 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
     _,_,frz = string.find(opline.text,"\\frz([%-%d%.]+)")
     _,_,bord = string.find(opline.text,"\\bord([%d%.]+)")
     _,_,shad = string.find(opline.text,"\\shad([%-%d%.])")
-    _,_,t_start,t_end,t_exp,t_eff = string.find(opline.text,"\\t%(([%-%d]+),?([%-%d]+),?([%d%.]*),?([\\%.%-&%w]+)%)") -- not technically valid because something like t(1.1,\fscx200) will not be captured.
+    _,_,t_start,t_end,t_exp,t_eff = string.find(opline.text,"\\t%(([%-%d]+),?([%-%d]+),?([%d%.]*),?([\\%.%-&%w]+)%)") -- this will return an empty string if no exponential factor is specified
+    if t_exp == "" then t_exp = 1 end -- set it to 1 because stuff and things
     _,_,opline.xpos,opline.ypos = string.find(opline.text,"\\pos%(([%-%d%.]+),([%-%d%.]+)%)") -- The first \pos is the one that is used
     _,_,opline.xorg,opline.yorg = string.find(opline.text,"\\org%(([%-%d%.]+),([%-%d%.]+)%)") -- idklol
     if fx then opline.xscl = tonumber(fx); aegisub.log(5,"Line %d: \\fscx%g found\n",v-strt, fx) end
@@ -190,7 +190,7 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
     else -- only check for xbord/ybord if bord is not found (because bord overrides them)
       _,_,xbord = string.find(opline.text,"\\xbord([%d%.]+)") 
       _,_,ybord = string.find(opline.text,"\\ybord([%d%.]+)")
-      if xbord then opline.xbord = tonumber(xbord); aegisub.log(5,"Line %d: \\xbord%g found\n",v-strt, xbord) end -- That was some hilarious bullshit lie and I don't know why I thought that
+      if xbord then opline.xbord = tonumber(xbord); aegisub.log(5,"Line %d: \\xbord%g found\n",v-strt, xbord) end
       if ybord then opline.ybord = tonumber(ybord); aegisub.log(5,"Line %d: \\ybord%g found\n",v-strt, ybord) end
     end
     if shad then 
@@ -221,11 +221,21 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
       aegisub.log(5,"Line %d: endframe changed from %d to %d\n",v-strt,accd.endframe,opline.endframe)
       accd.endframe = opline.endframe
     end
-    accd.lines[numlines-i+1] = opline -- does table.insert do a shallow copy as well? The answer is yes. Fuck this won't work if randomly leaving out lines.
-    opline.comment = true -- not sure if this is actually a good place to do the commenting or not.
+    if opline.endframe-opline.startframe>1 then
+      table.insert(accd.lines,opline) -- SOLVED
+    end
+    opline.comment = true
     sub[v] = opline
     opline.comment = false -- because fuck you shallow copy.
   end
+  local length = #accd.lines
+  local copy = {}
+  for i,v in ipairs(accd.lines) do
+    copy[length-i+1] = v
+  end
+  accd.lines = copy -- this is probably going to do something horrible and fuck everything up because the table "copying" mechanics are ashdsiuhaslhasd
+  length = nil
+  copy = nil -- DOING MY OWN GARBAGE COLLECTION NOW LIKE A PRO (if this breaks something, I will cry)
   accd.lvidx, accd.lvidy = aegisub.video_size()
   accd.shx, accd.shy = accd.meta.res_x, accd.meta.res_y
   accd.totframes = accd.endframe - accd.startframe
@@ -238,6 +248,7 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
   else
     accd.errmsg = "None of the selected lines seem to be problematic.\n"..accd.errmsg 
   end
+  assert(#accd.lines>0,"You have to select at least one line that is longer than one frame long.") -- pro error checking
   init_input(sub,accd)
 end
 
@@ -259,7 +270,7 @@ function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   else
     aegisub.progress.task("ABORT")
   end
-  aegisub.set_undo_point("Fan hitting the shit.")
+  aegisub.set_undo_point("motion data")
 end
 
 function help(su,ac)
@@ -299,18 +310,13 @@ function parse_input(infile)
       end
     elseif care == 1 and sect == 4 then
       if val[2] ~= "Degrees" then
-        table.insert(mocha.zrot,tonumber(val[2]))
+        table.insert(mocha.zrot,-tonumber(val[2])) -- tests indicate.
       end
     end
   end
   mocha.flength = #mocha.xpos
-  if mocha.flength == #mocha.ypos and mocha.flength == #mocha.xscl and mocha.flength == #mocha.yscl and mocha.flength == #mocha.zrot then -- make sure all of the elements are the same length (because I don't trust my own code).
-    return mocha -- hurr durr
-  else
-    --return some system crippling error and wonder how the hell mocha's output is messed up
-    aegisub.log(0,"The mocha data is not internally equal length.")
-    error("YOU HAVE FUCKED EVERYTHING UP")
-  end
+  assert(mocha.flength == #mocha.ypos and mocha.flength == #mocha.xscl and mocha.flength == #mocha.yscl and mocha.flength == #mocha.zrot,"The mocha data is not internally equal length.") -- make sure all of the elements are the same length (because I don't trust my own code).
+  return mocha -- hurr durr
 end
 
 function frame_by_frame(sub,accd,opts)
@@ -351,7 +357,7 @@ function frame_by_frame(sub,accd,opts)
     end
   end
   if opts.vsfilter then
-    opts.pround = 1
+    opts.pround = 2 -- make it look better with libass?
     opts.sround = 2
     opts.rround = 2
   end
@@ -368,6 +374,8 @@ function frame_by_frame(sub,accd,opts)
     end
     if v.xorg and opts.rot then
       v.xorgd, v.yorgd = mocha.xpos[rstartf] - v.xorg, mocha.ypos[rstartf] - v.yorg -- not going to actually use this until I test it more.
+    end
+    if opts.rot then
       v.zrotd = mocha.zrot[rstartf] - v.zrot -- idr there was something silly about this
     end
     if v.xpos and opts.pos then
