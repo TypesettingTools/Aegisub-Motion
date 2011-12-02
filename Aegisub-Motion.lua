@@ -320,7 +320,7 @@ function parse_input(infile)
 end
 
 function frame_by_frame(sub,accd,opts)
-  mocha = parse_input(opts.mocpat)
+  local mocha = parse_input(opts.mocpat)
   assert(accd.totframes==mocha.flength,"Number of frames from selected lines differs from number of frames tracked.")
   local _ = nil
   if not opts.scl then
