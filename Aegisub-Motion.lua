@@ -33,9 +33,9 @@ INALIABLE RIGHTS:
 --]]
 
 script_name = "Aegisub-Motion"
-script_description = "Adobe After Effects 6.0 keyframe data parser for Aegisub" -- also it suffers from memory leaks?
+script_description = "Adobe After Effects 6.0 keyframe data parser for Aegisub" -- also it suffers from memory leaks
 script_author = "torque"
-script_version = "0.0x00DEAF" -- no, I have no idea how this versioning system works either.
+script_version = "010011101" -- no, I have no idea how this versioning system works either.
 include("karaskel.lua")
 include("utils.lua") -- because it saves me like 5 lines of code this way
 gui = {}
@@ -43,20 +43,19 @@ gui = {}
 gui.main = {
   { class = "textbox"; -- 1 - because it is best if it starts out highlighted.
       x =0; y = 1; height = 4; width = 10;
-    name = "mocpat"; hint = "Full path to file. No quotes or escapism needed.";
-    text = "e.g.  C:\\path\\to the\\mocha.output"},
+    name = "mocpat"; hint = "Full path to file. No quotes or escapism needed."},
   { class = "textbox";
       x = 0; y = 18; height = 4; width = 10;
     name = "preerr"; hint = "Any lines that didn't pass the prerun checks are noted here."},
-  { class = "label";
-      x = 0; y = 12; height = 1; width = 10;
-    label = "                                                      MOTD"}, --"  Enter the file to the path containing your shear/perspective data."},
   { class = "textbox";
       x = 0; y = 13; height = 4; width = 10;
     name = "mocper"; hint = "YOUR FRIENDLY NEIGHBORHOOD MATH.RANDOM() AT WORK"},
   { class = "label";
+      x = 0; y = 12; height = 1; width = 10;
+    label = "                                                      MOTD"}, --"  Enter the file to the path containing your shear/perspective data."},
+  { class = "label";
       x = 0; y = 0; height = 1; width = 10;
-    label = "  Please enter the filepath to the motion data. Can only take one file."},
+    label = " Either give the filepath to the motion data, or paste it in its entirety."},
   { class = "label";
       x = 0; y = 6; height = 1; width = 10;
     label = "What tracking data should be applied?              Rounding"}, -- allows more accurate positioning >_>
@@ -77,7 +76,7 @@ gui.main = {
     label = "Rotation:"},
   { class = "checkbox";
       x = 1; y = 9; height = 1; width = 1;
-    value = true; name = "rot"},
+    value = false; name = "rot"},
   { class = "intedit"; -- these are both retardedly wide and retardedly tall. They are downright frustrating to position in the interface.
       x = 7; y = 7; height = 1; width = 3;
     value = 2; name = "pround"; min = 0; max = 5;},
@@ -122,7 +121,8 @@ gui.main = {
 gui.motd = { -- pointless because math.random doesn't work properly - BUT WHAT ABOUT OS.EXECUTE
   "The culprit was a huge truck.";
   "Error 0x0045AF: Runtime requested to be terminated in an unusual fashion.";
-  "Powered by 100% genuine sweatshop child laborers."
+  "Powered by 100% genuine sweatshop child laborers.";
+  "I hate you."
 }
 
 gui.halp = {
@@ -253,10 +253,12 @@ end
 
 function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   gui.main[2].text = accd.errmsg -- insert our error messages
-  os.execute("echo %RANDOM% > random.txt") -- env var on windows (xp and newer)
-  os.execute("echo $RANDOM >> random.txt") -- env var on various shells. Known to work: zsh and bash.
-  local _,__,rand = string.find(io.open("random.txt",r):read("*a"),"([0-9]+)") -- tapdancing jesus h. christ, why is this such a retardedly roundabout way of doing this.
-  gui.main[3].text = tostring(math.random(100)) -- :z
+  --os.execute("echo %RANDOM% > random.blargledarg") -- env var on windows (xp and newer)
+  --os.execute("echo $RANDOM >> random.blargledarg") -- env var on various shells. Known to work: zsh and bash.
+  --local _,_,rand = string.find(io.open("random.blargledarg",r):read("*a"),"([0-9]+)") -- tapdancing jesus h. christ, why is this such a retardedly roundabout way of doing this.
+  -- the above does work, and has the added benefit of popping up and closing two terminal windows rapidly, which is very amusing. Possibly scare the shit out of someone who thinks their computzor has been haxxed. Actually, since lua doesn't seem to be sandboxed at all, you probably could hax someone's computer this way.
+  local rand = ((os.clock()*os.time()+os.clock())*100) -- I suppose it's bad if this gives more variation than does math.random().
+  gui.main[3].text = gui.motd[math.floor(rand%4)+1] -- this would work a lot better with more than 3 items
   local button, config = aegisub.dialog.display(gui.main, {"Go","Abort","Help"})
   if button == "Go" then
     if config.reverse then
@@ -295,9 +297,10 @@ function parse_input(input)
     datams:close()
   else
     input = string.gsub(input,"[\r]*","") -- SERIOUSLY FUCK THIS SHIT
-    ftab = argh:split("\n")
+    ftab = input:split("\n")
   end
-  for keys, valu in ipairs(ftab) do -- some really ugly parsing code yo (direct port from my even uglier ruby script).
+  for keys, valu in ipairs(ftab) do -- idk it might be more flexible now or something
+    ---[[
     if valu == "Position" then
     sect = sect + 1
     elseif valu == "Scale" then
@@ -310,7 +313,7 @@ function parse_input(input)
     if sect == 1 then
       if string.find(valu,"%d") then
         val = valu:split("\t")
-        table.insert(mocha.xpos,tonumber(val[2])) -- is tonumber() actually necessary? Yes, because the output uses E scientific notation on occasion. Also sometimes duck typing goes wrong. Horribly wrong.
+        table.insert(mocha.xpos,tonumber(val[2]))
         table.insert(mocha.ypos,tonumber(val[3]))
       end
     elseif sect <= 3 and sect >= 2 then
@@ -319,12 +322,12 @@ function parse_input(input)
         table.insert(mocha.xscl,tonumber(val[2]))
         table.insert(mocha.yscl,tonumber(val[3]))
       end
-    elseif sect == 7 then
+    elseif sect <= 7 and sect >= 4 then
       if string.find(valu,"%d") then
         val = valu:split("\t")
-        table.insert(mocha.zrot,-tonumber(val[2])) -- tests indicate.
+        table.insert(mocha.zrot,-tonumber(val[2]))
       end
-    end
+    end--]]
   end
   mocha.flength = #mocha.xpos
   assert(mocha.flength == #mocha.ypos and mocha.flength == #mocha.xscl and mocha.flength == #mocha.yscl and mocha.flength == #mocha.zrot,"The mocha data is not internally equal length.") -- make sure all of the elements are the same length (because I don't trust my own code).
@@ -420,6 +423,7 @@ function frame_by_frame(sub,accd,opts)
           for vk,kv in ipairs(operations) do -- iterate through the necessary operations
             v.text = kv(v,mocha,opts,x)
           end
+          v.text = string.gsub(v.text,string.char(1),"") -- clean those suckers up
           sub.insert(v.num+x-rstartf+1,v)
           v.text = orgtext
         end
