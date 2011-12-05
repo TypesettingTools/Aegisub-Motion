@@ -46,10 +46,13 @@ gui.main = {
     name = "mocpat"; hint = "Full path to file. No quotes or escapism needed.";
     text = "e.g.  C:\\path\\to the\\mocha.output"},
   { class = "textbox";
-      x = 0; y = 17; height = 4; width = 10;
+      x = 0; y = 18; height = 4; width = 10;
     name = "preerr"; hint = "Any lines that didn't pass the prerun checks are noted here."},
+  { class = "label";
+      x = 0; y = 12; height = 1; width = 10;
+    label = "                                                      MOTD"}, --"  Enter the file to the path containing your shear/perspective data."},
   { class = "textbox";
-      x = 0; y = 12; height = 4; width = 10;
+      x = 0; y = 13; height = 4; width = 10;
     name = "mocper"; hint = "YOUR FRIENDLY NEIGHBORHOOD MATH.RANDOM() AT WORK"},
   { class = "label";
       x = 0; y = 0; height = 1; width = 10;
@@ -97,23 +100,26 @@ gui.main = {
       x = 5; y = 8; height = 1; width = 1;
     value = true; name = "shad"},
   { class = "label";
-      x = 0; y = 11; height = 1; width = 10;
-    label = "                                                      MOTD"}, --"  Enter the file to the path containing your shear/perspective data."},
+      x = 0; y = 10; height = 1; width = 5;
+    label = "Transforms (experimental):"},
+  { class = "checkbox";
+      x = 5; y = 10; height = 1; width = 1;
+    value = true; name = "trans"},
   { class = "label";
-      x = 0; y = 10; height = 1; width = 3;
+      x = 0; y = 11; height = 1; width = 3;
     label = "VSfilter Compatibility:"},
   { class = "checkbox";
-      x = 3; y = 10; height = 1; width = 1;
+      x = 3; y = 11; height = 1; width = 1;
     value = false; name = "vsfilter"},
   { class = "label";
-      x = 9; y = 10; height = 1; width = 2;
+      x = 9; y = 11; height = 1; width = 2;
     label = ":esreveR"},
   { class = "checkbox";
-      x = 8; y = 10; height = 1; width = 1;
+      x = 8; y = 11; height = 1; width = 1;
     value = false; name = "reverse"}
 }
 
-gui.motd = { -- pointless because math.random doesn't work properly
+gui.motd = { -- pointless because math.random doesn't work properly - BUT WHAT ABOUT OS.EXECUTE
   "The culprit was a huge truck.";
   "Error 0x0045AF: Runtime requested to be terminated in an unusual fashion.";
   "Powered by 100% genuine sweatshop child laborers."
@@ -166,7 +172,7 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
     opline.xshad = accd.styles[opline.style].shadow
     opline.yshad = accd.styles[opline.style].shadow
     aegisub.log(5,"Line %d's style's shadow is: %d\n",v-strt,opline.xshad)
-    _,_,opline.xpos,opline.ypos = string.find(opline.test,"\\pos%(([%-%d%.]+),([%-%d%.]+)%)") -- always the first one
+    _,_,opline.xpos,opline.ypos = string.find(opline.text,"\\pos%(([%-%d%.]+),([%-%d%.]+)%)") -- always the first one
     _,_,opline.xorg,opline.yorg = string.find(opline.text,"\\org%(([%-%d%.]+),([%-%d%.]+)%)") -- idklol
     for a in string.gfind(opline.text,"%{(.-)%}") do -- this will find comment/override tags yo (on an unrelated note, the .- lazy repition is nice. It's shorter than .+? at least.)
       -- for b in string.gfind(a,"(\\[^\\]+)") do --find any thing between \ and \. Real comment lines should be separate from override tag blocks.
@@ -174,7 +180,7 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
       _,_,fx = string.find(a,"\\fscx([%d%.]+)")
       _,_,fy = string.find(a,"\\fscy([%d%.]+)")
       _,_,ali = string.find(a,"\\an([1-9])")
-      _,_,frz = string.find(a,"\\frz([%-%d%.]+)")
+      _,_,frz = string.find(a,"\\frz?([%-%d%.]+)")
       _,_,bord = string.find(a,"\\bord([%d%.]+)")
       _,_,xbord = string.find(a,"\\xbord([%d%.]+)") 
       _,_,ybord = string.find(a,"\\ybord([%d%.]+)")
@@ -182,7 +188,7 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
       _,_,xshad = string.find(a,"\\xshad([%-%d%.]+)")
       _,_,yshad = string.find(a,"\\yshad([%-%d%.]+)")
       _,_,resetti = string.find(a,"\\r([^\\]+)") -- not sure I actually want to support this
-      _,_,t_start,t_end,t_exp,t_eff = string.find(a,"\\t%(([%-%d]+),([%-%d]+),([%d%.]*),?([\\%.%-&%w]+)%)") -- this will return an empty string for t_exp if no exponential factor is specified
+      _,_,t_start,t_end,t_exp,t_eff = string.find(a,"\\t%(([%-%d]+),([%-%d]+),([%d%.]*),?([\\%.%-&%w%(%)]+)%)") -- this will return an empty string for t_exp if no exponential factor is specified
       if t_exp == "" then t_exp = 1 end -- set it to 1 because stuff and things
       if t_start then table.insert(opline.trans,{tonumber(t_start),tonumber(t_end),tonumber(t_exp),t_eff}); aegisub.log(5,"Line %d: \\t(%g,%g,%g,%s) found\n",v-strt,t_start,t_end,t_exp,t_eff) end
       if fx then table.insert(opline.xscl,tonumber(fx)); aegisub.log(5,"Line %d: \\fscx%g found\n",v-strt, fx) end
@@ -247,7 +253,9 @@ end
 
 function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   gui.main[2].text = accd.errmsg -- insert our error messages
-  math.randomseed(tonumber(tostring(os.time()):reverse())) -- because it uh makes the seed difference larger
+  os.execute("echo %RANDOM% > random.txt") -- env var on windows (xp and newer)
+  os.execute("echo $RANDOM >> random.txt") -- env var on various shells. Known to work: zsh and bash.
+  local _,__,rand = string.find(io.open("random.txt",r):read("*a"),"([0-9]+)") -- tapdancing jesus h. christ, why is this such a retardedly roundabout way of doing this.
   gui.main[3].text = tostring(math.random(100)) -- :z
   local button, config = aegisub.dialog.display(gui.main, {"Go","Abort","Help"})
   if button == "Go" then
@@ -273,36 +281,47 @@ function help(su,ac)
   end
 end
   
-function parse_input(infile)
+function parse_input(input)
   local ftab = {}
   local sect, care = 0, 0
   local mocha = {}
   mocha.xpos, mocha.ypos, mocha.xscl, mocha.yscl, mocha.zrot = {}, {}, {}, {}, {}
-  for line in io.lines(infile) do
-    table.insert(ftab,line) -- dump the lines from the file into a table.
-  end
-  for keys, valu in pairs(ftab) do -- some really ugly parsing code yo (direct port from my even uglier ruby script).
-    val = valu:split("\t")
-    if val[1] == "Anchor Point" or val[1] == "Position" or val[1] == "Scale" or val[1] == "Rotation" or val[1] == "End of Keyframe Data" then
-      sect = sect + 1
-      care = 0
-    elseif val[1] == nil then
-      care = 0
-    else
-      care = 1
+  local datams = io.open(input,"r")
+  if datams then
+    for line in datams:lines() do
+      line = string.gsub(line,"[\r\n]*","") -- FUCK YOU CRLF
+      table.insert(ftab,line) -- dump the lines from the file into a table.
     end
-    if care == 1 and sect == 1 then
-      if val[2] ~= "X pixels" then
+    datams:close()
+  else
+    input = string.gsub(input,"[\r]*","") -- SERIOUSLY FUCK THIS SHIT
+    ftab = argh:split("\n")
+  end
+  for keys, valu in ipairs(ftab) do -- some really ugly parsing code yo (direct port from my even uglier ruby script).
+    if valu == "Position" then
+    sect = sect + 1
+    elseif valu == "Scale" then
+    sect = sect + 2
+    elseif valu == "Rotation" then
+    sect = sect + 4
+    elseif valu == nil then
+    sect = 0
+    end
+    if sect == 1 then
+      if string.find(valu,"%d") then
+        val = valu:split("\t")
         table.insert(mocha.xpos,tonumber(val[2])) -- is tonumber() actually necessary? Yes, because the output uses E scientific notation on occasion. Also sometimes duck typing goes wrong. Horribly wrong.
         table.insert(mocha.ypos,tonumber(val[3]))
       end
-    elseif care == 1 and sect == 3 then
-      if val[2] ~= "X percent" then
+    elseif sect <= 3 and sect >= 2 then
+      if string.find(valu,"%d") then
+        val = valu:split("\t")
         table.insert(mocha.xscl,tonumber(val[2]))
         table.insert(mocha.yscl,tonumber(val[3]))
       end
-    elseif care == 1 and sect == 4 then
-      if val[2] ~= "Degrees" then
+    elseif sect == 7 then
+      if string.find(valu,"%d") then
+        val = valu:split("\t")
         table.insert(mocha.zrot,-tonumber(val[2])) -- tests indicate.
       end
     end
@@ -326,7 +345,9 @@ function frame_by_frame(sub,accd,opts)
   --local eraser = {}
   if opts.pos then
     table.insert(operations,possify)
-    --table.insert(eraser,"\\pos%([%-%d%.]+,[%-%d%.]+%)")
+  end
+  if opts.trans then
+    table.insert(operations,transformate)
   end
   if opts.scl then
     if opts.vsfilter then
@@ -334,18 +355,10 @@ function frame_by_frame(sub,accd,opts)
     else
       table.insert(operations,scalify)
     end
-    --table.insert(eraser,"\\fscx[%d%.]+")
-    --table.insert(eraser,"\\fscy[%d%.]+")
     if opts.bord then
-      --table.insert(eraser,"\\xbord[%d%.]+")
-      --table.insert(eraser,"\\ybord[%d%.]+")
-      --table.insert(eraser,"\\bord[%d%.]+")
       table.insert(operations,bordicate)
     end
     if opts.shad then
-      --table.insert(eraser,"\\xshad[%-%d%.]+")
-      --table.insert(eraser,"\\yshad[%-%d%.]+")
-      --table.insert(eraser,"\\shad[%-%d%.]+")
       table.insert(operations,shadinate)
     end
   end
@@ -356,8 +369,6 @@ function frame_by_frame(sub,accd,opts)
   end
   if opts.rot then
     table.insert(operations,rotate)
-    --table.insert(eraser,"\\org%([%-%d%.]+,[%-%d%.]+%)")
-    --table.insert(eraser,"\\frz[%-%d%.]+")
   end
   for i,v in ipairs(accd.lines) do
     local rstartf = v.startframe - accd.startframe + 1 -- start frame of line relative to start frame of tracked data
@@ -392,6 +403,7 @@ function frame_by_frame(sub,accd,opts)
           v.raty = mocha.yscl[iter]/mocha.yscl[rendf]
           v.start_time = aegisub.ms_from_frame(accd.startframe+iter-1)
           v.end_time = aegisub.ms_from_frame(accd.startframe+iter)
+          v.time_delta = aegisub.ms_from_frame(accd.startframe+iter-1) - aegisub.ms_from_frame(accd.startframe)
           for vk,kv in ipairs(operations) do -- iterate through the necessary operations
             v.text = kv(v,mocha,opts,iter)
           end
@@ -404,6 +416,7 @@ function frame_by_frame(sub,accd,opts)
           v.raty = mocha.yscl[x]/mocha.yscl[rstartf]
           v.start_time = aegisub.ms_from_frame(accd.startframe+x-1)
           v.end_time = aegisub.ms_from_frame(accd.startframe+x)
+          v.time_delta = aegisub.ms_from_frame(accd.startframe+x-1) - aegisub.ms_from_frame(accd.startframe)
           for vk,kv in ipairs(operations) do -- iterate through the necessary operations
             v.text = kv(v,mocha,opts,x)
           end
@@ -422,7 +435,11 @@ function possify(line,mocha,opts,iter)
 end
 
 function transformate(line,mocha,opts,iter)
-  
+  for ix,vx in ipairs(line.trans) do
+    local t_s = ix[1] - line.time_delta -- well, that was easy
+    local t_e = ix[2] - line.time_delta
+    string.gsub(ix,"\\t%([%-%d]+,[%-%d]+,[%d%.]*,?[\\%.%-&%w%(%)]+%)","\\"..string.char(1)..string.format("t(%i,%i,%g,%s)",t_s,t_e,ix[3],ix[4]),1) -- I hate how messy this expression is
+  end
 end
 
 function scalify(line,mocha,opts)
@@ -484,7 +501,7 @@ function rotate(line,mocha,opts,iter)
   string.gsub(line.text,"{",string.format("{\\org(%g,%g)",round(orgx,opts.rround),round(orgy,opts.rround)),1) -- INSERT
   for ix, vx in ipairs(line.zrot) do
     local frz = mocha.zrot[iter]-line.zrotd
-    string.gsub(line.text,"\\frz[%d%.]+",string.format("\\"..string.char(1).."frz%g",round(frz,opts.rround)),1)
+    string.gsub(line.text,"\\frz?[%d%.]+",string.format("\\"..string.char(1).."frz%g",round(frz,opts.rround)),1)
   end
   return line.text
 end
