@@ -410,6 +410,7 @@ function frame_by_frame(sub,accd,opts)
           for vk,kv in ipairs(operations) do -- iterate through the necessary operations
             v.text = kv(v,mocha,opts,iter)
           end
+          v.text = string.gsub(v.text,string.char(1),"")
           sub.insert(v.num+1,v)
           v.text = orgtext
         end
