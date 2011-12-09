@@ -6,15 +6,15 @@ DOMAIN DOES NOT EXIST IN ALL COUNTRIES, SO I FIGURED I'D STICK THIS HERE SO
 YOU KNOW THAT YOU, HENCEFORTH REFERRED TO AS "THE USER" HAVE THE FOLLOWING
 INALIABLE RIGHTS:
 
-  0. THE USER can use this piece of poorly written code, henceforth referred to as
-    THE SCRIPT, to do the things that it claims it can do.
-  1. THE USER should not expect THE SCRIPT to do things that it does not expressly
-    claim to be able to do, such as make coffee or print money.
-  2. THE USER should realize that starting a list with 0 in a document that
-    contains lua code is actually SOMEWHAT IRONIC.
+  0. THE USER should realize that starting a list with 0 in a document that contains 
+    lua code is actually SOMEWHAT IRONIC.
+  1. THE USER can use this piece of poorly written code, henceforth referred to as
+    THE SCRIPT, to do the things that it claims it can do. 
+  2. THE USER should not expect THE SCRIPT to do things that it does not expressly
+    claim to be able to do, such as make coffee or print money. 
   3. THE WRITER, henceforth referred to as I or ME, depending on the context, holds
-    no responsibility for any problems that THE SCRIPT may cause, such as
-    if it murders your dog.
+    no responsibility for any problems that THE SCRIPT may cause, such as if it 
+    murders your dog.
   4. THE USER is expected to understand that this is just some garbage that I made
     up and that any and all LEGALLY BINDING AGREEMENTS THAT THE USER HAS AGREED
     TO UPON USAGE OF THE SCRIPT ARE UP TO THE USER TO DISCOVER ON HIS OR HER OWN,
@@ -27,9 +27,16 @@ INALIABLE RIGHTS:
   6. This LICENSE AGREEMENT, which is IMPLICITLY AGREED TO upon usage of the script,
     regardless of whether or not THE USER has actually read it, IS RETROACTIVELY
     EXTENSIBLE. This means that ANY SUBSEQUENT TERMS ADDED TO IT IMMEDIATELY APPLY
-    TO ALL OF THE USER'S ACTIONS IN THE PAST, and THE USER should be VERY CAREFUL that
-    they have not previously VIOLATED any FUTURE TERMS AND CONDITIONS lest they be
-    legally OPPRESSED by ME in a COURT OF LAW.
+    TO ALL OF THE USER'S ACTIONS IN THE PAST, and THE USER should be VERY CAREFUL
+    that they have not previously VIOLATED any FUTURE TERMS AND CONDITIONS lest they 
+    be legally OPPRESSED by ME in a COURT OF LAW.
+  7. Should THE SCRIPT turn out to secretly be a cleverly disguised COMPUTER VIRUS in
+    disguise, THE USER has agreed that any or all information it has gathered hereby
+    belongs to ME and I CLAIM FULL RIGHTS OF IT, INCLUDING THE RIGHT TO REDISTRIBUTE
+    IT AS I SEE FIT. THE USER also agrees to make NO PREVENTATIVE MEASURES to keep
+    HIS OR HER computer from becoming PART OF THE BOTNET HIVEMIND. FURTHERMORE, THE
+    USER agrees to take FULL PERSONAL RESPONSIBILITY for ANY ILLEGAL ACTIVITIES that
+    HIS OR HER computer partakes in while under the CONTROL OF THE BOTNET.
 --]]
 
 script_name = "Aegisub-Motion"
@@ -37,83 +44,85 @@ script_description = "Adobe After Effects 6.0 keyframe data parser for Aegisub" 
 script_author = "torque"
 script_version = "010011101" -- no, I have no idea how this versioning system works either.
 include("karaskel.lua")
-include("utils.lua") -- because it saves me like 5 lines of code this way
-gui = {}
 
+gui = {} -- I'm really beginning to think this shouldn't be a global variable
 gui.main = {
-  { class = "textbox"; -- 1 - because it is best if it starts out highlighted.
+  [1] = { class = "textbox"; -- 1 - because it is best if it starts out highlighted.
       x =0; y = 1; height = 4; width = 10;
     name = "mocpat"; hint = "Full path to file. No quotes or escapism needed."},
-  { class = "textbox";
+  [2] = { class = "textbox";
       x = 0; y = 18; height = 4; width = 10;
     name = "preerr"; hint = "Any lines that didn't pass the prerun checks are noted here."},
-  { class = "textbox";
+  [3] = { class = "textbox";
       x = 0; y = 13; height = 4; width = 10;
     name = "mocper"; hint = "YOUR FRIENDLY NEIGHBORHOOD MATH.RANDOM() AT WORK"},
-  { class = "label";
+  [4] = { class = "label";
       x = 0; y = 12; height = 1; width = 10;
     label = "                                                      MOTD"}, --"  Enter the file to the path containing your shear/perspective data."},
-  { class = "label";
+  [5] = { class = "label";
       x = 0; y = 0; height = 1; width = 10;
     label = " Either give the filepath to the motion data, or paste it in its entirety."},
-  { class = "label";
+  -- GIVE ME SOME (WHITE)SPACE
+  [6] = { class = "label";
       x = 0; y = 6; height = 1; width = 10;
     label = "What tracking data should be applied?              Rounding"}, -- allows more accurate positioning >_>
-  { class = "label";
+  [7] = { class = "label";
       x = 0; y = 7; height = 1; width = 1;
     label = "Position:"},
-  { class = "checkbox";
+  [8] = { class = "checkbox";
       x = 1; y = 7; height = 1; width = 1;
     value = true; name = "pos"},
-  { class = "label";
+  [9] = { class = "label";
       x = 0; y = 8; height = 1; width = 1;
     label = "Scale:"},
-  { class = "checkbox";
+  [10] = { class = "checkbox";
       x = 1; y = 8; height = 1; width = 1;
     value = true; name = "scl"},
-  { class = "label";
-      x = 0; y = 9; height = 1; width = 1;
-    label = "Rotation:"},
-  { class = "checkbox";
-      x = 1; y = 9; height = 1; width = 1;
-    value = false; name = "rot"},
-  { class = "intedit"; -- these are both retardedly wide and retardedly tall. They are downright frustrating to position in the interface.
-      x = 7; y = 7; height = 1; width = 3;
-    value = 2; name = "pround"; min = 0; max = 5;},
-  { class = "intedit";
-      x = 7; y = 8; height = 1; width = 3;
-    value = 2; name = "sround"; min = 0; max = 5;},
-  { class = "intedit";
-      x = 7; y = 9; height = 1; width = 3;
-    value = 2; name = "rround"; min = 0; max = 5;},
-  { class = "label";
+  [11] = { class = "label";
       x = 2; y = 8; height = 1; width = 1;
     label = "Border:"},
-  { class = "checkbox";
+  [12] = { class = "checkbox";
       x = 3; y = 8; height = 1; width = 1;
     value = true; name = "bord"},
-  { class = "label";
+  [13] = { class = "label";
       x = 4; y = 8; height = 1; width = 1;
     label = "Shadow:"},
-  { class = "checkbox";
+  [14] = { class = "checkbox";
       x = 5; y = 8; height = 1; width = 1;
     value = true; name = "shad"},
-  { class = "label";
+  [15] = { class = "label";
+      x = 0; y = 9; height = 1; width = 1;
+    label = "Rotation:"},
+  [16] = { class = "checkbox";
+      x = 1; y = 9; height = 1; width = 1;
+    value = false; name = "rot"},
+  [17] = { class = "intedit"; -- these are both retardedly wide and retardedly tall. They are downright frustrating to position in the interface.
+      x = 7; y = 7; height = 1; width = 3;
+    value = 2; name = "pround"; min = 0; max = 5;},
+  [18] = { class = "intedit";
+      x = 7; y = 8; height = 1; width = 3;
+    value = 2; name = "sround"; min = 0; max = 5;},
+  [19] = { class = "intedit";
+      x = 7; y = 9; height = 1; width = 3;
+    value = 2; name = "rround"; min = 0; max = 5;},
+  ---[[
+  [20] = { class = "label";
       x = 0; y = 10; height = 1; width = 5;
-    label = "Transforms (experimental):"},
-  { class = "checkbox";
+    label = "Read/write script header:"},
+  [21] = { class = "checkbox";
       x = 5; y = 10; height = 1; width = 1;
-    value = true; name = "trans"},
-  { class = "label";
+    value = true; name = "conf"},
+  --]]
+  [22] = { class = "label";
       x = 0; y = 11; height = 1; width = 3;
     label = "VSfilter Compatibility:"},
-  { class = "checkbox";
+  [23] = { class = "checkbox";
       x = 3; y = 11; height = 1; width = 1;
     value = false; name = "vsfilter"},
-  { class = "label";
+  [24] = { class = "label";
       x = 9; y = 11; height = 1; width = 2;
     label = ":esreveR"},
-  { class = "checkbox";
+  [25] = { class = "checkbox";
       x = 8; y = 11; height = 1; width = 1;
     value = false; name = "reverse"}
 }
@@ -122,13 +131,16 @@ gui.motd = { -- pointless because math.random doesn't work properly - BUT WHAT A
   "The culprit was a huge truck.";
   "Error 0x0045AF: Runtime requested to be terminated in an unusual fashion.";
   "Powered by 100% genuine sweatshop child laborers.";
-  "I hate you."
+  "vsfilter hates you."
 }
 
-gui.halp = {
+gui.halp = { -- okay, yeah, I'm an asshole. Fine. Whatever.
   { class = "label";
       x = 0; y = 0; height = 1; width = 1;
-    label = "This help is really not as helpful as you want it to be. Sorry."}
+    label = "YOU MOTION TRACK THE DATAS"},
+  { class = "label";
+      x = 0; y = 1; height = 1; width = 1;
+    label = "AND THEN YOU CLICK THE BUTTONS"}
 }
 
 function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 for me.
@@ -139,7 +151,7 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
       break
     end
   end
-  aegisub.progress.title("Preparing Gerbils")
+  aegisub.progress.title("Collecting Gerbils")
   local accd = {}
   local _ = nil
   accd.meta, accd.styles = karaskel.collect_head(sub, false) -- dump everything I need later into the table so I don't have to pass o9k variables to the other functions
@@ -151,11 +163,10 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
   local numlines = #sel
   for i, v in pairs(sel) do -- burning cpu cycles like they were no thing
     local opline = table.copy(sub[v]) -- I have no idea if a shallow copy is even an intelligent thing to do here
-    opline.xscl, opline.yscl, opline.zrot, opline.trans = {}, {}, {}, {}
+    opline.xscl, opline.yscl, opline.zrot, opline.trans = {}, {}, {}, {} -- have to make table skeletons so we can use table.insert
     opline.bord, opline.xbord, opline.ybord = {}, {}, {}
     opline.shad, opline.xshad, opline.yshad = {}, {}, {}
     opline.num = v -- this is for, uh, later.
-    local _,fx,fy,ali,t_start,t_end,t_exp,t_eff,frz,xbord,ybord,xshad,yshad,resetti = nil
     karaskel.preproc_line(sub, accd.meta, accd.styles, opline) -- get that extra position data
     aegisub.log(5,"Line %d's style name is: %s\n",v-strt,opline.style) -- lines with more than one style can suck a dick (see: \r[stylename])
     opline.xscl = accd.styles[opline.style].scale_x
@@ -172,25 +183,44 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
     opline.xshad = accd.styles[opline.style].shadow
     opline.yshad = accd.styles[opline.style].shadow
     aegisub.log(5,"Line %d's style's shadow is: %d\n",v-strt,opline.xshad)
-    _,_,opline.xpos,opline.ypos = string.find(opline.text,"\\pos%(([%-%d%.]+),([%-%d%.]+)%)") -- always the first one
-    _,_,opline.xorg,opline.yorg = string.find(opline.text,"\\org%(([%-%d%.]+),([%-%d%.]+)%)") -- idklol
+    opline.xpos,opline.ypos = opline.text:match("\\pos%(([%-%d%.]+),([%-%d%.]+)%)") -- always the first one
+    opline.xorg,opline.yorg = opline.text:match("\\org%(([%-%d%.]+),([%-%d%.]+)%)") -- idklol
+    opline.startframe, opline.endframe = aegisub.frame_from_ms(opline.start_time), aegisub.frame_from_ms(opline.end_time)
+    local length = opline.end_time - opline.start_time
+    --local one = aegisub.ms_from_frame(opline.start_frame)
+    --local two = aegisub.ms_from_frame(opline.start_frame+1)
+    --local transtart = round(one - opline.start_time + (two - one) / 2,0) -- right.
     for a in string.gfind(opline.text,"%{(.-)%}") do -- this will find comment/override tags yo (on an unrelated note, the .- lazy repition is nice. It's shorter than .+? at least.)
       -- for b in string.gfind(a,"(\\[^\\]+)") do --find any thing between \ and \. Real comment lines should be separate from override tag blocks.
       aegisub.log(5,"Found a comment/override command in line %d: %s\n",v-strt,a)
-      _,_,fx = string.find(a,"\\fscx([%d%.]+)")
-      _,_,fy = string.find(a,"\\fscy([%d%.]+)")
-      _,_,ali = string.find(a,"\\an([1-9])")
-      _,_,frz = string.find(a,"\\frz?([%-%d%.]+)")
-      _,_,bord = string.find(a,"\\bord([%d%.]+)")
-      _,_,xbord = string.find(a,"\\xbord([%d%.]+)") 
-      _,_,ybord = string.find(a,"\\ybord([%d%.]+)")
-      _,_,shad = string.find(a,"\\shad([%-%d%.])")
-      _,_,xshad = string.find(a,"\\xshad([%-%d%.]+)")
-      _,_,yshad = string.find(a,"\\yshad([%-%d%.]+)")
-      _,_,resetti = string.find(a,"\\r([^\\]+)") -- not sure I actually want to support this
-      _,_,t_start,t_end,t_exp,t_eff = string.find(a,"\\t%(([%-%d]+),([%-%d]+),([%d%.]*),?([\\%.%-&%w%(%)]+)%)") -- this will return an empty string for t_exp if no exponential factor is specified
-      if t_exp == "" then t_exp = 1 end -- set it to 1 because stuff and things
-      if t_start then table.insert(opline.trans,{tonumber(t_start),tonumber(t_end),tonumber(t_exp),t_eff}); aegisub.log(5,"Line %d: \\t(%g,%g,%g,%s) found\n",v-strt,t_start,t_end,t_exp,t_eff) end
+      local fx = a:match("\\fscx([%d%.]+)") -- why was I using string.find before? I can't even remember.
+      local fy = a:match("\\fscy([%d%.]+)") -- these should all be gc'd after this loop
+      local ali = a:match("\\an([1-9])")
+      local frz = a:match("\\frz?([%-%d%.]+)") -- \fr is an alias for \frz
+      local bord = a:match("\\bord([%d%.]+)")
+      local xbord = a:match("\\xbord([%d%.]+)") 
+      local ybord = a:match("\\ybord([%d%.]+)")
+      local shad = a:match("\\shad([%-%d%.])")
+      local xshad = a:match("\\xshad([%-%d%.]+)")
+      local yshad = a:match("\\yshad([%-%d%.]+)")
+      local resetti = a:match("\\r([^\\|}]+)") -- not sure I actually want to support this
+      local fad_s,fad_e = a:match("\\fad%(([%d]+),([%d]+)%)") -- uint
+      if fad_s then
+        if fad_s == 0 and fad_e > 0 then
+          string.gsub(a,"\\fad%(([%d]+),([%d]+)%)",string.format("\\alpha&H00&\\t(%d,%d,1,\\alpha&HFF&)",length-fad_e,length))
+        elseif fad_s > 0 and fad_e == 0 then
+          string.gsub(a,"\\fad%(([%d]+),([%d]+)%)",string.format("\\alpha&HFF&\\t(%d,%d,1,\\alpha&H00&)",0,fad_s))
+        elseif fad_s > 0 and fad_e > 0 then
+          string.gsub(a,"\\fad%(([%d]+),([%d]+)%)",string.format("\\alpha&HFF&\\t(%d,%d,1,\\alpha&H00&)\\t(%d,%d,1,\\alpha&HFF&)",0,fad_s,length-fad_e,length))
+        else 
+          string.gsub(a,"\\fad%(([%d]+),([%d]+)%)","") -- GET RID OF THAT USELESS SHIT
+        end
+      end
+      local fade_a,fade_a2,fade_a3,fade_s,fade_m,fade_m2,fade_e = a:match("\\fade%(([%d]+),([%d]+),([%d]+),([%d]+),([%d]+),([%d]+),([%d]+)%)") -- This is a large pita fuck you fuck you fuck you fuck you fuck you fuck you if you use this
+      for t_start,t_end,t_exp,t_eff in string.gfind(a,"\\t%(([%-%d]+),([%-%d]+),([%d%.]*),?([\\%.%-&%w%(%)]+)%)") do -- this will return an empty string for t_exp if no exponential factor is specified
+        if t_exp == "" then t_exp = 1 end -- set it to 1 because stuff and things
+        table.insert(opline.trans,{tonumber(t_start),tonumber(t_end),tonumber(t_exp),t_eff}); aegisub.log(5,"Line %d: \\t(%g,%g,%g,%s) found\n",v-strt,t_start,t_end,t_exp,t_eff)
+      end
       if fx then table.insert(opline.xscl,tonumber(fx)); aegisub.log(5,"Line %d: \\fscx%g found\n",v-strt, fx) end
       if fy then table.insert(opline.yscl,tonumber(fy)); aegisub.log(5,"Line %d: \\fscy%g found\n",v-strt, fy) end
       if bord then table.insert(opline.bord,tonumber(bord)); aegisub.log(5,"Line %d: \\bord%g found\n",v-strt, bord) end
@@ -202,7 +232,7 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
       if frz then table.insert(opline.zrot,tonumber(frz)); aegisub.log(5,"Line %d: \\frz%g found\n",v-strt, frz) end
       if ali then opline.ali = tonumber(ali); aegisub.log(5,"Line %d: \\an%d found\n",v-strt, ali) end -- the final \an is the one that's used.
     end
-    if not opline.xpos then -- no way it would not find both trololo
+    if not opline.xpos or not opline.ypos then -- just to be safe
       table.insert(accd.poserrs,{i,v})
       accd.errmsg = accd.errmsg..string.format("Line %d does not seem to have a position override tag.\n", v-strt)
     end
@@ -211,7 +241,6 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
       table.insert(accd.alignerrs,{i,v})
       accd.errmsg = accd.errmsg..string.format("Line %d does not seem aligned \\an5.\n", v-strt)
     end
-    opline.startframe, opline.endframe = aegisub.frame_from_ms(opline.start_time), aegisub.frame_from_ms(opline.end_time)
     if opline.startframe < accd.startframe then -- make timings flexible. Number of frames total has to match the tracked data but
       aegisub.log(5,"Line %d: startframe changed from %d to %d\n",v-strt,accd.startframe,opline.startframe)
       accd.startframe = opline.startframe
@@ -234,7 +263,7 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
   end
   accd.lines = copy -- this is probably going to do something horrible and fuck everything up because the table "copying" mechanics are ashdsiuhaslhasd
   length = nil
-  copy = nil -- DOING MY OWN GARBAGE COLLECTION NOW LIKE A PRO (if this breaks something, I will cry)
+  copy = nil -- DOING MY OWN GARBAGE COLLECTION NOW LIKE A PRO
   accd.lvidx, accd.lvidy = aegisub.video_size()
   accd.shx, accd.shy = accd.meta.res_x, accd.meta.res_y
   accd.totframes = accd.endframe - accd.startframe
@@ -252,15 +281,25 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
 end
 
 function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
+  aegisub.progress.title("Selecting Gerbils")
+  local ourkeys = check_head(sub)
   gui.main[2].text = accd.errmsg -- insert our error messages
-  --os.execute("echo %RANDOM% > random.blargledarg") -- env var on windows (xp and newer)
-  --os.execute("echo $RANDOM >> random.blargledarg") -- env var on various shells. Known to work: zsh and bash.
-  --local _,_,rand = string.find(io.open("random.blargledarg",r):read("*a"),"([0-9]+)") -- tapdancing jesus h. christ, why is this such a retardedly roundabout way of doing this.
-  -- the above does work, and has the added benefit of popping up and closing two terminal windows rapidly, which is very amusing. Possibly scare the shit out of someone who thinks their computzor has been haxxed. Actually, since lua doesn't seem to be sandboxed at all, you probably could hax someone's computer this way.
+  -- local randfile = io.popen("echo %RANDOM% $RANDOM")
+  -- local rand = randfile:read("*l"):match("[0-9]+")
+  -- randfile:close() -- close file handle without waiting for gc to do it manually
+  --[[
+      works (tested windows and linux), and is a lot less messy than the previous shell-based method I had
+      but it still pops up that terminal window, and since we don't need anything like a cryptographically
+      secure random number generator (not like the environmental variables are anyway) I don't see a reason
+      to use it
+  --]]
   local rand = ((os.clock()*os.time()+os.clock())*100) -- I suppose it's bad if this gives more variation than does math.random().
-  gui.main[3].text = gui.motd[math.floor(rand%4)+1] -- this would work a lot better with more than 3 items
+  gui.main[3].text = gui.motd[math.floor(rand%4)+1] -- this would work a lot better with more than 4 items
   local button, config = aegisub.dialog.display(gui.main, {"Go","Abort","Help"})
   if button == "Go" then
+    if config.conf then
+      doThingsLikeWriteTheConfigurationToTheScriptWhileSuddenlyAdoptingOOStyleMethodNomenclature(config,sub,ourkeys)
+    end
     if config.reverse then
       aegisub.progress.title("slibreG gnicniM") -- BECAUSE ITS FUNNY GEDDIT
     else
@@ -274,6 +313,40 @@ function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
     aegisub.progress.task("ABORT")
   end
   aegisub.set_undo_point("Motion Data")
+end
+
+function check_head(sub)
+  local keytab = {}
+  for i = 1, #sub do -- so it's like shooting in the dark
+		if aegisub.progress.is_cancelled() then error("User cancelled") end
+		local l = sub[i]
+    if l.class == "info" then
+      if l.key:match("aa%-mou") then
+        keytab[l.key] = l.value..":"..tostring(i) -- really not sure how I want to structure this
+      end
+    end
+  end
+  return keytab
+end
+
+function doThingsLikeWriteTheConfigurationToTheScriptWhileSuddenlyAdoptingOOStyleMethodNomenclature(TableOfTheCollectedOptions,TheSubtitlesObjectToWriteTo,aTableOfRelevantHeaderKeyValuePairs)
+  -- if no known values, always write to line 4 of the subtitles object
+  for theKeysToTheTableOfTheOptions, theValuesThatCorrespondToTheKeys in pairs(TableOfTheCollectedOptions) do
+    if aTableOfRelevantHeaderKeyValuePairs["aa-mou-"..theKeysToTheTableOfTheOptions] then
+      local val,index = aTableOfRelevantHeaderKeyValuePairs["aa-mou-"..theKeysToTheTableOfTheOptions]:split()
+    end
+  end
+  --[[
+  -tracking options:
+    Postion   [08]  Rounding  [17]
+    Scale     [10]  Rounding  [18]
+      Bord    [12]
+      Shad    [14]
+    Rotation  [12]  Rounding  [19]
+  -miscellaneous:
+    VSfilter  [23]
+    Reverse   [25]
+  --]]
 end
 
 function help(su,ac)
@@ -311,19 +384,19 @@ function parse_input(input)
     sect = 0
     end
     if sect == 1 then
-      if string.find(valu,"%d") then
+      if valu:match("%d") then
         val = valu:split("\t")
         table.insert(mocha.xpos,tonumber(val[2]))
         table.insert(mocha.ypos,tonumber(val[3]))
       end
     elseif sect <= 3 and sect >= 2 then
-      if string.find(valu,"%d") then
+      if valu:match("%d") then
         val = valu:split("\t")
         table.insert(mocha.xscl,tonumber(val[2]))
         table.insert(mocha.yscl,tonumber(val[3]))
       end
     elseif sect <= 7 and sect >= 4 then
-      if string.find(valu,"%d") then
+      if valu:match("%d") then
         val = valu:split("\t")
         table.insert(mocha.zrot,-tonumber(val[2]))
       end
@@ -349,9 +422,7 @@ function frame_by_frame(sub,accd,opts)
   if opts.pos then
     table.insert(operations,possify)
   end
-  if opts.trans then
-    table.insert(operations,transformate)
-  end
+  table.insert(operations,transformate) -- Just... always do it. Always.
   if opts.scl then
     if opts.vsfilter then
       table.insert(operations,VScalify)
@@ -377,13 +448,16 @@ function frame_by_frame(sub,accd,opts)
     local rstartf = v.startframe - accd.startframe + 1 -- start frame of line relative to start frame of tracked data
     local rendf = v.endframe - accd.startframe -- end frame of line relative to start frame of tracked data
     if opts.reverse then
-      rstartf, rendf = rendf, rstartf
-    end
-    if v.xorg and opts.rot then
-      v.xorgd, v.yorgd = mocha.xpos[rstartf] - v.xorg, mocha.ypos[rstartf] - v.yorg -- not going to actually use this until I test it more.
+      rstartf, rendf = rendf, rstartf -- reverse them to set the differences
     end
     if opts.rot then
-      v.zrotd = mocha.zrot[rstartf] - v.zrot -- idr there was something silly about this
+      v.zrotd = {}
+      for m,n in ipairs(v.zrot)
+        table.insert(v.zrotd,mocha.zrot[rstartf] - n) -- idr there was something silly about this
+      end
+      if v.xorg then
+        v.xorgd, v.yorgd = mocha.xpos[rstartf] - v.xorg, mocha.ypos[rstartf] - v.yorg -- not going to actually use this until I test it more.
+      end
     end
     if v.xpos and opts.pos then
       v.xdiff, v.ydiff = mocha.xpos[rstartf] - v.xpos, mocha.ypos[rstartf] - v.ypos
@@ -391,16 +465,15 @@ function frame_by_frame(sub,accd,opts)
     --[[for ie, ei in ipairs(eraser) do
       v.text = string.gsub(v.text,ei,"")
     end--]]
-    v.text = string.gsub(v.text,"{}","") -- Aesthetics, my friend. Aesthetics.
+    --v.text = string.gsub(v.text,"{}","") -- Aesthetics, my friend. Aesthetics.
     local orgtext = v.text -- tables are passed as references.
-    if opts.reverse then
-      rstartf, rendf = rendf, rstartf
-    end
     if opts.pos and not v.xpos then
       aegisub.log(1,"Line %d is being skipped because it is missing a \\pos() tag and you said to track position. Moron.",v.num) -- yeah that should do it.
     else
       if opts.reverse then -- donkey dongs
+        rstartf, rendf = rendf, rstartf -- un-reverse them
         for x = rstartf,rendf do
+          if aegisub.progress.is_cancelled() then error("User cancelled") end
           local iter = rendf-x+1 -- hm
           v.ratx = mocha.xscl[iter]/mocha.xscl[rendf] -- DIVISION IS SLOW
           v.raty = mocha.yscl[iter]/mocha.yscl[rendf]
@@ -416,6 +489,7 @@ function frame_by_frame(sub,accd,opts)
         end
       else
         for x = rstartf,rendf do
+          if aegisub.progress.is_cancelled() then error("User cancelled") end -- probably should have put this in here a long time ago
           v.ratx = mocha.xscl[x]/mocha.xscl[rstartf] -- DIVISION IS SLOW
           v.raty = mocha.yscl[x]/mocha.yscl[rstartf]
           v.start_time = aegisub.ms_from_frame(accd.startframe+x-1)
@@ -504,8 +578,8 @@ function rotate(line,mocha,opts,iter)
   local orgy = mocha.ypos[iter] -- lol orgy
   string.gsub(line.text,"\\org%([%-%d%.]+,[%-%d%.]+%)","")
   string.gsub(line.text,"{",string.format("{\\org(%g,%g)",round(orgx,opts.rround),round(orgy,opts.rround)),1) -- INSERT
-  for ix, vx in ipairs(line.zrot) do
-    local frz = mocha.zrot[iter]-line.zrotd
+  for ix, vx in ipairs(line.zrotd) do
+    local frz = mocha.zrot[iter]-vx
     string.gsub(line.text,"\\frz?[%d%.]+",string.format("\\"..string.char(1).."frz%g",round(frz,opts.rround)),1)
   end
   return line.text
