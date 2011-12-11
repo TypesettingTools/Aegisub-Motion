@@ -169,20 +169,38 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
     opline.num = v -- this is for, uh, later.
     karaskel.preproc_line(sub, accd.meta, accd.styles, opline) -- get that extra position data
     aegisub.log(5,"Line %d's style name is: %s\n",v-strt,opline.style) -- lines with more than one style can suck a dick (see: \r[stylename])
-    opline.xscl = accd.styles[opline.style].scale_x
+    opline.sdxscl = accd.styles[opline.style].scale_x
     aegisub.log(5,"Line %d's style's xscale is: %g\n",v-strt,opline.xscl)
-    opline.yscl = accd.styles[opline.style].scale_y
+    opline.sdyscl = accd.styles[opline.style].scale_y
     aegisub.log(5,"Line %d's style's yscale is: %g\n",v-strt,opline.yscl)
     opline.ali = accd.styles[opline.style].align
     aegisub.log(5,"Line %d's style's alignment is: %d\n",v-strt,opline.ali)
-    opline.zrot = accd.styles[opline.style].angle
+    opline.sdzrot = accd.styles[opline.style].angle
     aegisub.log(5,"Line %d's style's z-rotation is: %d\n",v-strt,opline.zrot)
-    opline.xbord = accd.styles[opline.style].outline
-    opline.ybord = accd.styles[opline.style].outline
+    opline.sdbord = accd.styles[opline.style].outline
     aegisub.log(5,"Line %d's style's border is: %d\n",v-strt,opline.xbord)
-    opline.xshad = accd.styles[opline.style].shadow
-    opline.yshad = accd.styles[opline.style].shadow
+    opline.sdshad = accd.styles[opline.style].shadow
     aegisub.log(5,"Line %d's style's shadow is: %d\n",v-strt,opline.xshad)
+    local pre,ftag = opline.text:match("(.-){(.-)}") -- so this is what they mean by an edge case. I think. Either way, it's annoying as hell.
+    if pre ~= "" then
+      opline.dsx,opline.dsy,opline.dbord,opline.dshad,opline.drot = true,true,true,true,true -- this table is getting rly hueg. >____>
+    else
+      if not ftag:match("\\fscx([%d%.]+)") then
+        opline.dsx = true -- inconsistent naming ftw?
+      end
+      if not ftag:match("\\fscy([%d%.]+)") then
+        opline.dsy = true
+      end
+      if not ftag:match("\\bord([%d%.]+)") then
+        opline.dbord = true
+      end
+      if not ftag:match("\\shad([%-%d%.])") then
+        opline.dshad = true
+      end
+      if not ftag:match("\\frz?([%-%d%.]+)") then
+        opline.drot = true
+      end
+    end
     opline.xpos,opline.ypos = opline.text:match("\\pos%(([%-%d%.]+),([%-%d%.]+)%)") -- always the first one
     opline.xorg,opline.yorg = opline.text:match("\\org%(([%-%d%.]+),([%-%d%.]+)%)") -- idklol
     opline.startframe, opline.endframe = aegisub.frame_from_ms(opline.start_time), aegisub.frame_from_ms(opline.end_time)
@@ -445,6 +463,33 @@ function frame_by_frame(sub,accd,opts)
     table.insert(operations,rotate)
   end
   for i,v in ipairs(accd.lines) do
+    local fixit = ""
+    if opts.scl then
+      if accd.dsx then
+        fixit = fixit.."\\fscx"..accd.sdxscl
+      end
+      if accd.dsy then
+        fixit = fixit.."\\fscy"..accd.sdyscl
+      end
+      if opts.bord then
+        if accd.dbord then
+          fixit = fixit.."\\bord"..accd.sdbord
+        end
+      end
+      if opts.shad then
+        if accd.dshad then
+          fixit = fixit.."\\shad"..accd.sdshad
+        end
+      end
+    end
+    if opts.rot and accd.drot then
+      fixit = fixit.."\\frz"..accd.sdzrot
+    end
+    if fixit ~= "" then
+      fixit = "{"..fixit.."}"
+    end
+    v.text = fixit..v.text
+    fixit = nil -- lol gc
     local rstartf = v.startframe - accd.startframe + 1 -- start frame of line relative to start frame of tracked data
     local rendf = v.endframe - accd.startframe -- end frame of line relative to start frame of tracked data
     if opts.reverse then
@@ -532,7 +577,7 @@ function scalify(line,mocha,opts)
 end
 
 function bordicate(line,mocha,opts)
-  for ix, vx in ipairs(line.bord) do
+  for ix, vx in ipairs(line.bord) do -- this is actually the very WRONG way to do this... fuck.
     string.gsub(line.text,"\\bord[%d%.]+","\\"..string.char(1)..string.format("bord%g)",round(vx*line.ratx,opts.sround)),1)
   end
   for ix, vx in ipairs(line.xbord) do
@@ -546,13 +591,13 @@ end
 
 function shadinate(line,mocha,opts)
   for ix, vx in ipairs(line.shad) do
-    string.gsub(line.text,"\\bord[%d%.]+","\\"..string.char(1)..string.format("shad%g)",round(vx*line.ratx,opts.sround)),1)
+    string.gsub(line.text,"\\shad[%d%.]+","\\"..string.char(1)..string.format("shad%g)",round(vx*line.ratx,opts.sround)),1)
   end
   for ix, vx in ipairs(line.xshad) do
-    string.gsub(line.text,"\\xbord[%d%.]+","\\"..string.char(1)..string.format("xshad%g)",round(vx*line.ratx,opts.sround)),1)
+    string.gsub(line.text,"\\xshad[%d%.]+","\\"..string.char(1)..string.format("xshad%g)",round(vx*line.ratx,opts.sround)),1)
   end
   for ix, vx in ipairs(line.yshad) do
-    string.gsub(line.text,"\\ybord[%d%.]+","\\"..string.char(1)..string.format("yshad%g)",round(vx*line.raty,opts.sround)),1)
+    string.gsub(line.text,"\\yshad[%d%.]+","\\"..string.char(1)..string.format("yshad%g)",round(vx*line.raty,opts.sround)),1)
   end
   return line.text
 end
