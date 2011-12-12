@@ -111,7 +111,7 @@ gui.main = {
     label = "Read/write script header:"},
   [21] = { class = "checkbox";
       x = 5; y = 10; height = 1; width = 1;
-    value = true; name = "conf"},
+    value = false; name = "conf"},
   --]]
   [22] = { class = "label";
       x = 0; y = 11; height = 1; width = 3;
@@ -163,54 +163,50 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
   local numlines = #sel
   for i, v in pairs(sel) do -- burning cpu cycles like they were no thing
     local opline = table.copy(sub[v]) -- I have no idea if a shallow copy is even an intelligent thing to do here
-    opline.xscl, opline.yscl, opline.zrot, opline.trans = {}, {}, {}, {} -- have to make table skeletons so we can use table.insert
-    opline.bord, opline.xbord, opline.ybord = {}, {}, {}
-    opline.shad, opline.xshad, opline.yshad = {}, {}, {}
     opline.num = v -- this is for, uh, later.
+    opline.trans = {}
     karaskel.preproc_line(sub, accd.meta, accd.styles, opline) -- get that extra position data
     aegisub.log(5,"Line %d's style name is: %s\n",v-strt,opline.style) -- lines with more than one style can suck a dick (see: \r[stylename])
-    opline.sdxscl = accd.styles[opline.style].scale_x
+    opline.xscl = accd.styles[opline.style].scale_x
     aegisub.log(5,"Line %d's style's xscale is: %g\n",v-strt,opline.xscl)
-    opline.sdyscl = accd.styles[opline.style].scale_y
+    opline.yscl = accd.styles[opline.style].scale_y
     aegisub.log(5,"Line %d's style's yscale is: %g\n",v-strt,opline.yscl)
     opline.ali = accd.styles[opline.style].align
     aegisub.log(5,"Line %d's style's alignment is: %d\n",v-strt,opline.ali)
-    opline.sdzrot = accd.styles[opline.style].angle
+    opline.zrot = accd.styles[opline.style].angle
     aegisub.log(5,"Line %d's style's z-rotation is: %d\n",v-strt,opline.zrot)
-    opline.sdbord = accd.styles[opline.style].outline
+    opline.xbord = accd.styles[opline.style].outline
+    opline.ybord = accd.styles[opline.style].outline
     aegisub.log(5,"Line %d's style's border is: %d\n",v-strt,opline.xbord)
-    opline.sdshad = accd.styles[opline.style].shadow
+    opline.xshad = accd.styles[opline.style].shadow
+    opline.yshad = accd.styles[opline.style].shadow
     aegisub.log(5,"Line %d's style's shadow is: %d\n",v-strt,opline.xshad)
     local pre,ftag = opline.text:match("(.-){(.-)}") -- so this is what they mean by an edge case. I think. Either way, it's annoying as hell.
-    if pre ~= "" then
-      opline.dsx,opline.dsy,opline.dbord,opline.dshad,opline.drot = true,true,true,true,true -- this table is getting rly hueg. >____>
-    else
-      if not ftag:match("\\fscx([%d%.]+)") then
-        opline.dsx = true -- inconsistent naming ftw?
-      end
-      if not ftag:match("\\fscy([%d%.]+)") then
-        opline.dsy = true
-      end
-      if not ftag:match("\\bord([%d%.]+)") then
-        opline.dbord = true
-      end
-      if not ftag:match("\\shad([%-%d%.])") then
-        opline.dshad = true
-      end
-      if not ftag:match("\\frz?([%-%d%.]+)") then
-        opline.drot = true
-      end
-    end
     opline.xpos,opline.ypos = opline.text:match("\\pos%(([%-%d%.]+),([%-%d%.]+)%)") -- always the first one
     opline.xorg,opline.yorg = opline.text:match("\\org%(([%-%d%.]+),([%-%d%.]+)%)") -- idklol
     opline.startframe, opline.endframe = aegisub.frame_from_ms(opline.start_time), aegisub.frame_from_ms(opline.end_time)
     local length = opline.end_time - opline.start_time
-    --local one = aegisub.ms_from_frame(opline.start_frame)
-    --local two = aegisub.ms_from_frame(opline.start_frame+1)
-    --local transtart = round(one - opline.start_time + (two - one) / 2,0) -- right.
-    for a in string.gfind(opline.text,"%{(.-)%}") do -- this will find comment/override tags yo (on an unrelated note, the .- lazy repition is nice. It's shorter than .+? at least.)
-      -- for b in string.gfind(a,"(\\[^\\]+)") do --find any thing between \ and \. Real comment lines should be separate from override tag blocks.
-      aegisub.log(5,"Found a comment/override command in line %d: %s\n",v-strt,a)
+    opline.things = opline.text:find("{") -- really going for descriptive variable names now
+    local a = opline.text:match("%{(.-)%}") -- this will find comment/override tags yo (on an unrelated note, the .- lazy repition is nice. It's shorter than .+? at least.)
+    if a then
+      local fad_s,fad_e = a:match("\\fad%(([%d]+),([%d]+)%)") -- uint
+      fad_s, fad_e = tonumber(fad_s), tonumber(fad_e)
+      if fad_s then -- Swap out fade for a transform so we can stage it. Do it before checking for transforms, so it will be picked up.
+        if fad_s == 0 and fad_e > 0 then
+          opline.text = opline.text:gsub("\\fad%([%d]+,[%d]+%)",string.format("\\alpha&H00&\\t(%d,%d,1,\\alpha&HFF&)",length-fad_e,length))
+        elseif fad_s > 0 and fad_e == 0 then
+          opline.text = opline.text:gsub("\\fad%([%d]+,[%d]+%)",string.format("\\alpha&HFF&\\t(%d,%d,1,\\alpha&H00&)",0,fad_s))
+        elseif fad_s > 0 and fad_e > 0 then
+          opline.text = opline.text:gsub("\\fad%([%d]+,[%d]+%)",string.format("\\alpha&HFF&\\t(%d,%d,1,\\alpha&H00&)\\t(%d,%d,1,\\alpha&HFF&)",0,fad_s,length-fad_e,length))
+        else 
+          opline.text = opline.text:gsub("\\fad%([%d]+,[%d]+%)","") -- GET RID OF THAT USELESS SHIT
+        end
+      end
+      local fade_a,fade_a2,fade_a3,fade_s,fade_m,fade_m2,fade_e = a:match("\\fade%(([%d]+),([%d]+),([%d]+),([%d]+),([%d]+),([%d]+),([%d]+)%)") -- This is a large pita fuck you fuck you fuck you fuck you fuck you fuck you if you use this
+    end
+    a = opline.text:match("%{(.-)%}") -- because I am too stupid to find a better way to do this
+    if a then
+      aegisub.log(5,"Found a comment/override block in line %d: %s\n",v-strt,a)
       local fx = a:match("\\fscx([%d%.]+)") -- why was I using string.find before? I can't even remember.
       local fy = a:match("\\fscy([%d%.]+)") -- these should all be gc'd after this loop
       local ali = a:match("\\an([1-9])")
@@ -222,40 +218,29 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
       local xshad = a:match("\\xshad([%-%d%.]+)")
       local yshad = a:match("\\yshad([%-%d%.]+)")
       local resetti = a:match("\\r([^\\|}]+)") -- not sure I actually want to support this
-      local fad_s,fad_e = a:match("\\fad%(([%d]+),([%d]+)%)") -- uint
-      if fad_s then
-        if fad_s == 0 and fad_e > 0 then
-          string.gsub(a,"\\fad%(([%d]+),([%d]+)%)",string.format("\\alpha&H00&\\t(%d,%d,1,\\alpha&HFF&)",length-fad_e,length))
-        elseif fad_s > 0 and fad_e == 0 then
-          string.gsub(a,"\\fad%(([%d]+),([%d]+)%)",string.format("\\alpha&HFF&\\t(%d,%d,1,\\alpha&H00&)",0,fad_s))
-        elseif fad_s > 0 and fad_e > 0 then
-          string.gsub(a,"\\fad%(([%d]+),([%d]+)%)",string.format("\\alpha&HFF&\\t(%d,%d,1,\\alpha&H00&)\\t(%d,%d,1,\\alpha&HFF&)",0,fad_s,length-fad_e,length))
-        else 
-          string.gsub(a,"\\fad%(([%d]+),([%d]+)%)","") -- GET RID OF THAT USELESS SHIT
-        end
-      end
-      local fade_a,fade_a2,fade_a3,fade_s,fade_m,fade_m2,fade_e = a:match("\\fade%(([%d]+),([%d]+),([%d]+),([%d]+),([%d]+),([%d]+),([%d]+)%)") -- This is a large pita fuck you fuck you fuck you fuck you fuck you fuck you if you use this
       for t_start,t_end,t_exp,t_eff in string.gfind(a,"\\t%(([%-%d]+),([%-%d]+),([%d%.]*),?([\\%.%-&%w%(%)]+)%)") do -- this will return an empty string for t_exp if no exponential factor is specified
         if t_exp == "" then t_exp = 1 end -- set it to 1 because stuff and things
         table.insert(opline.trans,{tonumber(t_start),tonumber(t_end),tonumber(t_exp),t_eff}); aegisub.log(5,"Line %d: \\t(%g,%g,%g,%s) found\n",v-strt,t_start,t_end,t_exp,t_eff)
       end
-      if fx then table.insert(opline.xscl,tonumber(fx)); aegisub.log(5,"Line %d: \\fscx%g found\n",v-strt, fx) end
-      if fy then table.insert(opline.yscl,tonumber(fy)); aegisub.log(5,"Line %d: \\fscy%g found\n",v-strt, fy) end
-      if bord then table.insert(opline.bord,tonumber(bord)); aegisub.log(5,"Line %d: \\bord%g found\n",v-strt, bord) end
-      if xbord then table.insert(opline.xbord,tonumber(xbord)); aegisub.log(5,"Line %d: \\xbord%g found\n",v-strt, xbord) end
-      if ybord then table.insert(opline.ybord,tonumber(ybord)); aegisub.log(5,"Line %d: \\ybord%g found\n",v-strt, ybord) end
-      if shad then table.insert(opline.bord,tonumber(shad)); aegisub.log(5,"Line %d: \\shad%g found\n",v-strt, shad) end
-      if xshad then table.insert(opline.xbord,tonumber(xshad)); aegisub.log(5,"Line %d: \\xshad%g found\n",v-strt, xshad) end
-      if yshad then table.insert(opline.ybord,tonumber(yshad)); aegisub.log(5,"Line %d: \\yshad%g found\n",v-strt, yshad) end
-      if frz then table.insert(opline.zrot,tonumber(frz)); aegisub.log(5,"Line %d: \\frz%g found\n",v-strt, frz) end
+      if fx then opline.xscl = tonumber(fx); aegisub.log(5,"Line %d: \\fscx%g found\n",v-strt, fx) end
+      if fy then opline.yscl = tonumber(fy); aegisub.log(5,"Line %d: \\fscy%g found\n",v-strt, fy) end
+      if bord then opline.xbord = tonumber(bord); opline.ybord = tonumber(bord); aegisub.log(5,"Line %d: \\bord%g found\n",v-strt, bord) end
+      if xbord then opline.xbord = tonumber(xbord); aegisub.log(5,"Line %d: \\xbord%g found\n",v-strt, xbord) end
+      if ybord then opline.ybord = tonumber(ybord); aegisub.log(5,"Line %d: \\ybord%g found\n",v-strt, ybord) end
+      if shad then opline.xshad = tonumber(shad); opline.yshad = tonumber(shad); aegisub.log(5,"Line %d: \\shad%g found\n",v-strt, shad) end
+      if xshad then opline.xshad = tonumber(xshad); aegisub.log(5,"Line %d: \\xshad%g found\n",v-strt, xshad) end
+      if yshad then opline.yshad = tonumber(yshad); aegisub.log(5,"Line %d: \\yshad%g found\n",v-strt, yshad) end
+      if frz then opline.zrot = tonumber(frz); aegisub.log(5,"Line %d: \\frz%g found\n",v-strt, frz) end
       if ali then opline.ali = tonumber(ali); aegisub.log(5,"Line %d: \\an%d found\n",v-strt, ali) end -- the final \an is the one that's used.
+    else
+      aegisub.log(5,"No comment/override block found in line %d: %s\n",v-strt,a)
     end
     if not opline.xpos or not opline.ypos then -- just to be safe
       table.insert(accd.poserrs,{i,v})
       accd.errmsg = accd.errmsg..string.format("Line %d does not seem to have a position override tag.\n", v-strt)
     end
     --aegisub.log(5,"%d",opline.ali)
-    if tonumber(opline.ali) ~= 5 then
+    if opline.ali ~= 5 then
       table.insert(accd.alignerrs,{i,v})
       accd.errmsg = accd.errmsg..string.format("Line %d does not seem aligned \\an5.\n", v-strt)
     end
@@ -382,12 +367,12 @@ function parse_input(input)
   local datams = io.open(input,"r")
   if datams then
     for line in datams:lines() do
-      line = string.gsub(line,"[\r\n]*","") -- FUCK YOU CRLF
+      line = line:gsub("[\r\n]*","") -- FUCK YOU CRLF
       table.insert(ftab,line) -- dump the lines from the file into a table.
     end
     datams:close()
   else
-    input = string.gsub(input,"[\r]*","") -- SERIOUSLY FUCK THIS SHIT
+    input = input:gsub("[\r]*","") -- SERIOUSLY FUCK THIS SHIT
     ftab = input:split("\n")
   end
   for keys, valu in ipairs(ftab) do -- idk it might be more flexible now or something
@@ -435,23 +420,30 @@ function frame_by_frame(sub,accd,opts)
       mocha.yscl[k] = 100 -- so that yscl is changed too. 
     end
   end
-  local operations = {} -- create a table and put the necessary functions into it, which will save a lot of if operations in the inner loop. This was the most elegant solution I came up with.
-  --local eraser = {}
+  local operations, eraser = {}, {} -- create a table and put the necessary functions into it, which will save a lot of if operations in the inner loop. This was the most elegant solution I came up with.
   if opts.pos then
     table.insert(operations,possify)
+    table.insert(eraser,"\\pos%([%-%d%.]+,[%-%d%.]+%)")
   end
-  table.insert(operations,transformate) -- Just... always do it. Always.
   if opts.scl then
     if opts.vsfilter then
       table.insert(operations,VScalify)
     else
       table.insert(operations,scalify)
     end
+    table.insert(eraser,"\\fscx[%d%.]+")
+    table.insert(eraser,"\\fscy[%d%.]+")
     if opts.bord then
       table.insert(operations,bordicate)
+      table.insert(eraser,"\\xbord[%d%.]+")
+      table.insert(eraser,"\\ybord[%d%.]+")
+      table.insert(eraser,"\\bord[%d%.]+")
     end
     if opts.shad then
       table.insert(operations,shadinate)
+      table.insert(eraser,"\\xshad[%-%d%.]+")
+      table.insert(eraser,"\\yshad[%-%d%.]+")
+      table.insert(eraser,"\\shad[%-%d%.]+")
     end
   end
   if opts.vsfilter then
@@ -461,45 +453,18 @@ function frame_by_frame(sub,accd,opts)
   end
   if opts.rot then
     table.insert(operations,rotate)
+    table.insert(eraser,"\\org%([%-%d%.]+,[%-%d%.]+%)")
+    table.insert(eraser,"\\frz[%-%d%.]+")
   end
+  --table.insert(eraser,"{}") -- I think this is redundant with the next line
   for i,v in ipairs(accd.lines) do
-    local fixit = ""
-    if opts.scl then
-      if accd.dsx then
-        fixit = fixit.."\\fscx"..accd.sdxscl
-      end
-      if accd.dsy then
-        fixit = fixit.."\\fscy"..accd.sdyscl
-      end
-      if opts.bord then
-        if accd.dbord then
-          fixit = fixit.."\\bord"..accd.sdbord
-        end
-      end
-      if opts.shad then
-        if accd.dshad then
-          fixit = fixit.."\\shad"..accd.sdshad
-        end
-      end
-    end
-    if opts.rot and accd.drot then
-      fixit = fixit.."\\frz"..accd.sdzrot
-    end
-    if fixit ~= "" then
-      fixit = "{"..fixit.."}"
-    end
-    v.text = fixit..v.text
-    fixit = nil -- lol gc
     local rstartf = v.startframe - accd.startframe + 1 -- start frame of line relative to start frame of tracked data
     local rendf = v.endframe - accd.startframe -- end frame of line relative to start frame of tracked data
     if opts.reverse then
       rstartf, rendf = rendf, rstartf -- reverse them to set the differences
     end
     if opts.rot then
-      v.zrotd = {}
-      for m,n in ipairs(v.zrot)
-        table.insert(v.zrotd,mocha.zrot[rstartf] - n) -- idr there was something silly about this
-      end
+      v.zrotd = mocha.zrot[rstartf] - v.zrot -- idr there was something silly about this
       if v.xorg then
         v.xorgd, v.yorgd = mocha.xpos[rstartf] - v.xorg, mocha.ypos[rstartf] - v.yorg -- not going to actually use this until I test it more.
       end
@@ -507,11 +472,10 @@ function frame_by_frame(sub,accd,opts)
     if v.xpos and opts.pos then
       v.xdiff, v.ydiff = mocha.xpos[rstartf] - v.xpos, mocha.ypos[rstartf] - v.ypos
     end
-    --[[for ie, ei in ipairs(eraser) do
-      v.text = string.gsub(v.text,ei,"")
-    end--]]
-    --v.text = string.gsub(v.text,"{}","") -- Aesthetics, my friend. Aesthetics.
     local orgtext = v.text -- tables are passed as references.
+    for ie, ei in ipairs(eraser) do -- have to do it before inserting our new values :s
+      v.text = v.text:gsub(ei,"")
+    end
     if opts.pos and not v.xpos then
       aegisub.log(1,"Line %d is being skipped because it is missing a \\pos() tag and you said to track position. Moron.",v.num) -- yeah that should do it.
     else
@@ -519,31 +483,49 @@ function frame_by_frame(sub,accd,opts)
         rstartf, rendf = rendf, rstartf -- un-reverse them
         for x = rstartf,rendf do
           if aegisub.progress.is_cancelled() then error("User cancelled") end
+          local tag = "{"
           local iter = rendf-x+1 -- hm
           v.ratx = mocha.xscl[iter]/mocha.xscl[rendf] -- DIVISION IS SLOW
           v.raty = mocha.yscl[iter]/mocha.yscl[rendf]
           v.start_time = aegisub.ms_from_frame(accd.startframe+iter-1)
           v.end_time = aegisub.ms_from_frame(accd.startframe+iter)
           v.time_delta = aegisub.ms_from_frame(accd.startframe+iter-1) - aegisub.ms_from_frame(accd.startframe)
-          for vk,kv in ipairs(operations) do -- iterate through the necessary operations
-            v.text = kv(v,mocha,opts,iter)
+          for vk,kv in ipairs(v.trans) do
+            v.text = transformate(v,kv)
           end
-          v.text = string.gsub(v.text,string.char(1),"")
+          for vk,kv in ipairs(operations) do -- iterate through the necessary operations
+            tag = tag..kv(v,mocha,opts,iter)
+          end
+          tag = tag.."}"
+          v.text = v.text:gsub(string.char(1),"")
+          v.text = tag..v.text
+          if opline.things == 1 then
+            v.text = v.text:gsub("}{")
+          end
           sub.insert(v.num+1,v)
           v.text = orgtext
         end
-      else
+      else -- duplicate code
         for x = rstartf,rendf do
           if aegisub.progress.is_cancelled() then error("User cancelled") end -- probably should have put this in here a long time ago
+          local tag = "{"
           v.ratx = mocha.xscl[x]/mocha.xscl[rstartf] -- DIVISION IS SLOW
           v.raty = mocha.yscl[x]/mocha.yscl[rstartf]
           v.start_time = aegisub.ms_from_frame(accd.startframe+x-1)
           v.end_time = aegisub.ms_from_frame(accd.startframe+x)
           v.time_delta = aegisub.ms_from_frame(accd.startframe+x-1) - aegisub.ms_from_frame(accd.startframe)
-          for vk,kv in ipairs(operations) do -- iterate through the necessary operations
-            v.text = kv(v,mocha,opts,x)
+          for vk,kv in ipairs(v.trans) do
+            v.text = transformate(v,kv)
           end
-          v.text = string.gsub(v.text,string.char(1),"") -- clean those suckers up
+          for vk,kv in ipairs(operations) do -- iterate through the necessary operations
+            tag = tag..kv(v,mocha,opts,x)
+          end
+          tag = tag.."}"
+          v.text = v.text:gsub(string.char(1),"")
+          v.text = tag..v.text
+          if v.things == 1 then
+            v.text = v.text:gsub("}{","")
+          end
           sub.insert(v.num+x-rstartf+1,v)
           v.text = orgtext
         end
@@ -555,79 +537,53 @@ end
 function possify(line,mocha,opts,iter)
   local xpos = mocha.xpos[iter]-(line.xdiff*line.ratx) -- allocating memory like a bawss
   local ypos = mocha.ypos[iter]-(line.ydiff*line.raty)
-  return string.gsub(line.text,"\\pos%([%-%d%.]+,[%-%d%.]+%)","\\"..string.char(1)..string.format("pos(%g,%g)",round(xpos,opts.pround),round(ypos,opts.pround))) -- ☺
+  return string.format("\\pos(%g,%g)",round(xpos,opts.pround),round(ypos,opts.pround))
 end
 
-function transformate(line,mocha,opts,iter)
-  for ix,vx in ipairs(line.trans) do
-    local t_s = ix[1] - line.time_delta -- well, that was easy
-    local t_e = ix[2] - line.time_delta
-    string.gsub(ix,"\\t%([%-%d]+,[%-%d]+,[%d%.]*,?[\\%.%-&%w%(%)]+%)","\\"..string.char(1)..string.format("t(%i,%i,%g,%s)",t_s,t_e,ix[3],ix[4]),1) -- I hate how messy this expression is
-  end
+function transformate(line,trans)
+  local t_s = trans[1] - line.time_delta -- well, that was easy
+  local t_e = trans[2] - line.time_delta
+  return line.text:gsub("\\t%([%-%d]+,[%-%d]+,[%d%.]*,?[\\%.%-&%w%(%)]+%)","\\"..string.char(1)..string.format("t(%i,%i,%g,%s)",t_s,t_e,trans[3],trans[4]),1) -- I hate how messy this expression is
 end
 
 function scalify(line,mocha,opts)
-  for ix,vx in ipairs(line.xscl) do
-    string.gsub(line.text,"\\fscx[%d%.]+","\\"..string.char(1)..string.format("fscx%g)",round(vx*line.ratx,opts.sround)),1)
-  end
-  for ix,vx in ipairs(line.yscl) do
-    string.gsub(line.text,"\\fscy[%d%.]+","\\"..string.char(1)..string.format("fscy%g)",round(vx*line.raty,opts.sround)),1)
-  end
-  return line.text
+  local xscl = line.xscl*line.ratx
+  local yscl = line.yscl*line.raty
+  return string.format("\\fscx%g\\fscy%g",round(xscl,opts.sround),round(yscl,opts.sround))
 end
 
 function bordicate(line,mocha,opts)
-  for ix, vx in ipairs(line.bord) do -- this is actually the very WRONG way to do this... fuck.
-    string.gsub(line.text,"\\bord[%d%.]+","\\"..string.char(1)..string.format("bord%g)",round(vx*line.ratx,opts.sround)),1)
+  local xbord = line.xbord*round(line.ratx,opts.sround) -- round beforehand to minimize random float errors
+  local ybord = line.ybord*round(line.raty,opts.sround) -- or maybe that's rly fucking dumb? idklol
+  if xbord == ybord then
+    return string.format("\\bord%g",round(xbord,opts.sround))
+  else
+    return string.format("\\xbord%g\\ybord%g",round(xbord,opts.sround),round(ybord,opts.sround))
   end
-  for ix, vx in ipairs(line.xbord) do
-    string.gsub(line.text,"\\xbord[%d%.]+","\\"..string.char(1)..string.format("xbord%g)",round(vx*line.ratx,opts.sround)),1)
-  end
-  for ix, vx in ipairs(line.ybord) do
-    string.gsub(line.text,"\\ybord[%d%.]+","\\"..string.char(1)..string.format("ybord%g)",round(vx*line.raty,opts.sround)),1)
-  end
-  return line.text
 end
 
 function shadinate(line,mocha,opts)
-  for ix, vx in ipairs(line.shad) do
-    string.gsub(line.text,"\\shad[%d%.]+","\\"..string.char(1)..string.format("shad%g)",round(vx*line.ratx,opts.sround)),1)
+  local xshad = line.xshad*round(line.ratx,opts.sround) -- scale shadow the same way as everything else
+  local yshad = line.yshad*round(line.raty,opts.sround) -- hope it turns out as desired
+  if xshad == yshad then
+    return string.format("\\shad%g",round(xshad,opts.sround))
+  else
+    return string.format("\\xshad%g\\yshad%g",round(xshad,opts.sround),round(yshad,opts.sround))
   end
-  for ix, vx in ipairs(line.xshad) do
-    string.gsub(line.text,"\\xshad[%d%.]+","\\"..string.char(1)..string.format("xshad%g)",round(vx*line.ratx,opts.sround)),1)
-  end
-  for ix, vx in ipairs(line.yshad) do
-    string.gsub(line.text,"\\yshad[%d%.]+","\\"..string.char(1)..string.format("yshad%g)",round(vx*line.raty,opts.sround)),1)
-  end
-  return line.text
 end
 
 function VScalify(line,mocha,opts)
-  for ix, vx in ipairs(line.xscl) do
-    local xscl = round(line.xscl*line.ratx,2)
-    local xlowend, xhighend, xdecimal = math.floor(xscl),math.ceil(xscl),xscl%1*100
-    local xstart, xend = -xdecimal, 100-xdecimal
-    string.gsub(line.text,"\\fscx[%d%.]+","\\"..string.char(1)..string.format("fscx%d\\t(%d,%d,\\"..string.char(1).."fscx%d)",xlowend,xstart,xend,xhighend),1)
-  end
-  for ix, vx in ipairs(line.yscl) do
-    local yscl = round(line.yscl*line.raty,2)
-    local ylowend, yhighend, ydecimal = math.floor(yscl),math.ceil(yscl),yscl%1*100
-    local ystart, yend = -ydecimal, 100-ydecimal
-    string.gsub(line.text,"\\fscy[%d%.]+","\\"..string.char(1)..string.format("fscy%d\\t(%d,%d,\\"..string.char(1).."fscy%d)",ylowend,ystart,yend,yhighend),1)
-  end
-  return line.text
+  local xscl = round(line.xscl*line.ratx,2)
+  local yscl = round(line.yscl*line.raty,2)
+  local xlowend, xhighend, xdecimal = math.floor(xscl),math.ceil(xscl),xscl%1*100
+  local xstart, xend = -xdecimal, 100-xdecimal
+  local ylowend, yhighend, ydecimal = math.floor(yscl),math.ceil(yscl),yscl%1*100
+  local ystart, yend = -ydecimal, 100-ydecimal
+  return string.format("\\fscx%d\\t(%d,%d,\\fscx%d)\\fscy%d\\t(%d,%d,\\fscy%d)",xlowend,xstart,xend,xhighend,ylowend,ystart,yend,yhighend)
 end
 
 function rotate(line,mocha,opts,iter)
-  local orgx = mocha.xpos[iter]
-  local orgy = mocha.ypos[iter] -- lol orgy
-  string.gsub(line.text,"\\org%([%-%d%.]+,[%-%d%.]+%)","")
-  string.gsub(line.text,"{",string.format("{\\org(%g,%g)",round(orgx,opts.rround),round(orgy,opts.rround)),1) -- INSERT
-  for ix, vx in ipairs(line.zrotd) do
-    local frz = mocha.zrot[iter]-vx
-    string.gsub(line.text,"\\frz?[%d%.]+",string.format("\\"..string.char(1).."frz%g",round(frz,opts.rround)),1)
-  end
-  return line.text
+  return string.format("\\org(%g,%g)\\frz%g",round(mocha.xpos[iter],opts.rround),round(mocha.ypos[iter],opts.rround),round(mocha.zrot[iter]-line.zrotd,opts.rround)) -- copypasta
 end
 
 function round(num, idp) -- borrowed from the lua-users wiki (all of the intelligent code you see in here is)
@@ -643,7 +599,7 @@ function string:split(sep) -- borrowed from the lua-users wiki (single character
 end
 
 function isvideo() -- a very rudimentary (but hopefully efficient) check to see if there is a video loaded.
-  return aegisub.video_size() and true or false -- (aegisub.video_size() and true) or false - if video_size() returns a value then the first part of the statement is true and therefore it returns true. Otherwise, it returns false.
+  return aegisub.video_size() and true or false -- and forces boolean conversion
 end
 
 aegisub.register_macro("Apply motion data","Applies properly formatted motion tracking data to selected subtitles.", prerun_czechs, isvideo)
