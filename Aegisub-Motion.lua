@@ -300,15 +300,28 @@ function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   gui.main[3].text = gui.motd[math.floor(rand%4)+1] -- this would work a lot better with more than 4 items
   local button, config = aegisub.dialog.display(gui.main, {"Go","Abort","Help"})
   if button == "Go" then
-    if config.conf then
-      doThingsLikeWriteTheConfigurationToTheScriptWhileSuddenlyAdoptingOOStyleMethodNomenclature(config,sub,ourkeys)
-    end
+    local confshort = {
+      Position = config.pos,
+      PRound = config.pround,
+      Scale = config.scl,
+      Border = config.bord,
+      Shadow = config.shad,
+      SRound = config.sround,
+      Rotation = config.rot,
+      RRound = config.rround,
+      ReadConf = config.conf,
+      VSCompat = config.vsfilter,
+      Reverse = config.reverse
+    }
     if config.reverse then
       aegisub.progress.title("slibreG gnicniM") -- BECAUSE ITS FUNNY GEDDIT
     else
       aegisub.progress.title("Mincing Gerbils")
     end
     frame_by_frame(sub,accd,config)
+    if config.conf then -- after fbf because if new keys are written, it causes an offset
+      writeconf(confshort,sub,ourkeys)
+    end
   elseif button == "Help" then
     aegisub.progress.title("Helping Gerbils?")
     help(sub,accd)
@@ -325,6 +338,7 @@ function check_head(sub)
 		local l = sub[i]
     if l.class == "info" then
       if l.key:match("aa%-mou") then
+        aegisub.log(0,string.format("[i] = %s: %s\n",tostring(i),tostring(l.key),tostring(l.value)))
         keytab[l.key] = l.value..":"..tostring(i) -- really not sure how I want to structure this
       end
     end
@@ -332,23 +346,41 @@ function check_head(sub)
   return keytab
 end
 
-function doThingsLikeWriteTheConfigurationToTheScriptWhileSuddenlyAdoptingOOStyleMethodNomenclature(TableOfTheCollectedOptions,TheSubtitlesObjectToWriteTo,aTableOfRelevantHeaderKeyValuePairs)
-  -- if no known values, always write to line 4 of the subtitles object
+--[[function doThingsLikeWriteTheConfigurationToTheScriptWhileSuddenlyAdoptingOOStyleMethodNomenclature(TableOfTheCollectedOptions,TheSubtitlesObjectToWriteTo,aTableOfRelevantHeaderKeyValuePairs)
+  -- if no known values, always insert at line 4 of the subtitles object
   for theKeysToTheTableOfTheOptions, theValuesThatCorrespondToTheKeys in pairs(TableOfTheCollectedOptions) do
-    if aTableOfRelevantHeaderKeyValuePairs["aa-mou-"..theKeysToTheTableOfTheOptions] then
-      local val,index = aTableOfRelevantHeaderKeyValuePairs["aa-mou-"..theKeysToTheTableOfTheOptions]:split()
+    local theKeysToTheTableOfTheOptionsWithTheRelevantPrefixAppendedToThem = "aa-mou-"..theKeysToTheTableOfTheOptions
+    if aTableOfRelevantHeaderKeyValuePairs[theKeysToTheTableOfTheOptionsWithTheRelevantPrefixAppendedToThem] then
+      local val,index = aTableOfRelevantHeaderKeyValuePairs[theKeysToTheTableOfTheOptionsWithTheRelevantPrefixAppendedToThem]:split()
+      TheSubtitlesObjectToWriteTo[index] = {class = "info", key = theKeysToTheTableOfTheOptionsWithTheRelevantPrefixAppendedToThem, value = val, section = "[Script Info]", raw = ""}
+    else
+      
+    end
+  end--]]
+function writeconf(confshort,sub,existing)
+  -- if no known values, always insert at line 4 of the subtitles object
+  for k, v in pairs(confshort) do
+    --aegisub.log(0,string.format("%s: %s\n",tostring(k),tostring(v)))
+    local prefixed = "aa-mou-"..k
+    if existing[prefixed] then
+      local val = existing[prefixed]:split()
+      --aegisub.log(0,string.format("sub[%s] = %s: %s\n",tostring(val[2]),tostring(prefixed),tostring(v)))
+      sub[val[2]] = {class = "info", key = prefixed, value = tostring(v), section = "[Script Info]", raw = ""}
+    else
+      sub.insert(4,{class = "info", key = prefixed, value = tostring(v), section = "[Script Info]", raw = ""})
     end
   end
   --[[
   -tracking options:
-    Postion   [08]  Rounding  [17]
-    Scale     [10]  Rounding  [18]
-      Bord    [12]
-      Shad    [14]
-    Rotation  [12]  Rounding  [19]
+    pos       [08]  pround  [17]
+    scl       [10]  sround  [18]
+      bord    [12]
+      shad    [14]
+    rot       [16]  rround  [19]
   -miscellaneous:
-    VSfilter  [23]
-    Reverse   [25]
+    conf      [21]
+    vsfilter  [23]
+    reverse   [25]
   --]]
 end
 
@@ -499,8 +531,8 @@ function frame_by_frame(sub,accd,opts)
           tag = tag.."}"
           v.text = v.text:gsub(string.char(1),"")
           v.text = tag..v.text
-          if opline.things == 1 then
-            v.text = v.text:gsub("}{")
+          if v.things == 1 then
+            v.text = v.text:gsub("}{","",1)
           end
           sub.insert(v.num+1,v)
           v.text = orgtext
@@ -524,7 +556,7 @@ function frame_by_frame(sub,accd,opts)
           v.text = v.text:gsub(string.char(1),"")
           v.text = tag..v.text
           if v.things == 1 then
-            v.text = v.text:gsub("}{","")
+            v.text = v.text:gsub("}{","",1)
           end
           sub.insert(v.num+x-rstartf+1,v)
           v.text = orgtext
