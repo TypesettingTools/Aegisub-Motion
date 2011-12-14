@@ -42,7 +42,7 @@ INALIABLE RIGHTS:
 script_name = "Aegisub-Motion"
 script_description = "Adobe After Effects 6.0 keyframe data parser for Aegisub" -- also it suffers from memory leaks
 script_author = "torque"
-script_version = "010011101" -- no, I have no idea how this versioning system works either.
+script_version = "v0.1.lessbad" -- no, I have no idea how this versioning system works either.
 include("karaskel.lua")
 
 gui = {} -- I'm really beginning to think this shouldn't be a global variable
