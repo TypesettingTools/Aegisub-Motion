@@ -1,7 +1,23 @@
-Position, scale and rotation seem to work as expected, though they have all only had somewhat limited testing.
+===Now on v0.1.lessbad!===
 
-'''''A VSfilter compatibility mode has been implemented for allowing VSfilter to work with scale data. It helps to stabilize the way vsfilter renders non-integer scale values, but libASS's rendering job is still superior. Also, as it uses a lot of staged transforms, I have no idea how much it increases the rendering cost. I'm guessing a fair amount.'''''
+====Fancy New Features!====
 
-This script is a horrible amalgam of duct tape, ugly string matching and generally all around terrible code. For more information on how to use it, see the user manual.<br>If you have any questions, feel free to contact me on rizon.
+*Accepting pasted data as an alternative to a filepath.
+*Support for \t() transformations, and support for \fad() (by converting it to a transform).
+*Writing configuration to the script header (more or less to create temporary defaults).
+*A potentially more flexible parser. Maybe.
+*Other, even more ambitious things that were deimplemented because they were on the path to miserable failure.
+*Even more painfully horrible code!
 
-This project was previously known as aegisub-mocha.
+And probably there weren't even any regressions that I immediately noticed!
+
+====Fancy Planned Features!====
+
+*Support for \fade().
+*Support for moving \clip() and \iclip() with position (at least rectangular).
+*A nice function that cleans up generated lines.
+*Possibly adding some really hacky gnuplot integration.
+
+====Things This Can't Do for You:====
+
+Nothing!
