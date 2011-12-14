@@ -287,6 +287,7 @@ function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   aegisub.progress.title("Selecting Gerbils")
   local ourkeys = check_head(sub)
   gui.main[2].text = accd.errmsg -- insert our error messages
+  os.execute("echo derp derp >> derp.derp")
   -- local randfile = io.popen("echo %RANDOM% $RANDOM")
   -- local rand = randfile:read("*l"):match("[0-9]+")
   -- randfile:close() -- close file handle without waiting for gc to do it manually
@@ -303,7 +304,7 @@ function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   if ourkeys["aa-mou-ReadConf"]:lower():match("true") then
     headersettings(ourkeys) -- requires gui.main to be a global variable for now, I guess
   end
-  local button, config = aegisub.dialog.display(gui.main, {"Go","Abort","Help"})
+  local button, config = aegisub.dialog.display(gui.main, {"Go","Abort","Help","Save"})
   if button == "Go" then
     local confshort = {
       Position = config.pos,
@@ -330,21 +331,23 @@ function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   elseif button == "Help" then
     aegisub.progress.title("Helping Gerbils?")
     help(sub,accd)
+  elseif button == "Save" then
+    idklol(config,sub,accd)
   else
     aegisub.progress.task("ABORT")
   end
   aegisub.set_undo_point("Motion Data")
 end
 
-function check_head(sub)
+function check_head(subs)
   local keytab = {}
-  for i = 1, #sub do -- so it's like shooting in the dark
+  for i = 1, #subs do -- so it's like shooting in the dark
 		if aegisub.progress.is_cancelled() then error("User cancelled") end
-		local l = sub[i]
+		local l = subs[i]
     if l.class == "info" then
       if l.key:match("aa%-mou") then
         --aegisub.log(0,string.format("[%d] = %s: %s\n",tostring(i),tostring(l.key),l.value:match(" (.+)")))
-        keytab[l.key] = l.value:match(" (.+)")..":"..tostring(i) -- really not sure how I want to structure this
+        keytab[l.key] = l.value:match(" ?(.+)")..":"..tostring(i) -- grabbed with the space in front of the value? Eurgh.
       end
     end
   end
@@ -399,6 +402,39 @@ function string:tobool() -- uh.............
   end
 end
 
+function idklol(config,su,ac)
+  local confile = io.open("aegisub-motion.rmvb.exe.mp3.jpg.conf","w+") -- I personally think this is a good name
+  assert(confile,"Configuration file could not be opened for writing.")
+  confile:write(bool_tobin(config.pos)) -- really not sure if I should even convert to bool.
+  confile:write("\n")
+  confile:write(bool_tobin(config.scl))
+  confile:write("\n")
+  confile:write(bool_tobin(config.bord))
+  confile:write("\n")
+  confile:write(bool_tobin(config.shad))
+  confile:write("\n")
+  confile:write(bool_tobin(config.rot))
+  confile:write("\n")
+  confile:write(bool_tobin(config.conf))
+  confile:write("\n")
+  confile:write(bool_tobin(config.vsfilter))
+  confile:write("\n")
+  confile:write(bool_tobin(config.reverse))
+  confile:write("\n")
+  confile:write(config.pround+2) -- so, uh, so they don't get confused with the binary booleans. Clearly.
+  confile:write("\n")
+  confile:write(config.sround+2)
+  confile:write("\n")
+  confile:write(config.rround+2)
+  confile:close()
+  local derp = io.open("aegisub-motion.rmvb.exe.mp3.jpg.conf")
+  for line in derp:lines() do
+    aegisub.log(0,line)
+  end
+  os.execute("echo derp derp derp >> derp.derp")
+  init_input(su,ac) -- I wonder how bad this is for memory usage.
+end
+
 --[[function doWriteTheCurrentConfigurationToTheScriptAbusingOOStyleNamingConventions(TableOfTheCollectedOptions,TheSubtitlesObjectToWriteTo,aTableOfRelevantHeaderKeyValuePairs)
   -- if no known values, always insert at line 4 of the subtitles object
   for theKeysToTheTableOfTheOptions, theValuesThatCorrespondToTheKeys in pairs(TableOfTheCollectedOptions) do
@@ -442,6 +478,10 @@ function help(su,ac)
   if button=="Close" then
     init_input(su,ac)
   end
+end
+
+function bool_tobin(bool)
+  if bool then return 1 else return 0 end
 end
   
 function parse_input(input)
@@ -499,6 +539,7 @@ function frame_by_frame(sub,accd,opts)
   local mocha = parse_input(opts.mocpat) -- global variables have no automatic gc
   assert(accd.totframes==mocha.flength,"Number of frames from selected lines differs from number of frames tracked.")
   local _ = nil
+  local newlines = {} -- table to stick indicies of tracked lines into for cleanup... haven't really decided what the cleanup function is going to be. I might expose it to automation as a standalone depending on if it turns out to be garbage or not.
   if not opts.scl then
     for k,d in ipairs(mocha.xscl) do
       d = 100
@@ -588,6 +629,7 @@ function frame_by_frame(sub,accd,opts)
             v.text = v.text:gsub("}{","",1)
           end
           sub.insert(v.num+1,v)
+          table.insert(newlines,v.num+x-rstartf+1) -- just kind of halfassed this so I hope it works right.
           v.text = orgtext
         end
       else -- duplicate code
@@ -612,11 +654,13 @@ function frame_by_frame(sub,accd,opts)
             v.text = v.text:gsub("}{","",1)
           end
           sub.insert(v.num+x-rstartf+1,v)
+          table.insert(newlines,v.num+x-rstartf+1) -- why doesn't <table>:insert() work ;~;
           v.text = orgtext
         end
       end
     end
   end
+  return newlines -- yeah mang
 end
 
 function possify(line,mocha,opts,iter)
