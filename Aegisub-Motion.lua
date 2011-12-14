@@ -402,75 +402,19 @@ function string:tobool() -- uh.............
   end
 end
 
-function idklol(config,su,ac)
-  local confile = io.open("aegisub-motion.rmvb.exe.mp3.jpg.conf","w+") -- I personally think this is a good name
-  assert(confile,"Configuration file could not be opened for writing.")
-  confile:write(bool_tobin(config.pos)) -- really not sure if I should even convert to bool.
-  confile:write("\n")
-  confile:write(bool_tobin(config.scl))
-  confile:write("\n")
-  confile:write(bool_tobin(config.bord))
-  confile:write("\n")
-  confile:write(bool_tobin(config.shad))
-  confile:write("\n")
-  confile:write(bool_tobin(config.rot))
-  confile:write("\n")
-  confile:write(bool_tobin(config.conf))
-  confile:write("\n")
-  confile:write(bool_tobin(config.vsfilter))
-  confile:write("\n")
-  confile:write(bool_tobin(config.reverse))
-  confile:write("\n")
-  confile:write(config.pround+2) -- so, uh, so they don't get confused with the binary booleans. Clearly.
-  confile:write("\n")
-  confile:write(config.sround+2)
-  confile:write("\n")
-  confile:write(config.rround+2)
-  confile:close()
-  local derp = io.open("aegisub-motion.rmvb.exe.mp3.jpg.conf")
-  for line in derp:lines() do
-    aegisub.log(0,line)
-  end
-  os.execute("echo derp derp derp >> derp.derp")
-  init_input(su,ac) -- I wonder how bad this is for memory usage.
-end
-
---[[function doWriteTheCurrentConfigurationToTheScriptAbusingOOStyleNamingConventions(TableOfTheCollectedOptions,TheSubtitlesObjectToWriteTo,aTableOfRelevantHeaderKeyValuePairs)
+function doWriteTheCurrentConfigurationToTheScriptAbusingOOStyleNamingConventions(aTableOfPertinentConfigValues,theSubtitlesObjectToWriteTo,aTableOfRelevantHeaderKeyValuePairs) --writeconf(confshort,sub,existing)
   -- if no known values, always insert at line 4 of the subtitles object
-  for theKeysToTheTableOfTheOptions, theValuesThatCorrespondToTheKeys in pairs(TableOfTheCollectedOptions) do
-    local theKeysToTheTableOfTheOptionsWithTheRelevantPrefixAppendedToThem = "aa-mou-"..theKeysToTheTableOfTheOptions
-    if aTableOfRelevantHeaderKeyValuePairs[theKeysToTheTableOfTheOptionsWithTheRelevantPrefixAppendedToThem] then
-      local val,index = aTableOfRelevantHeaderKeyValuePairs[theKeysToTheTableOfTheOptionsWithTheRelevantPrefixAppendedToThem]:split()
-      TheSubtitlesObjectToWriteTo[index] = {class = "info", key = theKeysToTheTableOfTheOptionsWithTheRelevantPrefixAppendedToThem, value = val, section = "[Script Info]", raw = ""}
-    else
-      
-    end
-  end--]]
-function writeconf(confshort,sub,existing)
-  -- if no known values, always insert at line 4 of the subtitles object
-  for k, v in pairs(confshort) do
+  for theKeysToTheCurrentlySelectedOptions, TheValuesCorrespondingToSaidKeys in pairs(aTableOfPertinentConfigValues) do
     --aegisub.log(0,string.format("%s: %s\n",tostring(k),tostring(v)))
-    local prefixed = "aa-mou-"..k
-    if existing[prefixed] then
-      local val = existing[prefixed]:split()
-      --aegisub.log(0,string.format("sub[%s] = %s: %s\n",tostring(val[2]),tostring(prefixed),tostring(v)))
-      sub[val[2]] = {class = "info", key = prefixed, value = tostring(v), section = "[Script Info]", raw = ""}
+    local theKeyWithTheAppropriateIdentifyingPrefixAppendedToIt = "aa-mou-"..theKeysToTheCurrentlySelectedOptions
+    if aTableOfRelevantHeaderKeyValuePairs[theKeyWithTheAppropriateIdentifyingPrefixAppendedToIt] then
+      local aTableContainingTheOldValueAndTheLineIndex = aTableOfRelevantHeaderKeyValuePairs[theKeyWithTheAppropriateIdentifyingPrefixAppendedToIt]:split()
+      --aegisub.log(0,string.format("theSubtitlesObjectToWriteTo[%s] = %s: %s\n",tostring(val[2]),tostring(theKeyWithTheAppropriateIdentifyingPrefixAppendedToIt),tostring(v)))
+      theSubtitlesObjectToWriteTo[aTableContainingTheOldValueAndTheLineIndex[2]] = {class = "info", key = theKeyWithTheAppropriateIdentifyingPrefixAppendedToIt, value = tostring(v), section = "[Script Info]", raw = ""}
     else
-      sub.insert(4,{class = "info", key = prefixed, value = tostring(v), section = "[Script Info]", raw = ""})
+      theSubtitlesObjectToWriteTo.insert(4,{class = "info", key = theKeyWithTheAppropriateIdentifyingPrefixAppendedToIt, value = tostring(TheValuesCorrespondingToSaidKeys), section = "[Script Info]", raw = ""})
     end
   end
-  --[[
-  -tracking options:
-    pos       [08]  pround  [17]
-    scl       [10]  sround  [18]
-      bord    [12]
-      shad    [14]
-    rot       [16]  rround  [19]
-  -miscellaneous:
-    conf      [21]
-    vsfilter  [23]
-    reverse   [25]
-  --]]
 end
 
 function help(su,ac)
@@ -478,10 +422,6 @@ function help(su,ac)
   if button=="Close" then
     init_input(su,ac)
   end
-end
-
-function bool_tobin(bool)
-  if bool then return 1 else return 0 end
 end
   
 function parse_input(input)
