@@ -287,24 +287,12 @@ function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   aegisub.progress.title("Selecting Gerbils")
   local ourkeys = check_head(sub)
   gui.main[2].text = accd.errmsg -- insert our error messages
-  os.execute("echo derp derp >> derp.derp")
-  -- local randfile = io.popen("echo %RANDOM% $RANDOM")
-  -- local rand = randfile:read("*l"):match("[0-9]+")
-  -- randfile:close() -- close file handle without waiting for gc to do it manually
-  --[[
-      works (tested windows and linux), and is a lot less messy than the previous shell-based method I had
-      but it still pops up that terminal window, and since we don't need anything like a cryptographically
-      secure random number generator (not like the environmental variables are anyway) I don't see a reason
-      to use it
-  --]]
   local rand = ((os.clock()*os.time()+os.clock())*100) -- I suppose it's bad if this gives more variation than does math.random().
   gui.main[3].text = gui.motd[math.floor(rand%4)+1] -- this would work a lot better with more than 4 items
-  -- first, load defaults from file, then from script header, so the heirarchy goes: hardcoded -> config file -> script header
-  -- readfileconf() -- gonna need a separate function because it's a separate format.
-  if ourkeys["aa-mou-ReadConf"]:lower():match("true") then
-    headersettings(ourkeys) -- requires gui.main to be a global variable for now, I guess
-  end
-  local button, config = aegisub.dialog.display(gui.main, {"Go","Abort","Help","Save"})
+  if ourkeys["aa-mou-ReadConf"] then if tostring(sub[ourkeys["aa-mou-ReadConf"]].value):lower():match("true") then
+    headersettings(ourkeys,sub) -- requires gui.main to be a global variable for now, I guess
+  end end
+  local button, config = aegisub.dialog.display(gui.main, {"Go","Abort","Help"})
   if button == "Go" then
     local confshort = {
       Position = config.pos,
@@ -326,13 +314,13 @@ function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
     end
     frame_by_frame(sub,accd,config)
     if config.conf then -- after fbf because if new keys are written, it causes an offset
-      writeconf(confshort,sub,ourkeys)
+      doWriteTheCurrentConfigurationToTheScriptAbusingOOStyleNamingConventions(confshort,sub,ourkeys)
+    else
+      neversaynever(confshort,sub,ourkeys)
     end
   elseif button == "Help" then
     aegisub.progress.title("Helping Gerbils?")
     help(sub,accd)
-  elseif button == "Save" then
-    idklol(config,sub,accd)
   else
     aegisub.progress.task("ABORT")
   end
@@ -347,73 +335,79 @@ function check_head(subs)
     if l.class == "info" then
       if l.key:match("aa%-mou") then
         --aegisub.log(0,string.format("[%d] = %s: %s\n",tostring(i),tostring(l.key),l.value:match(" (.+)")))
-        keytab[l.key] = l.value:match(" ?(.+)")..":"..tostring(i) -- grabbed with the space in front of the value? Eurgh.
+        keytab[l.key] = i -- grabbed with the space in front of the value? Eurgh.
       end
     end
   end
   return keytab
 end
 
-function headersettings(hkeys) -- this function is hideous garbage.
+function headersettings(hkeys,sub) -- this function is hideous, inflexible garbage.
   for k,v in pairs(hkeys) do
-    local a = v:split()
-    --aegisub.log(0,"%s\n",a[1])
+    --aegisub.log(0,"%s\n",v)
     if k == "aa-mou-Position" then
-      gui.main[8].value = a[1]:tobool()
+      gui.main[8].value = sub[v].value:tobool()
     end
     if k == "aa-mou-Scale" then
-      gui.main[10].value = a[1]:tobool()
+      gui.main[10].value = sub[v].value:tobool()
     end
     if k == "aa-mou-Border" then
-      gui.main[12].value = a[1]:tobool()
+      gui.main[12].value = sub[v].value:tobool()
     end
     if k == "aa-mou-Shadow" then
-      gui.main[14].value = a[1]:tobool()
+      gui.main[14].value = sub[v].value:tobool()
     end
     if k == "aa-mou-Rotation" then
-      gui.main[16].value = a[1]:tobool()
+      gui.main[16].value = sub[v].value:tobool()
     end
     if k == "aa-mou-ReadConf" then
-      gui.main[21].value = a[1]:tobool()
+      gui.main[21].value = sub[v].value:tobool()
     end
     if k == "aa-mou-VSCompat" then
-      gui.main[23].value = a[1]:tobool()
+      gui.main[23].value = sub[v].value:tobool()
     end
     if k == "aa-mou-Reverse" then
-      gui.main[25].value = a[1]:tobool()
+      gui.main[25].value = sub[v].value:tobool()
     end
     if k == "aa-mou-PRound" then
-      gui.main[17].value = tonumber(a[1])
+      gui.main[17].value = tonumber(sub[v].value)
     end
     if k == "aa-mou-SRound" then
-      gui.main[18].value = tonumber(a[1])
+      gui.main[18].value = tonumber(sub[v].value)
     end
     if k == "aa-mou-RRound" then
-      gui.main[19].value = tonumber(a[1])
+      gui.main[19].value = tonumber(sub[v].value)
     end
   end
 end
 
 function string:tobool() -- uh.............
-  if self:lower() == "true" then
+  if self:lower():match("true") then -- yeah.
     return true
   else
     return false
   end
 end
 
-function doWriteTheCurrentConfigurationToTheScriptAbusingOOStyleNamingConventions(aTableOfPertinentConfigValues,theSubtitlesObjectToWriteTo,aTableOfRelevantHeaderKeyValuePairs) --writeconf(confshort,sub,existing)
+function doWriteTheCurrentConfigurationToTheScriptAbusingOOStyleNamingConventions(aTableOfPertinentConfigValues,theSubtitlesObjectToWriteTo,aTableOfRelevantHeaderKeyValuePairs) -- why is it so hard to read this.
   -- if no known values, always insert at line 4 of the subtitles object
   for theKeysToTheCurrentlySelectedOptions, TheValuesCorrespondingToSaidKeys in pairs(aTableOfPertinentConfigValues) do
     --aegisub.log(0,string.format("%s: %s\n",tostring(k),tostring(v)))
     local theKeyWithTheAppropriateIdentifyingPrefixAppendedToIt = "aa-mou-"..theKeysToTheCurrentlySelectedOptions
     if aTableOfRelevantHeaderKeyValuePairs[theKeyWithTheAppropriateIdentifyingPrefixAppendedToIt] then
-      local aTableContainingTheOldValueAndTheLineIndex = aTableOfRelevantHeaderKeyValuePairs[theKeyWithTheAppropriateIdentifyingPrefixAppendedToIt]:split()
-      --aegisub.log(0,string.format("theSubtitlesObjectToWriteTo[%s] = %s: %s\n",tostring(val[2]),tostring(theKeyWithTheAppropriateIdentifyingPrefixAppendedToIt),tostring(v)))
-      theSubtitlesObjectToWriteTo[aTableContainingTheOldValueAndTheLineIndex[2]] = {class = "info", key = theKeyWithTheAppropriateIdentifyingPrefixAppendedToIt, value = tostring(v), section = "[Script Info]", raw = ""}
+      theSubtitlesObjectToWriteTo[aTableOfRelevantHeaderKeyValuePairs[theKeyWithTheAppropriateIdentifyingPrefixAppendedToIt]] = {class = "info", key = theKeyWithTheAppropriateIdentifyingPrefixAppendedToIt, value = tostring(TheValuesCorrespondingToSaidKeys), section = "[Script Info]", raw = ""}
     else
       theSubtitlesObjectToWriteTo.insert(4,{class = "info", key = theKeyWithTheAppropriateIdentifyingPrefixAppendedToIt, value = tostring(TheValuesCorrespondingToSaidKeys), section = "[Script Info]", raw = ""})
     end
+  end
+end
+
+function neversaynever(conf,sub,key) -- I hate myself
+  local keystr = "aa-mou-ReadConf"
+  if key[keystr] then
+    sub[key[keystr]] = {class = "info", key = keystr, value = "false", section = "[Script Info]", raw = ""}
+  else
+    sub.insert(4,{class = "info", key = keystr, value = "false", section = "[Script Info]", raw = ""})
   end
 end
 
