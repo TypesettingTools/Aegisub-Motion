@@ -166,7 +166,7 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
     opline.num = v -- this is for, uh, later.
     opline.trans = {}
     karaskel.preproc_line(sub, accd.meta, accd.styles, opline) -- get that extra position data
-    aegisub.log(5,"Line %d's style name is: %s\n",v-strt,opline.style) -- lines with more than one style can suck a dick (see: \r[stylename])
+    aegisub.log(5,"Line %d's style name is: %s\n",v-strt,opline.style) -- lines with more than one style can sick a duck (see: \r[stylename])
     opline.xscl = accd.styles[opline.style].scale_x
     aegisub.log(5,"Line %d's style's xscale is: %g\n",v-strt,opline.xscl)
     opline.yscl = accd.styles[opline.style].scale_y
@@ -181,7 +181,7 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
     opline.xshad = accd.styles[opline.style].shadow
     opline.yshad = accd.styles[opline.style].shadow
     aegisub.log(5,"Line %d's style's shadow is: %d\n",v-strt,opline.xshad)
-    local pre,ftag = opline.text:match("(.-){(.-)}") -- so this is what they mean by an edge case. I think. Either way, it's annoying as hell.
+    --local pre,ftag = opline.text:match("(.-){(.-)}") -- so this is what they mean by an edge case. I think. Either way, it's annoying as hell.
     opline.xpos,opline.ypos = opline.text:match("\\pos%(([%-%d%.]+),([%-%d%.]+)%)") -- always the first one
     opline.xorg,opline.yorg = opline.text:match("\\org%(([%-%d%.]+),([%-%d%.]+)%)") -- idklol
     opline.startframe, opline.endframe = aegisub.frame_from_ms(opline.start_time), aegisub.frame_from_ms(opline.end_time)
@@ -218,9 +218,11 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
       local xshad = a:match("\\xshad([%-%d%.]+)")
       local yshad = a:match("\\yshad([%-%d%.]+)")
       local resetti = a:match("\\r([^\\|}]+)") -- not sure I actually want to support this
-      for t_start,t_end,t_exp,t_eff in string.gfind(a,"\\t%(([%-%d]+),([%-%d]+),([%d%.]*),?([\\%.%-&%w%(%)]+)%)") do -- this will return an empty string for t_exp if no exponential factor is specified
-        if t_exp == "" then t_exp = 1 end -- set it to 1 because stuff and things
-        table.insert(opline.trans,{tonumber(t_start),tonumber(t_end),tonumber(t_exp),t_eff}); aegisub.log(5,"Line %d: \\t(%g,%g,%g,%s) found\n",v-strt,t_start,t_end,t_exp,t_eff)
+      for b in opline.text:gfind("%{(.-)%}") do
+        for t_start,t_end,t_exp,t_eff in b:gfind("\\t%(([%-%d]+),([%-%d]+),([%d%.]*),?([\\%.%-&%w%(%)]+)%)") do -- this will return an empty string for t_exp if no exponential factor is specified
+          if t_exp == "" then t_exp = 1 end -- set it to 1 because stuff and things
+          table.insert(opline.trans,{tonumber(t_start),tonumber(t_end),tonumber(t_exp),t_eff}); aegisub.log(5,"Line %d: \\t(%g,%g,%g,%s) found\n",v-strt,t_start,t_end,t_exp,t_eff)
+        end
       end
       if fx then opline.xscl = tonumber(fx); aegisub.log(5,"Line %d: \\fscx%g found\n",v-strt, fx) end
       if fy then opline.yscl = tonumber(fy); aegisub.log(5,"Line %d: \\fscy%g found\n",v-strt, fy) end
@@ -606,7 +608,7 @@ end
 function transformate(line,trans)
   local t_s = trans[1] - line.time_delta -- well, that was easy
   local t_e = trans[2] - line.time_delta
-  return line.text:gsub("\\t%([%-%d]+,[%-%d]+,[%d%.]*,?[\\%.%-&%w%(%)]+%)","\\"..string.char(1)..string.format("t(%i,%i,%g,%s)",t_s,t_e,trans[3],trans[4]),1) -- I hate how messy this expression is
+  return line.text:gsub("\\t%([%-%d]+,[%-%d]+,[%d%.]*,?[\\%.%-&%w%(%)]+%)","\\"..string.char(1)..string.format("t(%d,%d,%g,%s)",t_s,t_e,trans[3],trans[4]),1) -- I hate how messy this expression is
 end
 
 function scalify(line,mocha,opts)
