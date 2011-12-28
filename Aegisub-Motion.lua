@@ -130,7 +130,7 @@ gui.main = {
     value = false; name = "reverse"}
 }
 
-gui.motd = { -- pointless because math.random doesn't work properly - BUT WHAT ABOUT OS.EXECUTE
+gui.motd = {
   "The culprit was a huge truck.";
   "Error 0x0045AF: Runtime requested to be terminated in an unusual fashion.";
   "Powered by 100% genuine sweatshop child laborers.";
@@ -138,16 +138,16 @@ gui.motd = { -- pointless because math.random doesn't work properly - BUT WHAT A
   "OFF DA RAILZ"
 }
 
-gui.halp = { -- okay, yeah, I'm an asshole. Fine. Whatever.
+gui.halp = {
   { class = "label";
       x = 0; y = 0; height = 1; width = 1;
-    label = "YOU MOTION TRACK THE DATAS"},
+    label = "This help function is going to be deprecated."},
   { class = "label";
       x = 0; y = 1; height = 1; width = 1;
-    label = "AND THEN YOU CLICK THE BUTTONS"}
+    label = "Just because it doesn't serve a purpose."}
 }
 
-function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 for me.
+function preproc(sub, sel)
   local strt
   for x = 1,#sub do -- so if there are like 10000 different styles then this is probably a really bad idea but I DON'T GIVE A FUCK
     if sub[x].class == "dialogue" then -- BECAUSE I SAID SO
@@ -207,7 +207,7 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
         end
       end
       local fade_a,fade_a2,fade_a3,fade_s,fade_m,fade_m2,fade_e = a:match("\\fade%(([%d]+),([%d]+),([%d]+),([%d]+),([%d]+),([%d]+),([%d]+)%)") -- This is a large pita fuck you fuck you fuck you fuck you fuck you fuck you if you use this
-      --opline.text = opline.text:gsub("\\(i?)clip%(([-%d]+,[-%d]+,[-%d]+,[-%d]+)%)","\\%1clip%2") -- necessary because otherwise no good \t regex will work
+      opline.text = opline.text:gsub("\\(i?)clip%(([-%d]+,[-%d]+,[-%d]+,[-%d]+)%)","\\%1clip%2") -- necessary because I can't think of a \t regex that will work properly without it.
     end
     a = opline.text:match("%{(.-)%}") -- because I am too stupid to find a better way to do this
     if a then
@@ -292,39 +292,18 @@ end
 
 function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   aegisub.progress.title("Selecting Gerbils")
-  local ourkeys = check_head(sub)
+  --local ourkeys = check_head(sub)
   gui.main[2].text = accd.errmsg -- insert our error messages
   local rand = ((os.clock()*os.time()+os.clock())*100) -- I suppose it's bad if this gives more variation than does math.random().
-  gui.main[3].text = gui.motd[math.floor(rand%4)+1] -- this would work a lot better with more than 4 items
-  if ourkeys["aa-mou-ReadConf"] then if tostring(sub[ourkeys["aa-mou-ReadConf"]].value):lower():match("true") then
-    headersettings(ourkeys,sub) -- requires gui.main to be a global variable for now, I guess
-  end end
+  gui.main[3].text = gui.motd[math.floor(rand%5)+1] -- this would work a lot better with more than 4 items
   local button, config = aegisub.dialog.display(gui.main, {"Go","Abort","Help"})
   if button == "Go" then
-    local confshort = {
-      Position = config.pos,
-      PRound = config.pround,
-      Scale = config.scl,
-      Border = config.bord,
-      Shadow = config.shad,
-      SRound = config.sround,
-      Rotation = config.rot,
-      RRound = config.rround,
-      ReadConf = config.conf,
-      VSCompat = config.vsfilter,
-      Reverse = config.reverse
-    }
     if config.reverse then
       aegisub.progress.title("slibreG gnicniM") -- BECAUSE ITS FUNNY GEDDIT
     else
       aegisub.progress.title("Mincing Gerbils")
     end
-    frame_by_frame(sub,accd,config)
-    if config.conf then -- after fbf because if new keys are written, it causes an offset
-      doWriteTheCurrentConfigurationToTheScriptAbusingOOStyleNamingConventions(confshort,sub,ourkeys)
-    else
-      neversaynever(confshort,sub,ourkeys)
-    end
+    frame_by_frame(sub,accd,config)  
   elseif button == "Help" then
     aegisub.progress.title("Helping Gerbils?")
     help(sub,accd)
@@ -347,75 +326,6 @@ function check_head(subs)
     end
   end
   return keytab
-end
-
-function headersettings(hkeys,sub) -- this function is hideous, inflexible garbage.
-  for k,v in pairs(hkeys) do
-    --aegisub.log(0,"%s\n",v)
-    if k == "aa-mou-Position" then
-      gui.main[8].value = sub[v].value:tobool()
-    end
-    if k == "aa-mou-Scale" then
-      gui.main[10].value = sub[v].value:tobool()
-    end
-    if k == "aa-mou-Border" then
-      gui.main[12].value = sub[v].value:tobool()
-    end
-    if k == "aa-mou-Shadow" then
-      gui.main[14].value = sub[v].value:tobool()
-    end
-    if k == "aa-mou-Rotation" then
-      gui.main[16].value = sub[v].value:tobool()
-    end
-    if k == "aa-mou-ReadConf" then
-      gui.main[21].value = sub[v].value:tobool()
-    end
-    if k == "aa-mou-VSCompat" then
-      gui.main[23].value = sub[v].value:tobool()
-    end
-    if k == "aa-mou-Reverse" then
-      gui.main[25].value = sub[v].value:tobool()
-    end
-    if k == "aa-mou-PRound" then
-      gui.main[17].value = tonumber(sub[v].value)
-    end
-    if k == "aa-mou-SRound" then
-      gui.main[18].value = tonumber(sub[v].value)
-    end
-    if k == "aa-mou-RRound" then
-      gui.main[19].value = tonumber(sub[v].value)
-    end
-  end
-end
-
-function string:tobool() -- uh.............
-  if self:lower():match("true") then -- yeah.
-    return true
-  else
-    return false
-  end
-end
-
-function doWriteTheCurrentConfigurationToTheScriptAbusingOOStyleNamingConventions(aTableOfPertinentConfigValues,theSubtitlesObjectToWriteTo,aTableOfRelevantHeaderKeyValuePairs) -- why is it so hard to read this.
-  -- if no known values, always insert at line 4 of the subtitles object
-  for theKeysToTheCurrentlySelectedOptions, TheValuesCorrespondingToSaidKeys in pairs(aTableOfPertinentConfigValues) do
-    --aegisub.log(0,string.format("%s: %s\n",tostring(k),tostring(v)))
-    local theKeyWithTheAppropriateIdentifyingPrefixAppendedToIt = "aa-mou-"..theKeysToTheCurrentlySelectedOptions
-    if aTableOfRelevantHeaderKeyValuePairs[theKeyWithTheAppropriateIdentifyingPrefixAppendedToIt] then
-      theSubtitlesObjectToWriteTo[aTableOfRelevantHeaderKeyValuePairs[theKeyWithTheAppropriateIdentifyingPrefixAppendedToIt]] = {class = "info", key = theKeyWithTheAppropriateIdentifyingPrefixAppendedToIt, value = tostring(TheValuesCorrespondingToSaidKeys), section = "[Script Info]", raw = ""}
-    else
-      theSubtitlesObjectToWriteTo.insert(4,{class = "info", key = theKeyWithTheAppropriateIdentifyingPrefixAppendedToIt, value = tostring(TheValuesCorrespondingToSaidKeys), section = "[Script Info]", raw = ""})
-    end
-  end
-end
-
-function neversaynever(conf,sub,key) -- I hate myself
-  local keystr = "aa-mou-ReadConf"
-  if key[keystr] then
-    sub[key[keystr]] = {class = "info", key = keystr, value = "false", section = "[Script Info]", raw = ""}
-  else
-    sub.insert(4,{class = "info", key = keystr, value = "false", section = "[Script Info]", raw = ""})
-  end
 end
 
 function help(su,ac)
@@ -656,6 +566,10 @@ function rotate(line,mocha,opts,iter)
   return string.format("\\org(%g,%g)\\frz%g",round(mocha.xpos[iter],opts.rround),round(mocha.ypos[iter],opts.rround),round(mocha.zrot[iter]-line.zrotd,opts.rround)) -- copypasta
 end
 
+function printmem()
+  aegisub.log(5,"%s memory usage: %gkB\n",collectgarbage("count"))
+end
+
 function round(num, idp) -- borrowed from the lua-users wiki (all of the intelligent code you see in here is)
   local mult = 10^(idp or 0)
   return math.floor(num * mult + 0.5) / mult
@@ -672,4 +586,4 @@ function isvideo() -- a very rudimentary (but hopefully efficient) check to see 
   return aegisub.video_size() and true or false -- and forces boolean conversion
 end
 
-aegisub.register_macro("Apply motion data","Applies properly formatted motion tracking data to selected subtitles.", prerun_czechs, isvideo)
+aegisub.register_macro("Apply motion data","Applies properly formatted motion tracking data to selected subtitles.", preproc, isvideo)
