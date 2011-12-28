@@ -274,13 +274,10 @@ function preproc(sub, sel)
   accd.lines = copy -- this is probably going to do something horrible and fuck everything up because the table "copying" mechanics are ashdsiuhaslhasd
   length = nil
   copy = nil -- DOING MY OWN GARBAGE COLLECTION NOW LIKE A PRO
-  accd.lvidx, accd.lvidy = aegisub.video_size()
+  --accd.lvidx, accd.lvidy = aegisub.video_size() -- this is p. much irrelevant now
   accd.shx, accd.shy = accd.meta.res_x, accd.meta.res_y
   accd.totframes = accd.endframe - accd.startframe
   accd.toterrs = #accd.alignerrs + #accd.poserrs
-  if accd.shx ~= accd.lvidx or accd.shy ~= accd.lvidy then -- check to see if header video resolution is same as loaded video resolution
-    accd.errmsg = string.format("Header x/y res (%d,%d) does not match video (%d,%d).\n", accd.shx, accd.shy, accd.lvidx, accd.lvidy)..accd.errmsg
-  end
   if accd.toterrs > 0 then
     accd.errmsg = "The lines noted below need to be checked.\n"..accd.errmsg
   else
@@ -335,7 +332,7 @@ function help(su,ac)
   end
 end
   
-function parse_input(input,xmult)
+function parse_input(input,shx,shy)
   local ftab = {}
   local sect, care = 0, 0
   local mocha = {}
@@ -351,6 +348,16 @@ function parse_input(input,xmult)
     input = input:gsub("[\r]*","") -- SERIOUSLY FUCK THIS SHIT
     ftab = input:split("\n")
   end
+  local sw, sh -- need to be declared outside for loop
+  for k,v in ipairs(ftab) do
+    sw = v:match("Source Width\t([0-9+])")
+    sh = v:match("Source Height\t([0-9]+)")
+    if sw and sh then
+      break
+    end
+  end
+  local xmult = shx/tonumber(sw)
+  local ymult = shy/tonumber(sh)
   for keys, valu in ipairs(ftab) do -- idk it might be more flexible now or something
     ---[[
     if valu == "Position" then
@@ -366,7 +373,7 @@ function parse_input(input,xmult)
       if valu:match("%d") then
         val = valu:split("\t")
         table.insert(mocha.xpos,tonumber(val[2])*xmult)
-        table.insert(mocha.ypos,tonumber(val[3])*xmult)
+        table.insert(mocha.ypos,tonumber(val[3])*ymult)
       end
     elseif sect <= 3 and sect >= 2 then
       if valu:match("%d") then
@@ -387,16 +394,16 @@ function parse_input(input,xmult)
 end
 
 function frame_by_frame(sub,accd,opts)
-  local mocha = parse_input(opts.mocpat,opts.xmult) -- global variables have no automatic gc
+  local mocha = parse_input(opts.mocpat,accd.shx,accd.shy) -- global variables have no automatic gc
   assert(accd.totframes==mocha.flength,"Number of frames from selected lines differs from number of frames tracked.")
   local _ = nil
   local newlines = {} -- table to stick indicies of tracked lines into for cleanup... haven't really decided what the cleanup function is going to be. I might expose it to automation as a standalone depending on if it turns out to be garbage or not.
-  --[[if not opts.scl then
+  if not opts.scl then
     for k,d in ipairs(mocha.xscl) do
       mocha.xscl[k] = 100 -- old method was wrong and didn't work.
       mocha.yscl[k] = 100 -- so that yscl is changed too. 
     end
-  end--]]
+  end
   local operations, eraser = {}, {} -- create a table and put the necessary functions into it, which will save a lot of if operations in the inner loop. This was the most elegant solution I came up with.
   if opts.pos then
     table.insert(operations,possify)
