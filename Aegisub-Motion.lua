@@ -113,6 +113,9 @@ gui.main = {
       x = 5; y = 10; height = 1; width = 1;
     value = false; name = "conf"},
   --]]
+  [26] = { class = "floatedit";
+      x = 7; y = 10; height = 1; width = 3;
+    value = 1; name = "xmult"},
   [22] = { class = "label";
       x = 0; y = 11; height = 1; width = 3;
     label = "VSfilter Compatibility:"},
@@ -131,7 +134,8 @@ gui.motd = { -- pointless because math.random doesn't work properly - BUT WHAT A
   "The culprit was a huge truck.";
   "Error 0x0045AF: Runtime requested to be terminated in an unusual fashion.";
   "Powered by 100% genuine sweatshop child laborers.";
-  "vsfilter hates you."
+  "vsfilter hates you.";
+  "OFF DA RAILZ"
 }
 
 gui.halp = { -- okay, yeah, I'm an asshole. Fine. Whatever.
@@ -203,6 +207,7 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
         end
       end
       local fade_a,fade_a2,fade_a3,fade_s,fade_m,fade_m2,fade_e = a:match("\\fade%(([%d]+),([%d]+),([%d]+),([%d]+),([%d]+),([%d]+),([%d]+)%)") -- This is a large pita fuck you fuck you fuck you fuck you fuck you fuck you if you use this
+      --opline.text = opline.text:gsub("\\(i?)clip%(([-%d]+,[-%d]+,[-%d]+,[-%d]+)%)","\\%1clip%2") -- necessary because otherwise no good \t regex will work
     end
     a = opline.text:match("%{(.-)%}") -- because I am too stupid to find a better way to do this
     if a then
@@ -212,14 +217,14 @@ function prerun_czechs(sub, sel, act) -- for some reason, act always returns -1 
       local ali = a:match("\\an([1-9])")
       local frz = a:match("\\frz?([%-%d%.]+)") -- \fr is an alias for \frz
       local bord = a:match("\\bord([%d%.]+)")
-      local xbord = a:match("\\xbord([%d%.]+)") 
+      local xbord = a:match("\\xbord([%d%.]+)")
       local ybord = a:match("\\ybord([%d%.]+)")
       local shad = a:match("\\shad([%-%d%.])")
       local xshad = a:match("\\xshad([%-%d%.]+)")
       local yshad = a:match("\\yshad([%-%d%.]+)")
       local resetti = a:match("\\r([^\\|}]+)") -- not sure I actually want to support this
       for b in opline.text:gfind("%{(.-)%}") do
-        for t_start,t_end,t_exp,t_eff in b:gfind("\\t%(([%-%d]+),([%-%d]+),([%d%.]*),?([\\%.%-&%w%(%)]+)%)") do -- this will return an empty string for t_exp if no exponential factor is specified
+        for t_start,t_end,t_exp,t_eff in b:gfind("\\t%(([%-%d]+),([%-%d]+),([%d%.]*),?(.-)%)") do -- this will return an empty string for t_exp if no exponential factor is specified
           if t_exp == "" then t_exp = 1 end -- set it to 1 because stuff and things
           table.insert(opline.trans,{tonumber(t_start),tonumber(t_end),tonumber(t_exp),t_eff}); aegisub.log(5,"Line %d: \\t(%g,%g,%g,%s) found\n",v-strt,t_start,t_end,t_exp,t_eff)
         end
@@ -420,7 +425,7 @@ function help(su,ac)
   end
 end
   
-function parse_input(input)
+function parse_input(input,xmult)
   local ftab = {}
   local sect, care = 0, 0
   local mocha = {}
@@ -450,8 +455,8 @@ function parse_input(input)
     if sect == 1 then
       if valu:match("%d") then
         val = valu:split("\t")
-        table.insert(mocha.xpos,tonumber(val[2]))
-        table.insert(mocha.ypos,tonumber(val[3]))
+        table.insert(mocha.xpos,tonumber(val[2])*xmult)
+        table.insert(mocha.ypos,tonumber(val[3])*xmult)
       end
     elseif sect <= 3 and sect >= 2 then
       if valu:match("%d") then
@@ -472,20 +477,20 @@ function parse_input(input)
 end
 
 function frame_by_frame(sub,accd,opts)
-  local mocha = parse_input(opts.mocpat) -- global variables have no automatic gc
+  local mocha = parse_input(opts.mocpat,opts.xmult) -- global variables have no automatic gc
   assert(accd.totframes==mocha.flength,"Number of frames from selected lines differs from number of frames tracked.")
   local _ = nil
   local newlines = {} -- table to stick indicies of tracked lines into for cleanup... haven't really decided what the cleanup function is going to be. I might expose it to automation as a standalone depending on if it turns out to be garbage or not.
-  if not opts.scl then
+  --[[if not opts.scl then
     for k,d in ipairs(mocha.xscl) do
-      d = 100
+      mocha.xscl[k] = 100 -- old method was wrong and didn't work.
       mocha.yscl[k] = 100 -- so that yscl is changed too. 
     end
-  end
+  end--]]
   local operations, eraser = {}, {} -- create a table and put the necessary functions into it, which will save a lot of if operations in the inner loop. This was the most elegant solution I came up with.
   if opts.pos then
     table.insert(operations,possify)
-    table.insert(eraser,"\\pos%([%-%d%.]+,[%-%d%.]+%)")
+    table.insert(eraser,"\\\pos%([%-%d%.]+,[%-%d%.]+%)") -- \\\ because I DON'T FUCKING KNOW OKAY THAT'S JUST THE WAY IT WORKS
   end
   if opts.scl then
     if opts.vsfilter then
@@ -515,7 +520,7 @@ function frame_by_frame(sub,accd,opts)
   end
   if opts.rot then
     table.insert(operations,rotate)
-    table.insert(eraser,"\\org%([%-%d%.]+,[%-%d%.]+%)")
+    table.insert(eraser,"\\\org%([%-%d%.]+,[%-%d%.]+%)")
     table.insert(eraser,"\\frz[%-%d%.]+")
   end
   --table.insert(eraser,"{}") -- I think this is redundant with the next line
@@ -534,10 +539,10 @@ function frame_by_frame(sub,accd,opts)
     if v.xpos and opts.pos then
       v.xdiff, v.ydiff = mocha.xpos[rstartf] - v.xpos, mocha.ypos[rstartf] - v.ypos
     end
-    local orgtext = v.text -- tables are passed as references.
-    for ie, ei in ipairs(eraser) do -- have to do it before inserting our new values :s
+    for ie, ei in pairs(eraser) do -- have to do it before inserting our new values :s (also before setting the orgline >___>)
       v.text = v.text:gsub(ei,"")
     end
+    local orgtext = v.text -- tables are passed as references.
     if opts.pos and not v.xpos then
       aegisub.log(1,"Line %d is being skipped because it is missing a \\pos() tag and you said to track position. Moron.",v.num) -- yeah that should do it.
     else
@@ -608,7 +613,7 @@ end
 function transformate(line,trans)
   local t_s = trans[1] - line.time_delta -- well, that was easy
   local t_e = trans[2] - line.time_delta
-  return line.text:gsub("\\t%([%-%d]+,[%-%d]+,[%d%.]*,?[\\%.%-&%w%(%)]+%)","\\"..string.char(1)..string.format("t(%d,%d,%g,%s)",t_s,t_e,trans[3],trans[4]),1) -- I hate how messy this expression is
+  return line.text:gsub("\\t%([%-%d]+,[%-%d]+,[%d%.]*,?.-%)","\\"..string.char(1)..string.format("t(%d,%d,%g,%s)",t_s,t_e,trans[3],trans[4]),1) -- I hate how messy this expression is
 end
 
 function scalify(line,mocha,opts)
