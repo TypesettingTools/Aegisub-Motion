@@ -1,5 +1,9 @@
 ===Now on v0.1.lessbad!===
 
+====Things That Don't Work Right!====
+
+*\clip() inside of \t isn't handled as well as it could be
+
 ====Fancy New Features!====
 
 *Accepting pasted data as an alternative to a filepath.
@@ -17,6 +21,7 @@ And probably there weren't even any regressions that I immediately noticed!
 *Support for moving \clip() and \iclip() with position (at least rectangular).
 *A nice function that cleans up generated lines.
 *Possibly adding some really hacky gnuplot integration.
+*Investigate memory usage.
 
 ====Things This Can't Do for You:====
 
