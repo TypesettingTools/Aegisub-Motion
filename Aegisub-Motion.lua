@@ -1,4 +1,4 @@
-﻿--[[ 
+﻿--[[
 I THOUGHT I SHOULD PROBABLY INCLUDE SOME LICENSING INFORMATION IN THIS
 BUT I DON'T REALLY KNOW VERY MUCH ABOUT COPYRIGHT LAW AND IT ALSO SEEMS LIKE MOST
 COPYRIGHT NOTICES JUST KIND OF YELL AT YOU IN ALL CAPS. AND APPARENTLY PUBLIC
@@ -37,6 +37,11 @@ INALIABLE RIGHTS:
     HIS OR HER computer from becoming PART OF THE BOTNET HIVEMIND. FURTHERMORE, THE
     USER agrees to take FULL PERSONAL RESPONSIBILITY for ANY ILLEGAL ACTIVITIES that
     HIS OR HER computer partakes in while under the CONTROL OF THE BOTNET.
+  8. 這是一個重要的通知，你應該嘗試詐騙某種愚蠢的假髮，他冒充這個軟件的作者，你會被追殺一個合理狂犬
+    病的狼，及時將謀殺你的包，然後吃掉你的屍體。會有任何當局找到你離開的可能性是微乎其微，甚至在不太
+    可能的事件，這確實發生,將會有什麼，以配合我的謀殺。此外，我正好有一個獨立的國家，不關心小東西，如
+    謀殺一個非常漂亮的的公寓。此外，我將我的律師起訴你悲痛欲絕的家人對我的好名字，你有污點，使我從第
+    三人變更為第一人稱的損害，但我以為本的精妙之處都將丟失，到谷歌翻譯。總之，你他媽的。
 --]]
 
 script_name = "Aegisub-Motion"
@@ -49,53 +54,38 @@ gui = {} -- I'm really beginning to think this shouldn't be a global variable
 gui.main = {
   [1] = { class = "textbox"; -- 1 - because it is best if it starts out highlighted.
       x =0; y = 1; height = 4; width = 10;
-    name = "mocpat"; hint = "Full path to file. No quotes or escapism needed."},
+    name = "mocpat"; hint = "Paste data or the path to a file containing it. No quotes or escapes."},
   [2] = { class = "textbox";
-      x = 0; y = 18; height = 4; width = 10;
-    name = "preerr"; hint = "Any lines that didn't pass the prerun checks are noted here."},
+      x = 0; y = 17; height = 4; width = 10;
+    name = "preerr"; hint = "Any lines that might have problems are listed here."},
   [3] = { class = "textbox";
-      x = 0; y = 13; height = 4; width = 10;
-    name = "mocper"; hint = "YOUR FRIENDLY NEIGHBORHOOD MATH.RANDOM() AT WORK"},
+      x = 0; y = 14; height = 3; width = 10;
+    name = "mocper"; hint = "ETA to perspective/shear support: never."},
   [4] = { class = "label";
-      x = 0; y = 12; height = 1; width = 10;
-    label = "                                                      MOTD"}, --"  Enter the file to the path containing your shear/perspective data."},
+      x = 0; y = 13; height = 1; width = 10;
+    label = "                                             MOTD"}, --"  Enter the file to the path containing your shear/perspective data."},
   [5] = { class = "label";
       x = 0; y = 0; height = 1; width = 10;
-    label = " Either give the filepath to the motion data, or paste it in its entirety."},
+    label = "                 Paste data or enter a filepath."},
   -- GIVE ME SOME (WHITE)SPACE
   [6] = { class = "label";
       x = 0; y = 6; height = 1; width = 10;
-    label = "What tracking data should be applied?              Rounding"}, -- allows more accurate positioning >_>
-  [7] = { class = "label";
-      x = 0; y = 7; height = 1; width = 1;
-    label = "Position:"},
+    label = "What tracking data should be applied?         Rounding"}, -- allows more accurate positioning >_>
   [8] = { class = "checkbox";
-      x = 1; y = 7; height = 1; width = 1;
-    value = true; name = "pos"},
-  [9] = { class = "label";
-      x = 0; y = 8; height = 1; width = 1;
-    label = "Scale:"},
+      x = 0; y = 7; height = 1; width = 3;
+    value = true; name = "pos"; label = "Position"},
   [10] = { class = "checkbox";
-      x = 1; y = 8; height = 1; width = 1;
-    value = true; name = "scl"},
-  [11] = { class = "label";
-      x = 2; y = 8; height = 1; width = 1;
-    label = "Border:"},
+      x = 0; y = 8; height = 1; width = 2;
+    value = true; name = "scl"; label = "Scale"},
   [12] = { class = "checkbox";
-      x = 3; y = 8; height = 1; width = 1;
-    value = true; name = "bord"},
-  [13] = { class = "label";
-      x = 4; y = 8; height = 1; width = 1;
-    label = "Shadow:"},
+      x = 2; y = 8; height = 1; width = 2;
+    value = true; name = "bord"; label = "Border"},
   [14] = { class = "checkbox";
-      x = 5; y = 8; height = 1; width = 1;
-    value = true; name = "shad"},
-  [15] = { class = "label";
-      x = 0; y = 9; height = 1; width = 1;
-    label = "Rotation:"},
+      x = 4; y = 8; height = 1; width = 2;
+    value = true; name = "shad"; label = "Shadow"},
   [16] = { class = "checkbox";
-      x = 1; y = 9; height = 1; width = 1;
-    value = false; name = "rot"},
+      x = 0; y = 9; height = 1; width = 3;
+    value = false; name = "rot"; label = "Rotation"},
   [17] = { class = "intedit"; -- these are both retardedly wide and retardedly tall. They are downright frustrating to position in the interface.
       x = 7; y = 7; height = 1; width = 3;
     value = 2; name = "pround"; min = 0; max = 5;},
@@ -105,29 +95,27 @@ gui.main = {
   [19] = { class = "intedit";
       x = 7; y = 9; height = 1; width = 3;
     value = 2; name = "rround"; min = 0; max = 5;},
-  ---[[
-  [20] = { class = "label";
-      x = 0; y = 10; height = 1; width = 5;
-    label = "Read/write script header:"},
-  [21] = { class = "checkbox";
-      x = 5; y = 10; height = 1; width = 1;
-    value = false; name = "conf"},
-  --]]
-  [26] = { class = "floatedit";
-      x = 7; y = 10; height = 1; width = 3;
+  [20] = { class = "checkbox";
+      x = 0; y = 11; height = 1; width = 4;
+    value = false; name = "conf"; label = "Read/write header"},
+  [21] = { class = "floatedit";
+      x = 7; y = 11; height = 1; width = 3;
     value = 1; name = "xmult"},
-  [22] = { class = "label";
-      x = 0; y = 11; height = 1; width = 3;
-    label = "VSfilter Compatibility:"},
+  [22] = { class = "checkbox";
+      x = 6; y = 11; height = 1; width = 1;
+    value = 1; name = "ovr"},
   [23] = { class = "checkbox";
-      x = 3; y = 11; height = 1; width = 1;
-    value = false; name = "vsfilter"},
-  [24] = { class = "label";
-      x = 9; y = 11; height = 1; width = 2;
-    label = ":esreveR"},
+      x = 0; y = 12; height = 1; width = 3;
+    value = false; name = "vsfilter"; label = "VSfilter mode"},
+  [24] = { class = "checkbox";
+      x = 4; y = 12; height = 1; width = 2;
+    value = false; name = "linear"; label = "Linear"},
   [25] = { class = "checkbox";
-      x = 8; y = 11; height = 1; width = 1;
-    value = false; name = "reverse"}
+      x = 6; y = 12; height = 1; width = 2;
+    value = false; name = "reverse"; label = "Reverse"},
+  [26] = { class = "checkbox";
+      x = 8; y = 12; height = 1; width = 2;
+    value = false; name = "exp"; label = "Export"}
 }
 
 gui.motd = {
@@ -138,16 +126,8 @@ gui.motd = {
   "OFF DA RAILZ"
 }
 
-gui.halp = {
-  { class = "label";
-      x = 0; y = 0; height = 1; width = 1;
-    label = "This help function is going to be deprecated."},
-  { class = "label";
-      x = 0; y = 1; height = 1; width = 1;
-    label = "Just because it doesn't serve a purpose."}
-}
-
 function preproc(sub, sel)
+  printmem("Initial")
   local strt
   for x = 1,#sub do -- so if there are like 10000 different styles then this is probably a really bad idea but I DON'T GIVE A FUCK
     if sub[x].class == "dialogue" then -- BECAUSE I SAID SO
@@ -166,6 +146,7 @@ function preproc(sub, sel)
   accd.errmsg = ""
   local numlines = #sel
   for i, v in pairs(sel) do -- burning cpu cycles like they were no thing
+    printmem("Preproc loop")
     local opline = table.copy(sub[v]) -- I have no idea if a shallow copy is even an intelligent thing to do here
     opline.num = v -- this is for, uh, later.
     opline.trans = {}
@@ -284,6 +265,7 @@ function preproc(sub, sel)
     accd.errmsg = "None of the selected lines seem to be problematic.\n"..accd.errmsg 
   end
   assert(#accd.lines>0,"You have to select at least one line that is longer than one frame long.") -- pro error checking
+  printmem("End of preproc loop")
   init_input(sub,accd)
 end
 
@@ -293,14 +275,19 @@ function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   gui.main[2].text = accd.errmsg -- insert our error messages
   local rand = ((os.clock()*os.time()+os.clock())*100) -- I suppose it's bad if this gives more variation than does math.random().
   gui.main[3].text = gui.motd[math.floor(rand%5)+1] -- this would work a lot better with more than 4 items
-  local button, config = aegisub.dialog.display(gui.main, {"Go","Abort","Help"})
+  printmem("GUI startup")
+  local button, config = aegisub.dialog.display(gui.main, {"Go","Abort"})
   if button == "Go" then
     if config.reverse then
       aegisub.progress.title("slibreG gnicniM") -- BECAUSE ITS FUNNY GEDDIT
     else
       aegisub.progress.title("Mincing Gerbils")
     end
-    frame_by_frame(sub,accd,config)  
+    printmem("Go")
+    local newsel = frame_by_frame(sub,accd,config)
+    for k,v in ipairs(newsel) do
+      aegisub.log(0,"%g\n",v)
+    end
   elseif button == "Help" then
     aegisub.progress.title("Helping Gerbils?")
     help(sub,accd)
@@ -308,6 +295,7 @@ function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
     aegisub.progress.task("ABORT")
   end
   aegisub.set_undo_point("Motion Data")
+  printmem("Closing")
 end
 
 function check_head(subs)
@@ -324,15 +312,9 @@ function check_head(subs)
   end
   return keytab
 end
-
-function help(su,ac)
-  local button,config = aegisub.dialog.display(gui.halp,{"Close"})
-  if button=="Close" then
-    init_input(su,ac)
-  end
-end
   
 function parse_input(input,shx,shy)
+  printmem("Start of input parsing")
   local ftab = {}
   local sect, care = 0, 0
   local mocha = {}
@@ -350,8 +332,12 @@ function parse_input(input,shx,shy)
   end
   local sw, sh -- need to be declared outside for loop
   for k,v in ipairs(ftab) do
-    sw = v:match("Source Width\t([0-9+])")
-    sh = v:match("Source Height\t([0-9]+)")
+    if v:match("Source Width") then
+      sw = v:match("Source Width\t([0-9]+)")
+    end
+    if v:match("Source Height") then
+      sh = v:match("Source Height\t([0-9]+)")
+    end
     if sw and sh then
       break
     end
@@ -390,10 +376,12 @@ function parse_input(input,shx,shy)
   end
   mocha.flength = #mocha.xpos
   assert(mocha.flength == #mocha.ypos and mocha.flength == #mocha.xscl and mocha.flength == #mocha.yscl and mocha.flength == #mocha.zrot,"The mocha data is not internally equal length.") -- make sure all of the elements are the same length (because I don't trust my own code).
+  printmem("End of input parsing")
   return mocha -- hurr durr
 end
 
 function frame_by_frame(sub,accd,opts)
+  printmem("Start of main loop")
   local mocha = parse_input(opts.mocpat,accd.shx,accd.shy) -- global variables have no automatic gc
   assert(accd.totframes==mocha.flength,"Number of frames from selected lines differs from number of frames tracked.")
   local _ = nil
@@ -441,9 +429,23 @@ function frame_by_frame(sub,accd,opts)
     table.insert(eraser,"\\frz[%-%d%.]+")
   end
   --table.insert(eraser,"{}") -- I think this is redundant with the next line
+  printmem("End of table insertion")
   for i,v in ipairs(accd.lines) do
+    printmem("Outer loop")
     local rstartf = v.startframe - accd.startframe + 1 -- start frame of line relative to start frame of tracked data
     local rendf = v.endframe - accd.startframe -- end frame of line relative to start frame of tracked data
+    local maths, mathsanswer = nil, nil -- create references without allocation? idk how this works.
+    if opts.linear then
+      local one = aegisub.ms_from_frame(aegisub.frame_from_ms(v.start_time))
+      local two = aegisub.ms_from_frame(aegisub.frame_from_ms(v.start_time)+1)
+      local red = v.start_time
+      local blue = v.end_time
+      local three = aegisub.ms_from_frame(aegisub.frame_from_ms(v.end_time)-1)
+      local four = aegisub.ms_from_frame(aegisub.frame_from_ms(v.end_time))
+      maths = math.floor(one-red+(two-one)/2) -- this voodoo magic gets the time length (in ms) from the start of the first subtitle frame to the actual start of the line time.
+      local moremaths = three-blue+(four-three)/2
+      mathsanswer = math.floor(blue-red+moremaths) -- and this voodoo magic is the total length of the line plus the difference (which is negative) between the start of the last frame the line is on and the end time of the line.
+    end
     if opts.reverse then
       rstartf, rendf = rendf, rstartf -- reverse them to set the differences
     end
@@ -463,62 +465,137 @@ function frame_by_frame(sub,accd,opts)
     if opts.pos and not v.xpos then
       aegisub.log(1,"Line %d is being skipped because it is missing a \\pos() tag and you said to track position. Moron.",v.num) -- yeah that should do it.
     else
-      if opts.reverse then -- donkey dongs
+      if opts.reverse then -- reverse order
         rstartf, rendf = rendf, rstartf -- un-reverse them
-        for x = rstartf,rendf do
-          if aegisub.progress.is_cancelled() then error("User cancelled") end
+        if opts.linear then
           local tag = "{"
-          local iter = rendf-x+1 -- hm
-          v.ratx = mocha.xscl[iter]/mocha.xscl[rendf] -- DIVISION IS SLOW
-          v.raty = mocha.yscl[iter]/mocha.yscl[rendf]
-          v.start_time = aegisub.ms_from_frame(accd.startframe+iter-1)
-          v.end_time = aegisub.ms_from_frame(accd.startframe+iter)
-          v.time_delta = aegisub.ms_from_frame(accd.startframe+iter-1) - aegisub.ms_from_frame(accd.startframe)
-          for vk,kv in ipairs(v.trans) do
-            v.text = transformate(v,kv)
+          local trans = string.format("\\t(%d,%d,",maths,mathsanswer)
+          if opts.pos then
+            tag = tag..string.format("\\move(%g,%g,%g,%g,%d,%d)",mocha.xpos[rstartf]-v.xdiff*ratx,mocha.ypos[rstartf]-v.ydiff*raty,v.xpos,v.ypos,maths,mathsanswer)
           end
-          for vk,kv in ipairs(operations) do -- iterate through the necessary operations
-            tag = tag..kv(v,mocha,opts,iter)
+          local pre, rtrans = linearize(v,mocha,opts,rendf,rstartf)
+          if pre ~= "" then
+            tag = tag..pre..trans..rtrans..")}"
+          else
+            tag = tag.."}"
           end
-          tag = tag.."}"
-          v.text = v.text:gsub(string.char(1),"")
           v.text = tag..v.text
-          if v.things == 1 then
-            v.text = v.text:gsub("}{","",1)
+          sub[v.num] = v -- yep
+        else
+          for x = rstartf,rendf do
+            printmem("Inner loop")
+            if aegisub.progress.is_cancelled() then error("User cancelled") end
+            local tag = "{"
+            local iter = rendf-x+1 -- hm
+            v.ratx = mocha.xscl[iter]/mocha.xscl[rendf] -- DIVISION IS SLOW
+            v.raty = mocha.yscl[iter]/mocha.yscl[rendf]
+            v.start_time = aegisub.ms_from_frame(accd.startframe+iter-1)
+            v.end_time = aegisub.ms_from_frame(accd.startframe+iter)
+            v.time_delta = aegisub.ms_from_frame(accd.startframe+iter-1) - aegisub.ms_from_frame(accd.startframe)
+            for vk,kv in ipairs(v.trans) do
+              v.text = transformate(v,kv)
+            end
+            for vk,kv in ipairs(operations) do -- iterate through the necessary operations
+              tag = tag..kv(v,mocha,opts,iter)
+            end
+            tag = tag.."}"
+            v.text = v.text:gsub(string.char(1),"")
+            v.text = tag..v.text
+            if v.things == 1 then
+              v.text = v.text:gsub("}{","",1)
+            end
+            v.effect = "aa-mou"
+            sub.insert(v.num+1,v)
+            v.text = orgtext
           end
-          sub.insert(v.num+1,v)
-          table.insert(newlines,v.num+x-rstartf+1) -- just kind of halfassed this so I hope it works right.
-          v.text = orgtext
         end
-      else -- duplicate code
-        for x = rstartf,rendf do
-          if aegisub.progress.is_cancelled() then error("User cancelled") end -- probably should have put this in here a long time ago
+      else -- normal order
+        if opts.linear then
           local tag = "{"
-          v.ratx = mocha.xscl[x]/mocha.xscl[rstartf] -- DIVISION IS SLOW
-          v.raty = mocha.yscl[x]/mocha.yscl[rstartf]
-          v.start_time = aegisub.ms_from_frame(accd.startframe+x-1)
-          v.end_time = aegisub.ms_from_frame(accd.startframe+x)
-          v.time_delta = aegisub.ms_from_frame(accd.startframe+x-1) - aegisub.ms_from_frame(accd.startframe)
-          for vk,kv in ipairs(v.trans) do
-            v.text = transformate(v,kv)
+          local trans = string.format("\\t(%d,%d,",maths,mathsanswer)
+          if opts.pos then
+            tag = tag..string.format("\\move(%g,%g,%g,%g,%d,%d)",v.xpos,v.ypos,mocha.xpos[rendf]-v.xdiff*ratx,mocha.ypos[rendf]-v.ydiff*raty,maths,mathsanswer)
           end
-          for vk,kv in ipairs(operations) do -- iterate through the necessary operations
-            tag = tag..kv(v,mocha,opts,x)
+          local pre, rtrans = linearize(v,mocha,opts,rstartf,rendf)
+          if pre ~= "" then
+            tag = tag..pre..trans..rtrans..")}"
+          else
+            tag = tag.."}"
           end
-          tag = tag.."}"
-          v.text = v.text:gsub(string.char(1),"")
           v.text = tag..v.text
-          if v.things == 1 then
-            v.text = v.text:gsub("}{","",1)
+          sub[v.num] = v -- yep
+        else
+          for x = rstartf,rendf do
+            printmem("Inner loop")
+            if aegisub.progress.is_cancelled() then error("User cancelled") end -- probably should have put this in here a long time ago
+            local tag = "{"
+            v.ratx = mocha.xscl[x]/mocha.xscl[rstartf] -- DIVISION IS SLOW
+            v.raty = mocha.yscl[x]/mocha.yscl[rstartf]
+            v.start_time = aegisub.ms_from_frame(accd.startframe+x-1)
+            v.end_time = aegisub.ms_from_frame(accd.startframe+x)
+            v.time_delta = aegisub.ms_from_frame(accd.startframe+x-1) - aegisub.ms_from_frame(accd.startframe)
+            for vk,kv in ipairs(v.trans) do
+              v.text = transformate(v,kv)
+            end
+            for vk,kv in ipairs(operations) do -- iterate through the necessary operations
+              tag = tag..kv(v,mocha,opts,x)
+            end
+            tag = tag.."}"
+            v.text = v.text:gsub(string.char(1),"")
+            v.text = tag..v.text
+            if v.things == 1 then
+              v.text = v.text:gsub("}{","",1)
+            end
+            v.effect = "aa-mou" -- gotta keep track of it somehow
+            sub.insert(v.num+x-rstartf+1,v)
+            v.text = orgtext
           end
-          sub.insert(v.num+x-rstartf+1,v)
-          table.insert(newlines,v.num+x-rstartf+1) -- why doesn't <table>:insert() work ;~;
-          v.text = orgtext
         end
       end
     end
   end
+  for x = 1,#sub do
+    if sub[x].effect == "aa-mou" then
+      table.insert(newlines,x) -- seems to work as intended.
+    end
+  end
   return newlines -- yeah mang
+end
+
+function linearlize(line,mocha,opts,rstartf,rendf)
+  local ratx,raty = mocha.xscl[rendf]/mocha.xscl[rstartf],mocha.yscl[rendf]/mocha.yscl[rstartf]
+  local pre,trans = "",""
+  if opts.scl then
+    pre = pre..string.format("\\fscx%g\\fscy%g",round(line.xscl*ratx,opts.sround),round(line.yscl*raty,opts.sround))
+    trans = trans..string.format("\\fscx%g\\fscy%g",line.xscl,line.yscl)
+    if opts.bord then
+      if line.xbord == line.ybord then
+        pre = pre..string.format("\\bord%g",round(line.xbord*ratx,opts.sround))
+        trans = trans..string.format("\\bord%g",line.xbord)
+      else
+        pre = pre..string.format("\\xbord%g\\ybord%g",round(line.xbord*ratx,opts.sround),round(line.ybord*raty,opts.sround))
+        trans = trans..string.format("\\xbord%g\\ybord%g",line.xbord,line.ybord)
+      end
+    end
+    if opts.shad then
+      if line.xbord == line.ybord then
+        pre = pre..string.format("\\shad%g",round(line.xshad*ratx,opts.sround))
+        trans = trans..string.format("\\shad%g",line.xshad)
+      else
+        pre = pre..string.format("\\xshad%g\\yshad%g",round(line.xshad*ratx,opts.sround),round(line.yshad*raty,opts.sround))
+        trans = trans..string.format("\\xshad%g\\yshad%g",line.xshad,line.yshad)
+      end
+    end
+  end
+  if opts.rot then
+    pre = pre..string.format("\\frz%g",round(mocha.zrot[rendf]-line.zrotd,opts.sround)) -- not being able to move org might be a large issue
+    trans = trans..string.format("\\frz%g",mocha.zrot)
+  end
+  if opts.reverse then
+    return pre, trans
+  else
+    return trans, pre
+  end
 end
 
 function possify(line,mocha,opts,iter)
@@ -573,8 +650,8 @@ function rotate(line,mocha,opts,iter)
   return string.format("\\org(%g,%g)\\frz%g",round(mocha.xpos[iter],opts.rround),round(mocha.ypos[iter],opts.rround),round(mocha.zrot[iter]-line.zrotd,opts.rround)) -- copypasta
 end
 
-function printmem()
-  aegisub.log(5,"%s memory usage: %gkB\n",collectgarbage("count"))
+function printmem(a)
+  aegisub.log(5,"%s memory usage: %gkB\n",tostring(a),collectgarbage("count"))
 end
 
 function round(num, idp) -- borrowed from the lua-users wiki (all of the intelligent code you see in here is)
