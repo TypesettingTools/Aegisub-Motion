@@ -466,14 +466,14 @@ function frame_by_frame(sub,accd,opts)
       aegisub.log(1,"Line %d is being skipped because it is missing a \\pos() tag and you said to track position. Moron.",v.num) -- yeah that should do it.
     else
       if opts.reverse then -- reverse order
-        rstartf, rendf = rendf, rstartf -- un-reverse them
         if opts.linear then
+          v.ratx, v.raty = mocha.xscl[rendf]/mocha.xscl[rstartf],mocha.yscl[rendf]/mocha.yscl[rstartf]
           local tag = "{"
           local trans = string.format("\\t(%d,%d,",maths,mathsanswer)
           if opts.pos then
-            tag = tag..string.format("\\move(%g,%g,%g,%g,%d,%d)",mocha.xpos[rstartf]-v.xdiff*ratx,mocha.ypos[rstartf]-v.ydiff*raty,v.xpos,v.ypos,maths,mathsanswer)
+            tag = tag..string.format("\\move(%g,%g,%g,%g,%d,%d)",mocha.xpos[rendf]-v.xdiff*v.ratx,mocha.ypos[rendf]-v.ydiff*v.raty,v.xpos,v.ypos,maths,mathsanswer)
           end
-          local pre, rtrans = linearize(v,mocha,opts,rendf,rstartf)
+          local pre, rtrans = linearize(v,mocha,opts,rstartf,rendf)
           if pre ~= "" then
             tag = tag..pre..trans..rtrans..")}"
           else
@@ -482,6 +482,7 @@ function frame_by_frame(sub,accd,opts)
           v.text = tag..v.text
           sub[v.num] = v -- yep
         else
+          rstartf, rendf = rendf, rstartf -- un-reverse them
           for x = rstartf,rendf do
             printmem("Inner loop")
             if aegisub.progress.is_cancelled() then error("User cancelled") end
@@ -511,10 +512,11 @@ function frame_by_frame(sub,accd,opts)
         end
       else -- normal order
         if opts.linear then
+          v.ratx, v.raty = mocha.xscl[rendf]/mocha.xscl[rstartf],mocha.yscl[rendf]/mocha.yscl[rstartf]
           local tag = "{"
           local trans = string.format("\\t(%d,%d,",maths,mathsanswer)
           if opts.pos then
-            tag = tag..string.format("\\move(%g,%g,%g,%g,%d,%d)",v.xpos,v.ypos,mocha.xpos[rendf]-v.xdiff*ratx,mocha.ypos[rendf]-v.ydiff*raty,maths,mathsanswer)
+            tag = tag..string.format("\\move(%g,%g,%g,%g,%d,%d)",v.xpos,v.ypos,mocha.xpos[rendf]-v.xdiff*v.ratx,mocha.ypos[rendf]-v.ydiff*v.raty,maths,mathsanswer)
           end
           local pre, rtrans = linearize(v,mocha,opts,rstartf,rendf)
           if pre ~= "" then
@@ -562,27 +564,26 @@ function frame_by_frame(sub,accd,opts)
   return newlines -- yeah mang
 end
 
-function linearlize(line,mocha,opts,rstartf,rendf)
-  local ratx,raty = mocha.xscl[rendf]/mocha.xscl[rstartf],mocha.yscl[rendf]/mocha.yscl[rstartf]
+function linearize(line,mocha,opts,rstartf,rendf)
   local pre,trans = "",""
   if opts.scl then
-    pre = pre..string.format("\\fscx%g\\fscy%g",round(line.xscl*ratx,opts.sround),round(line.yscl*raty,opts.sround))
+    pre = pre..string.format("\\fscx%g\\fscy%g",round(line.xscl*line.ratx,opts.sround),round(line.yscl*line.raty,opts.sround))
     trans = trans..string.format("\\fscx%g\\fscy%g",line.xscl,line.yscl)
     if opts.bord then
       if line.xbord == line.ybord then
-        pre = pre..string.format("\\bord%g",round(line.xbord*ratx,opts.sround))
+        pre = pre..string.format("\\bord%g",round(line.xbord*line.ratx,opts.sround))
         trans = trans..string.format("\\bord%g",line.xbord)
       else
-        pre = pre..string.format("\\xbord%g\\ybord%g",round(line.xbord*ratx,opts.sround),round(line.ybord*raty,opts.sround))
+        pre = pre..string.format("\\xbord%g\\ybord%g",round(line.xbord*line.ratx,opts.sround),round(line.ybord*line.raty,opts.sround))
         trans = trans..string.format("\\xbord%g\\ybord%g",line.xbord,line.ybord)
       end
     end
     if opts.shad then
       if line.xbord == line.ybord then
-        pre = pre..string.format("\\shad%g",round(line.xshad*ratx,opts.sround))
+        pre = pre..string.format("\\shad%g",round(line.xshad*line.ratx,opts.sround))
         trans = trans..string.format("\\shad%g",line.xshad)
       else
-        pre = pre..string.format("\\xshad%g\\yshad%g",round(line.xshad*ratx,opts.sround),round(line.yshad*raty,opts.sround))
+        pre = pre..string.format("\\xshad%g\\yshad%g",round(line.xshad*line.ratx,opts.sround),round(line.yshad*line.raty,opts.sround))
         trans = trans..string.format("\\xshad%g\\yshad%g",line.xshad,line.yshad)
       end
     end
