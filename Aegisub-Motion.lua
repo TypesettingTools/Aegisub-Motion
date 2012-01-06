@@ -45,7 +45,7 @@ INALIABLE RIGHTS:
 --]]
 
 script_name = "Aegisub-Motion"
-script_description = "Adobe After Effects 6.0 keyframe data parser for Aegisub" -- also it suffers from memory leaks
+script_description = "Adobe After Effects 6.0 keyframe data parser for Aegisub" -- and it might have memory issues. I think.
 script_author = "torque"
 script_version = "v0.1.lessbad" -- no, I have no idea how this versioning system works either.
 include("karaskel.lua")
@@ -126,7 +126,80 @@ gui.motd = {
   "OFF DA RAILZ"
 }
 
-function preproc(sub, sel)
+function preprocessing(sub, sel)
+  for i,v in ipairs(sel) do
+    local line = sub[v]
+    local a = line.text:match("%{(.-)%}")
+    if a then
+      local length = line.end_time - line.start_time
+      local fad_s,fad_e = a:match("\\fad%(([%d]+),([%d]+)%)") -- uint
+      fad_s, fad_e = tonumber(fad_s), tonumber(fad_e)
+      if fad_s then -- Swap out fade for a transform so we can stage it.
+        line.text = line.text:gsub("\\fad%([%d]+,[%d]+%)",string.format("\\alpha&HFF&\\t(%d,%d,1,\\alpha&H00&)\\t(%d,%d,1,\\alpha&HFF&)",0,fad_s,length-fad_e,length))
+      end
+      local fade_a,fade_a2,fade_a3,fade_s,fade_m,fade_m2,fade_e = a:match("\\fade%(([%d]+),([%d]+),([%d]+),([%d]+),([%d]+),([%d]+),([%d]+)%)") -- This is a large pita fuck you fuck you fuck you fuck you fuck you fuck you if you use this
+      if fade_a then
+        line.text = line.text:gsub("\\fade%([%d]+,[%d]+,[%d]+,[%-%d]+,[%-%d]+,[%-%d]+,[%-%d]+%)",string.format("\\alpha&H%X&\\t(%d,%d,\\alpha&H%X&)\\t(%d,%d,\\alpha&H%X&)",fade_a,fade_s,fade_m,fade_a2,fade_m2,fade_3,fade_a3)) -- okay that wasn't actually so bad
+      end
+      line.text = line.text:gsub("\\(i?)clip%(([%-%d]+,[%-%d]+,[%-%d]+,[%-%d]+)%)","\\%1clip%2") -- necessary because I can't think of a \t regex that will work properly without it.
+    end
+    sub.insert(v,line) -- replace
+  end
+end
+
+function getinfo(sub, line, styles, num)
+  local patterns = { -- so check out this cool new trick I thought of... which I'm sure is completely unoriginal but still makes me feel slightly intelligent.
+    ['xscl'] = "\\fscx([%d%.]+)",
+    ['yscl'] = "\\fscy([%d%.]+)",
+    ['ali'] = "\\an([1-9])",
+    ['zrot'] = "\\frz?([%-%d%.]+)",
+    ['bord'] = "\\bord([%d%.]+)",
+    ['xbord'] = "\\xbord([%d%.]+)",
+    ['ybord'] = "\\ybord([%d%.]+)",
+    ['shad'] = "\\shad([%-%d%.])",
+    ['xshad'] = "\\xshad([%-%d%.]+)",
+    ['yshad'] = "\\yshad([%-%d%.]+)"
+    ['resetti'] = "\\r([^\\}]+)" -- obsolete, since I decided to not support multiple override blocks per line... though I'll keep it here since it might be useful to my cleanup function
+  }
+  local header = { -- yeah imma just keep using it meng
+    ['scale_x'] = "xscl",
+    ['scale_y'] = "yscl",
+    ['align'] = "ali",
+    ['angle'] = "zrot",
+    ['outline'] = "bord",
+    ['shadow'] = "shad"
+  }
+  for k, v in pairs(header) do
+    line[v] = styles[line.style][k]
+    aegisub.log(5,"Line %d: %s set to %g")
+  end
+  line.xpos, line.ypos = line.text:match("\\pos%(([%-%d%.]+),([%-%d%.]+)%)") -- always the first one
+  line.xorg, line.yorg = line.text:match("\\org%(([%-%d%.]+),([%-%d%.]+)%)") -- I think this is more important than I initially thought
+  local length = opline.end_time - opline.start_time
+  local a = opline.text:match("%{(.-)%}")
+  if a then -- so yeah I just reduced ~20 loc to 4. Pro, amirite.
+    aegisub.log(5,"Found a comment/override block in line %d: %s\n",num,a)
+    for k, v in pairs(patterns) do
+      local _ = a:match(v)
+      if _ then line[k] = _ end
+      aegisub.log(5,"Line %d: %s set to %g",num,k,_)
+    end
+    for b in opline.text:gfind("%{(.-)%}") do
+      for t_start,t_end,t_exp,t_eff in b:gfind("\\t%(([%-%d]+),([%-%d]+),([%d%.]*),?(.-)%)") do -- this will return an empty string for t_exp if no exponential factor is specified
+        if t_exp == "" then t_exp = 1 end -- set it to 1 because stuff and things
+        table.insert(line.trans,{tonumber(t_start),tonumber(t_end),tonumber(t_exp),t_eff})
+        aegisub.log(5,"Line %d: \\t(%g,%g,%g,%s) found\n",num,t_start,t_end,t_exp,t_eff)
+      end
+    end
+    if line.bord then line.xbord = tonumber(bord); line.ybord = tonumber(bord); aegisub.log(5,"Line %d: \\bord%g found\n",v-strt, bord) end
+    if line.shad then line.xshad = tonumber(shad); line.yshad = tonumber(shad); aegisub.log(5,"Line %d: \\shad%g found\n",v-strt, shad) end
+  else
+    aegisub.log(5,"No comment/override block found in line %d: %s\n",v-strt,a)
+  end
+  return line
+end
+
+function infomation(sub, sel)
   printmem("Initial")
   local strt
   for x = 1,#sub do -- so if there are like 10000 different styles then this is probably a really bad idea but I DON'T GIVE A FUCK
@@ -146,85 +219,13 @@ function preproc(sub, sel)
   accd.errmsg = ""
   local numlines = #sel
   for i, v in pairs(sel) do -- burning cpu cycles like they were no thing
-    printmem("Preproc loop")
     local opline = table.copy(sub[v]) -- I have no idea if a shallow copy is even an intelligent thing to do here
-    opline.num = v -- this is for, uh, later.
-    opline.trans = {}
-    karaskel.preproc_line(sub, accd.meta, accd.styles, opline) -- get that extra position data
-    aegisub.log(5,"Line %d's style name is: %s\n",v-strt,opline.style) -- lines with more than one style can sick a duck (see: \r[stylename])
-    opline.xscl = accd.styles[opline.style].scale_x
-    aegisub.log(5,"Line %d's style's xscale is: %g\n",v-strt,opline.xscl)
-    opline.yscl = accd.styles[opline.style].scale_y
-    aegisub.log(5,"Line %d's style's yscale is: %g\n",v-strt,opline.yscl)
-    opline.ali = accd.styles[opline.style].align
-    aegisub.log(5,"Line %d's style's alignment is: %d\n",v-strt,opline.ali)
-    opline.zrot = accd.styles[opline.style].angle
-    aegisub.log(5,"Line %d's style's z-rotation is: %d\n",v-strt,opline.zrot)
-    opline.xbord = accd.styles[opline.style].outline
-    opline.ybord = accd.styles[opline.style].outline
-    aegisub.log(5,"Line %d's style's border is: %d\n",v-strt,opline.xbord)
-    opline.xshad = accd.styles[opline.style].shadow
-    opline.yshad = accd.styles[opline.style].shadow
-    aegisub.log(5,"Line %d's style's shadow is: %d\n",v-strt,opline.xshad)
-    --local pre,ftag = opline.text:match("(.-){(.-)}") -- so this is what they mean by an edge case. I think. Either way, it's annoying as hell.
-    opline.xpos,opline.ypos = opline.text:match("\\pos%(([%-%d%.]+),([%-%d%.]+)%)") -- always the first one
-    opline.xorg,opline.yorg = opline.text:match("\\org%(([%-%d%.]+),([%-%d%.]+)%)") -- idklol
+    karaskel.preproc_line(sub, accd.meta, accd.styles, opline) -- get that extra position data...hurr durr this also returns the line's duration
+    opline.xpos, opline.ypos = opline.x, opline.y -- cuz like stuff and things man
+    opline = getinfo(sub, opline, accd.styles, v-strt)
     opline.startframe, opline.endframe = aegisub.frame_from_ms(opline.start_time), aegisub.frame_from_ms(opline.end_time)
-    local length = opline.end_time - opline.start_time
-    opline.things = opline.text:find("{") -- really going for descriptive variable names now
-    local a = opline.text:match("%{(.-)%}") -- this will find comment/override tags yo (on an unrelated note, the .- lazy repition is nice. It's shorter than .+? at least.)
-    if a then
-      local fad_s,fad_e = a:match("\\fad%(([%d]+),([%d]+)%)") -- uint
-      fad_s, fad_e = tonumber(fad_s), tonumber(fad_e)
-      if fad_s then -- Swap out fade for a transform so we can stage it. Do it before checking for transforms, so it will be picked up.
-        if fad_s == 0 and fad_e > 0 then
-          opline.text = opline.text:gsub("\\fad%([%d]+,[%d]+%)",string.format("\\alpha&H00&\\t(%d,%d,1,\\alpha&HFF&)",length-fad_e,length))
-        elseif fad_s > 0 and fad_e == 0 then
-          opline.text = opline.text:gsub("\\fad%([%d]+,[%d]+%)",string.format("\\alpha&HFF&\\t(%d,%d,1,\\alpha&H00&)",0,fad_s))
-        elseif fad_s > 0 and fad_e > 0 then
-          opline.text = opline.text:gsub("\\fad%([%d]+,[%d]+%)",string.format("\\alpha&HFF&\\t(%d,%d,1,\\alpha&H00&)\\t(%d,%d,1,\\alpha&HFF&)",0,fad_s,length-fad_e,length))
-        else 
-          opline.text = opline.text:gsub("\\fad%([%d]+,[%d]+%)","") -- GET RID OF THAT USELESS SHIT
-        end
-      end
-      local fade_a,fade_a2,fade_a3,fade_s,fade_m,fade_m2,fade_e = a:match("\\fade%(([%d]+),([%d]+),([%d]+),([%d]+),([%d]+),([%d]+),([%d]+)%)") -- This is a large pita fuck you fuck you fuck you fuck you fuck you fuck you if you use this
-      opline.text = opline.text:gsub("\\(i?)clip%(([-%d]+,[-%d]+,[-%d]+,[-%d]+)%)","\\%1clip%2") -- necessary because I can't think of a \t regex that will work properly without it.
-    end
-    a = opline.text:match("%{(.-)%}") -- because I am too stupid to find a better way to do this
-    if a then
-      aegisub.log(5,"Found a comment/override block in line %d: %s\n",v-strt,a)
-      local fx = a:match("\\fscx([%d%.]+)") -- why was I using string.find before? I can't even remember.
-      local fy = a:match("\\fscy([%d%.]+)") -- these should all be gc'd after this loop
-      local ali = a:match("\\an([1-9])")
-      local frz = a:match("\\frz?([%-%d%.]+)") -- \fr is an alias for \frz
-      local bord = a:match("\\bord([%d%.]+)")
-      local xbord = a:match("\\xbord([%d%.]+)")
-      local ybord = a:match("\\ybord([%d%.]+)")
-      local shad = a:match("\\shad([%-%d%.])")
-      local xshad = a:match("\\xshad([%-%d%.]+)")
-      local yshad = a:match("\\yshad([%-%d%.]+)")
-      local resetti = a:match("\\r([^\\|}]+)") -- not sure I actually want to support this
-      for b in opline.text:gfind("%{(.-)%}") do
-        for t_start,t_end,t_exp,t_eff in b:gfind("\\t%(([%-%d]+),([%-%d]+),([%d%.]*),?(.-)%)") do -- this will return an empty string for t_exp if no exponential factor is specified
-          if t_exp == "" then t_exp = 1 end -- set it to 1 because stuff and things
-          table.insert(opline.trans,{tonumber(t_start),tonumber(t_end),tonumber(t_exp),t_eff}); aegisub.log(5,"Line %d: \\t(%g,%g,%g,%s) found\n",v-strt,t_start,t_end,t_exp,t_eff)
-        end
-      end
-      if fx then opline.xscl = tonumber(fx); aegisub.log(5,"Line %d: \\fscx%g found\n",v-strt, fx) end
-      if fy then opline.yscl = tonumber(fy); aegisub.log(5,"Line %d: \\fscy%g found\n",v-strt, fy) end
-      if bord then opline.xbord = tonumber(bord); opline.ybord = tonumber(bord); aegisub.log(5,"Line %d: \\bord%g found\n",v-strt, bord) end
-      if xbord then opline.xbord = tonumber(xbord); aegisub.log(5,"Line %d: \\xbord%g found\n",v-strt, xbord) end
-      if ybord then opline.ybord = tonumber(ybord); aegisub.log(5,"Line %d: \\ybord%g found\n",v-strt, ybord) end
-      if shad then opline.xshad = tonumber(shad); opline.yshad = tonumber(shad); aegisub.log(5,"Line %d: \\shad%g found\n",v-strt, shad) end
-      if xshad then opline.xshad = tonumber(xshad); aegisub.log(5,"Line %d: \\xshad%g found\n",v-strt, xshad) end
-      if yshad then opline.yshad = tonumber(yshad); aegisub.log(5,"Line %d: \\yshad%g found\n",v-strt, yshad) end
-      if frz then opline.zrot = tonumber(frz); aegisub.log(5,"Line %d: \\frz%g found\n",v-strt, frz) end
-      if ali then opline.ali = tonumber(ali); aegisub.log(5,"Line %d: \\an%d found\n",v-strt, ali) end -- the final \an is the one that's used.
-    else
-      aegisub.log(5,"No comment/override block found in line %d: %s\n",v-strt,a)
-    end
     if not opline.xpos or not opline.ypos then -- just to be safe
-      table.insert(accd.poserrs,{i,v})
+      table.insert(accd.poserrs,{i,v}) -- this is an old data "structure" that I'm not sure I did anything with
       accd.errmsg = accd.errmsg..string.format("Line %d does not seem to have a position override tag.\n", v-strt)
     end
     --aegisub.log(5,"%d",opline.ali)
@@ -285,9 +286,6 @@ function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
     end
     printmem("Go")
     local newsel = frame_by_frame(sub,accd,config)
-    for k,v in ipairs(newsel) do
-      aegisub.log(0,"%g\n",v)
-    end
   elseif button == "Help" then
     aegisub.progress.title("Helping Gerbils?")
     help(sub,accd)
@@ -475,9 +473,9 @@ function frame_by_frame(sub,accd,opts)
           end
           local pre, rtrans = linearize(v,mocha,opts,rstartf,rendf)
           if pre ~= "" then
-            tag = tag..pre..trans..rtrans..")}"
+            tag = tag..pre..trans..rtrans..")}"..string.char(2)
           else
-            tag = tag.."}"
+            tag = tag.."}"..string.char(2)
           end
           v.text = tag..v.text
           sub[v.num] = v -- yep
@@ -499,12 +497,9 @@ function frame_by_frame(sub,accd,opts)
             for vk,kv in ipairs(operations) do -- iterate through the necessary operations
               tag = tag..kv(v,mocha,opts,iter)
             end
-            tag = tag.."}"
+            tag = tag.."}"..string.char(2)
             v.text = v.text:gsub(string.char(1),"")
             v.text = tag..v.text
-            if v.things == 1 then
-              v.text = v.text:gsub("}{","",1)
-            end
             v.effect = "aa-mou"
             sub.insert(v.num+1,v)
             v.text = orgtext
@@ -520,9 +515,9 @@ function frame_by_frame(sub,accd,opts)
           end
           local pre, rtrans = linearize(v,mocha,opts,rstartf,rendf)
           if pre ~= "" then
-            tag = tag..pre..trans..rtrans..")}"
+            tag = tag..pre..trans..rtrans..")}"..string.char(2)
           else
-            tag = tag.."}"
+            tag = tag.."}"..string.char(2)
           end
           v.text = tag..v.text
           sub[v.num] = v -- yep
@@ -542,12 +537,9 @@ function frame_by_frame(sub,accd,opts)
             for vk,kv in ipairs(operations) do -- iterate through the necessary operations
               tag = tag..kv(v,mocha,opts,x)
             end
-            tag = tag.."}"
+            tag = tag.."}"..string.char(2)
             v.text = v.text:gsub(string.char(1),"")
             v.text = tag..v.text
-            if v.things == 1 then
-              v.text = v.text:gsub("}{","",1)
-            end
             v.effect = "aa-mou" -- gotta keep track of it somehow
             sub.insert(v.num+x-rstartf+1,v)
             v.text = orgtext
