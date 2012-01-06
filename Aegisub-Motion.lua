@@ -158,8 +158,8 @@ function getinfo(sub, line, styles, num)
     ['ybord'] = "\\ybord([%d%.]+)",
     ['shad'] = "\\shad([%-%d%.])",
     ['xshad'] = "\\xshad([%-%d%.]+)",
-    ['yshad'] = "\\yshad([%-%d%.]+)"
-    ['resetti'] = "\\r([^\\}]+)" -- obsolete, since I decided to not support multiple override blocks per line... though I'll keep it here since it might be useful to my cleanup function
+    ['yshad'] = "\\yshad([%-%d%.]+)",
+    ['resetti'] = "\\r([^\\}]+)" -- obsolete, since I decided to not support multiple override blocks per line... though I'll keep it here since it might be useful to my cleanup function?
   }
   local header = { -- yeah imma just keep using it meng
     ['scale_x'] = "xscl",
@@ -173,9 +173,14 @@ function getinfo(sub, line, styles, num)
     line[v] = styles[line.style][k]
     aegisub.log(5,"Line %d: %s set to %g")
   end
-  line.xpos, line.ypos = line.text:match("\\pos%(([%-%d%.]+),([%-%d%.]+)%)") -- always the first one
-  line.xorg, line.yorg = line.text:match("\\org%(([%-%d%.]+),([%-%d%.]+)%)") -- I think this is more important than I initially thought
-  local length = opline.end_time - opline.start_time
+  if line.text:match("\\pos%([%-%d%.]+,[%-%d%.]+%)") then
+    line.xpos, line.ypos = line.text:match("\\pos%(([%-%d%.]+),([%-%d%.]+)%)")
+  end -- always the first one
+  if line.text:match("\\org%(([%-%d%.]+),([%-%d%.]+)%)") then -- I think this is more important than I initially thought
+    line.xorg, line.yorg = line.text:match("\\org%(([%-%d%.]+),([%-%d%.]+)%)")
+  else 
+    line.xorg, line.yorg = line.xpos, line.ypos
+  end
   local a = opline.text:match("%{(.-)%}")
   if a then -- so yeah I just reduced ~20 loc to 4. Pro, amirite.
     aegisub.log(5,"Found a comment/override block in line %d: %s\n",num,a)
@@ -253,10 +258,7 @@ function infomation(sub, sel)
   for i,v in ipairs(accd.lines) do
     copy[length-i+1] = v
   end
-  accd.lines = copy -- this is probably going to do something horrible and fuck everything up because the table "copying" mechanics are ashdsiuhaslhasd
-  length = nil
-  copy = nil -- DOING MY OWN GARBAGE COLLECTION NOW LIKE A PRO
-  --accd.lvidx, accd.lvidy = aegisub.video_size() -- this is p. much irrelevant now
+  accd.lines = copy
   accd.shx, accd.shy = accd.meta.res_x, accd.meta.res_y
   accd.totframes = accd.endframe - accd.startframe
   accd.toterrs = #accd.alignerrs + #accd.poserrs
