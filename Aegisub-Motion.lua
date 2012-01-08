@@ -400,8 +400,8 @@ end
 function cleanup(sub, sel)
   for i, v in ipairs(sel) do
     local derp = sub[v]
-    derp.text:gsub("}"..string.char(2).."{","")
-    derp.text:gsub(string.char(2),"")
+    derp.text = derp.text:gsub("}"..string.char(6).."{","")
+    derp.text = derp.text:gsub(string.char(6),"")
     derp.effect = ""
     sub[v] = derp
   end
@@ -502,9 +502,9 @@ function frame_by_frame(sub,accd,opts)
           end
           local pre, rtrans = linearize(v,mocha,opts,rstartf,rendf)
           if pre ~= "" then
-            tag = tag..pre..trans..rtrans..")}"..string.char(2)
+            tag = tag..pre..trans..rtrans..")}"..string.char(6)
           else
-            tag = tag.."}"..string.char(2)
+            tag = tag.."}"..string.char(6)
           end
           v.text = tag..v.text
           sub[v.num] = v -- yep
@@ -526,7 +526,7 @@ function frame_by_frame(sub,accd,opts)
             for vk,kv in ipairs(operations) do -- iterate through the necessary operations
               tag = tag..kv(v,mocha,opts,iter)
             end
-            tag = tag.."}"..string.char(2)
+            tag = tag.."}"..string.char(6)
             v.text = v.text:gsub(string.char(1),"")
             v.text = tag..v.text
             v.effect = "aa-mou"
@@ -544,9 +544,9 @@ function frame_by_frame(sub,accd,opts)
           end
           local pre, rtrans = linearize(v,mocha,opts,rstartf,rendf)
           if pre ~= "" then
-            tag = tag..pre..trans..rtrans..")}"..string.char(2)
+            tag = tag..pre..trans..rtrans..")}"..string.char(6)
           else
-            tag = tag.."}"..string.char(2)
+            tag = tag.."}"..string.char(6)
           end
           v.text = tag..v.text
           sub[v.num] = v -- yep
@@ -566,7 +566,7 @@ function frame_by_frame(sub,accd,opts)
             for vk,kv in ipairs(operations) do -- iterate through the necessary operations
               tag = tag..kv(v,mocha,opts,x)
             end
-            tag = tag.."}"..string.char(2)
+            tag = tag.."}"..string.char(6)
             v.text = v.text:gsub(string.char(1),"")
             v.text = tag..v.text
             v.effect = "aa-mou" -- gotta keep track of it somehow
