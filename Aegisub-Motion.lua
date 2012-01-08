@@ -118,6 +118,8 @@ gui.main = {
     value = false; name = "exp"; label = "Export"}
 }
 
+prefix = aegisub.decode_path("?data/a-mo/")
+
 gui.motd = {
   "The culprit was a huge truck.";
   "Error 0x0045AF: Runtime requested to be terminated in an unusual fashion.";
@@ -143,12 +145,13 @@ function preprocessing(sub, sel)
       end
       line.text = line.text:gsub("\\(i?)clip%(([%-%d]+,[%-%d]+,[%-%d]+,[%-%d]+)%)","\\%1clip%2") -- necessary because I can't think of a \t regex that will work properly without it.
     end
-    sub.insert(v,line) -- replace
+    sub[v] = line -- replace
   end
+  information(sub,sel) -- selected line numbers are the same
 end
 
 function getinfo(sub, line, styles, num)
-  local patterns = { -- so check out this cool new trick I thought of... which I'm sure is completely unoriginal but still makes me feel slightly intelligent.
+  patterns = { -- so check out this cool new trick I thought of... which I'm sure is completely unoriginal but still makes me feel slightly intelligent.
     ['xscl'] = "\\fscx([%d%.]+)",
     ['yscl'] = "\\fscy([%d%.]+)",
     ['ali'] = "\\an([1-9])",
@@ -171,40 +174,48 @@ function getinfo(sub, line, styles, num)
   }
   for k, v in pairs(header) do
     line[v] = styles[line.style][k]
-    aegisub.log(5,"Line %d: %s set to %g")
+    aegisub.log(5,"Line %d: %s set to %g (from header)\n", num, v, line[v])
   end
-  if line.text:match("\\pos%([%-%d%.]+,[%-%d%.]+%)") then
+  -- convert bord to xbord and ybord
+  if line.bord then line.xbord = tonumber(bord); line.ybord = tonumber(bord); end
+  if line.shad then line.xshad = tonumber(shad); line.yshad = tonumber(shad); end
+  if line.text:match("\\pos%([%-%d%.]+,[%-%d%.]+%)") then -- have to check now since default pos is calculated/given by karaskel
     line.xpos, line.ypos = line.text:match("\\pos%(([%-%d%.]+),([%-%d%.]+)%)")
-  end -- always the first one
-  if line.text:match("\\org%(([%-%d%.]+),([%-%d%.]+)%)") then -- I think this is more important than I initially thought
+    line.xorg, line.yorg = line.xpos, line.ypos
+  end
+  if line.text:match("\\org%(([%-%d%.]+),([%-%d%.]+)%)") then -- this should be more correctly handled now
     line.xorg, line.yorg = line.text:match("\\org%(([%-%d%.]+),([%-%d%.]+)%)")
   else 
     line.xorg, line.yorg = line.xpos, line.ypos
   end
-  local a = opline.text:match("%{(.-)%}")
-  if a then -- so yeah I just reduced ~20 loc to 4. Pro, amirite.
+  line.trans = {}
+  local a = line.text:match("%{(.-)%}")
+  if a then
     aegisub.log(5,"Found a comment/override block in line %d: %s\n",num,a)
     for k, v in pairs(patterns) do
       local _ = a:match(v)
-      if _ then line[k] = _ end
-      aegisub.log(5,"Line %d: %s set to %g",num,k,_)
+      if _ then 
+        line[k] = tonumber(_)
+        aegisub.log(5,"Line %d: %s set to %s\n",num,k,tostring(_))
+      end
     end
-    for b in opline.text:gfind("%{(.-)%}") do
+    for b in line.text:gfind("%{(.-)%}") do
       for t_start,t_end,t_exp,t_eff in b:gfind("\\t%(([%-%d]+),([%-%d]+),([%d%.]*),?(.-)%)") do -- this will return an empty string for t_exp if no exponential factor is specified
         if t_exp == "" then t_exp = 1 end -- set it to 1 because stuff and things
         table.insert(line.trans,{tonumber(t_start),tonumber(t_end),tonumber(t_exp),t_eff})
         aegisub.log(5,"Line %d: \\t(%g,%g,%g,%s) found\n",num,t_start,t_end,t_exp,t_eff)
       end
     end
-    if line.bord then line.xbord = tonumber(bord); line.ybord = tonumber(bord); aegisub.log(5,"Line %d: \\bord%g found\n",v-strt, bord) end
-    if line.shad then line.xshad = tonumber(shad); line.yshad = tonumber(shad); aegisub.log(5,"Line %d: \\shad%g found\n",v-strt, shad) end
+    -- have to run it again because of :reasons: related to bad programming
+    if line.bord then line.xbord = tonumber(bord); line.ybord = tonumber(bord); end
+    if line.shad then line.xshad = tonumber(shad); line.yshad = tonumber(shad); end
   else
     aegisub.log(5,"No comment/override block found in line %d: %s\n",v-strt,a)
   end
   return line
 end
 
-function infomation(sub, sel)
+function information(sub, sel)
   printmem("Initial")
   local strt
   for x = 1,#sub do -- so if there are like 10000 different styles then this is probably a really bad idea but I DON'T GIVE A FUCK
@@ -225,9 +236,14 @@ function infomation(sub, sel)
   local numlines = #sel
   for i, v in pairs(sel) do -- burning cpu cycles like they were no thing
     local opline = table.copy(sub[v]) -- I have no idea if a shallow copy is even an intelligent thing to do here
+    opline.num = v -- for inserting lines later
     karaskel.preproc_line(sub, accd.meta, accd.styles, opline) -- get that extra position data...hurr durr this also returns the line's duration
     opline.xpos, opline.ypos = opline.x, opline.y -- cuz like stuff and things man
+    opline.xorg, opline.yorg = opline.x, opline.y
     opline = getinfo(sub, opline, accd.styles, v-strt)
+    for k, v in pairs(patterns) do
+      aegisub.log(5,"opline.%s = %s\n", k, tostring(opline[k]))
+    end
     opline.startframe, opline.endframe = aegisub.frame_from_ms(opline.start_time), aegisub.frame_from_ms(opline.end_time)
     if not opline.xpos or not opline.ypos then -- just to be safe
       table.insert(accd.poserrs,{i,v}) -- this is an old data "structure" that I'm not sure I did anything with
@@ -288,6 +304,7 @@ function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
     end
     printmem("Go")
     local newsel = frame_by_frame(sub,accd,config)
+    cleanup(sub,newsel)
   elseif button == "Help" then
     aegisub.progress.title("Helping Gerbils?")
     help(sub,accd)
@@ -378,6 +395,16 @@ function parse_input(input,shx,shy)
   assert(mocha.flength == #mocha.ypos and mocha.flength == #mocha.xscl and mocha.flength == #mocha.yscl and mocha.flength == #mocha.zrot,"The mocha data is not internally equal length.") -- make sure all of the elements are the same length (because I don't trust my own code).
   printmem("End of input parsing")
   return mocha -- hurr durr
+end
+
+function cleanup(sub, sel)
+  for i, v in ipairs(sel) do
+    local derp = sub[v]
+    derp.text:gsub("}"..string.char(2).."{","")
+    derp.text:gsub(string.char(2),"")
+    derp.effect = ""
+    sub[v] = derp
+  end
 end
 
 function frame_by_frame(sub,accd,opts)
@@ -599,6 +626,31 @@ function possify(line,mocha,opts,iter)
   return string.format("\\pos(%g,%g)",round(xpos,opts.pround),round(ypos,opts.pround))
 end
 
+function export(accd,mocha)
+  -- table of file names
+  local fnames = {
+    "%s X-Y %d.txt",
+    "%s X-T %d.txt",
+    "%s Y-T %d.txt",
+    "%s sclX-sclY %d.txt",
+  }
+  -- open files
+  if prefix == nil then prefix = "" end
+  local derp = 0
+  local name = accd.lines[1].text_stripped:split(" ")
+  name = name[1]
+  repeat
+    derp = derp + 1
+    local f = io.open(string.format("%s-XvsY-%d.txt",name,derp),r)
+    if f then io.close(f); f = false else f = true end
+  until f == true -- this is probably the worst possible way of doing this imaginable
+  io.open(string.format(prefix.."%s-XvsY-%d.txt",name,derp),w)
+  io.open(string.format(prefix.."%s-XvsT-%d.txt",name,derp),w)
+  io.open(string.format(prefix.."%s-YvsT-%d.txt",name,derp),w)
+  for x = 1, accd.totframes do
+  end
+end
+
 function transformate(line,trans)
   local t_s = trans[1] - line.time_delta -- well, that was easy
   local t_e = trans[2] - line.time_delta
@@ -642,7 +694,7 @@ function VScalify(line,mocha,opts)
 end
 
 function rotate(line,mocha,opts,iter)
-  return string.format("\\org(%g,%g)\\frz%g",round(mocha.xpos[iter],opts.rround),round(mocha.ypos[iter],opts.rround),round(mocha.zrot[iter]-line.zrotd,opts.rround)) -- copypasta
+  return string.format("\\org(%g,%g)\\frz%g",round(mocha.xpos[iter] - line.xorgd,opts.rround),round(mocha.ypos[iter] - line.yorgd,opts.rround),round(mocha.zrot[iter]-line.zrotd,opts.rround)) -- copypasta
 end
 
 function printmem(a)
@@ -665,4 +717,4 @@ function isvideo() -- a very rudimentary (but hopefully efficient) check to see 
   return aegisub.video_size() and true or false -- and forces boolean conversion
 end
 
-aegisub.register_macro("Apply motion data","Applies properly formatted motion tracking data to selected subtitles.", preproc, isvideo)
+aegisub.register_macro("Apply motion data","Applies properly formatted motion tracking data to selected subtitles.", preprocessing, isvideo)
