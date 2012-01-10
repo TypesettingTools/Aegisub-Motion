@@ -66,7 +66,7 @@ gui.main = {
     label = "                                             MOTD"}, --"  Enter the file to the path containing your shear/perspective data."},
   [5] = { class = "label";
       x = 0; y = 0; height = 1; width = 10;
-    label = "                              Paste data or enter a filepath."},
+    label = "                            Paste data or enter a filepath."},
   -- GIVE ME SOME (WHITE)SPACE
   [6] = { class = "label";
       x = 0; y = 6; height = 1; width = 10;
@@ -87,7 +87,7 @@ gui.main = {
       x = 0; y = 9; height = 1; width = 3;
     value = false; name = "rot"; label = "Rotation"},
   [27] = { class = "checkbox";
-      x = 0; y = 9; height = 1; width = 3;
+      x = 3; y = 9; height = 1; width = 3;
     value = true; name = "org"; label = "Origin"},
   [17] = { class = "intedit"; -- these are both retardedly wide and retardedly tall. They are downright frustrating to position in the interface.
       x = 7; y = 7; height = 1; width = 3;
@@ -145,7 +145,7 @@ patterns = { -- so check out this cool new trick I thought of... which I'm sure 
   ['resetti'] = "\\r([^\\}]+)" -- obsolete, since I decided to not support multiple override blocks per line... though I'll keep it here since it might be useful to my cleanup function?
 }
 
-alltags = {
+alltags = { -- yeah...
   ['alpha']   = "\\alpha&H(%x%x)&", -- oh well.
   ['l1a']     = "\\1a&H(%x%x)&",
   ['l2a']     = "\\2a&H(%x%x)&",
@@ -160,9 +160,8 @@ alltags = {
   ['iclip']   = "\\iclip%((.-)%)",
   ['be']      = "\\be([%d%.]+)",
   ['blur']    = "\\blur([%d%.]+)",
-  ['fax']    = "\\fax([%-%d%.]+)",
-  ['fay']    = "\\fay([%-%d%.]+)",
-  ['fay']    = "\\fay([%-%d%.]+)",
+  ['fax']     = "\\fax([%-%d%.]+)",
+  ['fay']     = "\\fay([%-%d%.]+)"
 }
 
 function preprocessing(sub, sel)
@@ -188,18 +187,17 @@ end
 
 function getinfo(sub, line, styles, num)
   local header = { -- yeah imma just keep using it meng
-    ['scale_x'] = "xscl",
-    ['scale_y'] = "yscl",
-    ['align']   = "ali",
-    ['angle']   = "zrot",
-    ['outline'] = "bord",
-    ['shadow']  = "shad"
+    ['xscl'] = "scale_x",
+    ['yscl'] = "scale_y",
+    ['ali']  = "align",
+    ['zrot'] = "angle",
+    ['bord'] = "outline",
+    ['shad'] = "shadow"
   }
   for k, v in pairs(header) do
-    line[v] = styles[line.style][k]
-    aegisub.log(5,"Line %d: %s set to %g (from header)\n", num, v, line[v])
+    line[k] = styles[line.style][v]
+    aegisub.log(5,"Line %d: %s set to %g (from header)\n", num, v, line[k])
   end
-  -- don't actually need these.
   if line.bord then line.xbord = tonumber(line.bord); line.ybord = tonumber(line.bord); end
   if line.shad then line.xshad = tonumber(line.shad); line.yshad = tonumber(line.shad); end
   if line.text:match("\\pos%([%-%d%.]+,[%-%d%.]+%)") then -- have to check now since default pos is calculated/given by karaskel
@@ -221,11 +219,6 @@ function getinfo(sub, line, styles, num)
       end
     end
     for b in line.text:gfind("%{(.-)%}") do
-    --[[  for t_start,t_end,t_exp,t_eff in b:gfind("\\t%(([%-%d]+),([%-%d]+),([%d%.]*),?(.-)%)") do -- this will return an empty string for t_exp if no exponential factor is specified
-        if t_exp == "" then t_exp = 1 end -- set it to 1 because stuff and things
-        table.insert(line.trans,{tonumber(t_start),tonumber(t_end),tonumber(t_exp),t_eff})
-        aegisub.log(5,"Line %d: \\t(%g,%g,%g,%s) found\n",num,t_start,t_end,t_exp,t_eff)
-      end --]]
       for c in b:gfind("\\t(%b())") do -- this will return an empty string for t_exp if no exponential factor is specified
         t_start,t_end,t_exp,t_eff = c:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
         if t_exp == "" then t_exp = 1 end -- set it to 1 because stuff and things
@@ -320,7 +313,7 @@ function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   local rand = ((os.clock()*os.time()+os.clock())*100) -- I suppose it's bad if this gives more variation than does math.random().
   gui.main[3].text = gui.motd[math.floor(rand%5)+1] -- this would work a lot better with more than 4 items
   printmem("GUI startup")
-  local button, config = aegisub.dialog.display(gui.main, {"Go","Abort"})
+  local button, config = aegisub.dialog.display(gui.main, {"Go","Abort","Export"})
   if button == "Go" then
     if config.reverse then
       aegisub.progress.title("slibreG gnicniM") -- BECAUSE ITS FUNNY GEDDIT
@@ -330,9 +323,10 @@ function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
     printmem("Go")
     local newsel = frame_by_frame(sub,accd,config)
     cleanup(sub,newsel)
-  elseif button == "Help" then
-    aegisub.progress.title("Helping Gerbils?")
-    help(sub,accd)
+  elseif button == "Export" then
+    aegisub.progress.title("Exporting Gerbils")
+    local mocha = parse_input(config.mocpat,accd.shx,accd.shy)
+    export(accd,mocha)
   else
     aegisub.progress.task("ABORT")
   end
@@ -427,9 +421,7 @@ function cleanup(sub, sel)
     local line = sub[v]
     line.text = line.text:gsub("}"..string.char(6).."{","") -- merge sequential override blocks if they are marked as being the ones we wrote
     line.text = line.text:gsub(string.char(6),"") -- remove superfluous marker characters for when there is no override block at the beginning of the original line
-    line.text = line.text:gsub("\\t%(([%-%d]+),([%-%d]+),([%d%.]*),?(.-)%)",cleantrans) -- clean up transformations (remove transformations that have completed)
-    --line.text = line.text:gsub("\\(i?clip)([%-%d]+,[%-%d]+,[%-%d]+,[%-%d]+)","\\%1%(%2%)") -- fix our previous \i?clip() mutilation
-    
+    line.text = line.text:gsub("\\t(%b())",cleantrans) -- clean up transformations (remove transformations that have completed)
     line.effect = ""
     sub[v] = line
   end
@@ -670,23 +662,36 @@ function export(accd,mocha)
     "%s X-Y %d.txt",
     "%s X-T %d.txt",
     "%s Y-T %d.txt",
-    "%s sclX-sclY %d.txt",
+    "%s sclX-sclY %d.txt"
   }
   -- open files
   if prefix == nil then prefix = "" end
-  local derp = 0
   local name = accd.lines[1].text_stripped:split(" ")
   name = name[1]
-  repeat
-    derp = derp + 1
-    local f = io.open(string.format("%s-XvsY-%d.txt",name,derp),r)
-    if f then io.close(f); f = false else f = true end
-  until f == true -- this is probably the worst possible way of doing this imaginable
-  io.open(string.format(prefix.."%s-XvsY-%d.txt",name,derp),w)
-  io.open(string.format(prefix.."%s-XvsT-%d.txt",name,derp),w)
-  io.open(string.format(prefix.."%s-YvsT-%d.txt",name,derp),w)
-  for x = 1, accd.totframes do
+  for k,v in ipairs(fnames) do
+    local it = 0
+    repeat
+      it = it + 1
+      local n = string.format(prefix..v,name,it)
+      local f = io.open(n,'r')
+      if f then io.close(f); f = false else f = true; fnames[k] = n end -- uhhhhhhh...
+    until f == true -- this is probably the worst possible way of doing this imaginable
   end
+  local fhandle = {}
+  for k,v in ipairs(fnames) do
+    aegisub.log(0,"%d: %s\n",k,v)
+    table.insert(fhandle,io.open(v,'w'))
+  end
+  for x = 1, #mocha.xpos do
+    fhandle[1]:write(string.format("%g %g\n",mocha.xpos[x],mocha.ypos[x]))
+    fhandle[2]:write(string.format("%g %g\n",mocha.xpos[x],aegisub.ms_from_frame(accd.startframe+x-1)))
+    fhandle[3]:write(string.format("%g %g\n",mocha.xpos[x],aegisub.ms_from_frame(accd.startframe+x-1)))
+    fhandle[4]:write(string.format("%g %g\n",mocha.xscl[x],mocha.yscl[x]))
+  end
+  fhandle[1]:close()
+  fhandle[2]:close()
+  fhandle[3]:close()
+  fhandle[4]:close()
 end
 
 function transformate(line,trans)
