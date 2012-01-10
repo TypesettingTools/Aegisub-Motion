@@ -47,7 +47,7 @@ INALIABLE RIGHTS:
 script_name = "Aegisub-Motion"
 script_description = "Adobe After Effects 6.0 keyframe data parser for Aegisub" -- and it might have memory issues. I think.
 script_author = "torque"
-script_version = "v0.1.lessbad" -- no, I have no idea how this versioning system works either.
+script_version = "9.0.0-1" -- no, I have no idea how this versioning system works either.
 include("karaskel.lua")
 
 gui = {} -- I'm really beginning to think this shouldn't be a global variable
@@ -218,8 +218,8 @@ function getinfo(sub, line, styles, num)
         aegisub.log(5,"Line %d: %s set to %s\n",num,k,tostring(_))
       end
     end
-    for b in line.text:gfind("%{(.-)%}") do
-      for c in b:gfind("\\t(%b())") do -- this will return an empty string for t_exp if no exponential factor is specified
+    for b in line.text:gmatch("%{(.-)%}") do
+      for c in b:gmatch("\\t(%b())") do -- this will return an empty string for t_exp if no exponential factor is specified
         t_start,t_end,t_exp,t_eff = c:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
         if t_exp == "" then t_exp = 1 end -- set it to 1 because stuff and things
         table.insert(line.trans,{tonumber(t_start),tonumber(t_end),tonumber(t_exp),t_eff})
@@ -261,7 +261,6 @@ function information(sub, sel)
     opline.xpos, opline.ypos = opline.x, opline.y -- cuz like stuff and things man
     opline.xorg, opline.yorg = opline.x, opline.y
     opline = getinfo(sub, opline, accd.styles, v-strt)
-    aegisub.log(0,"opline.xbord = %s\n",tostring(opline.xbord))
     opline.startframe, opline.endframe = aegisub.frame_from_ms(opline.start_time), aegisub.frame_from_ms(opline.end_time)
     if not opline.xpos or not opline.ypos then -- just to be safe
       table.insert(accd.poserrs,{i,v}) -- this is an old data "structure" that I'm not sure I did anything with
@@ -418,17 +417,38 @@ end
 
 function cleanup(sub, sel)
   for i, v in ipairs(sel) do
-    local line = sub[v]
+    local line = sub[sel[#sel-i+1]] -- iterate backwards (makes line deletion sane)
     line.text = line.text:gsub("}"..string.char(6).."{","") -- merge sequential override blocks if they are marked as being the ones we wrote
     line.text = line.text:gsub(string.char(6),"") -- remove superfluous marker characters for when there is no override block at the beginning of the original line
     line.text = line.text:gsub("\\t(%b())",cleantrans) -- clean up transformations (remove transformations that have completed)
+    line.text = line.text:gsub("{}","") -- I think this is irrelevant. But whatever.
+    for a in line.text:gmatch("{(.-)}") do
+      local b = a
+      local trans = {}, {}
+      repeat -- have to cut out transformations so their contents don't get detected as dups
+        if aegisub.progress.is_cancelled() then error("User cancelled") end
+        local low, high, trabs = a:find("(\\t%b())")
+        if low then
+          a = a:gsub("\\t%b()",string.char(3),1) -- nngah
+          table.insert(trans,trabs)
+        end
+      until not low 
+      for k,v in pairs(alltags) do
+        local _, num = a:gsub(v,"")
+        a = a:gsub(v,"",num-1)
+      end
+      for i,v in ipairs(trans) do
+        a = a:gsub(string.char(3),v,1)
+      end
+      line.text = line.text:gsub("{(.-)}","{"..a.."}",1) -- I think...
+    end
     line.effect = ""
-    sub[v] = line
+    sub[sel[#sel-i+1]] = line
   end
 end
 
 function cleantrans(cont)
-  local t_s, t_e, ex, t_s = cont:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
+  local t_s, t_e, ex, eff = cont:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
   if tonumber(t_e) <= 0 or tonumber(t_e) <= tonumber(t_s) then return string.format("%s",eff) end
   if tonumber(ex) == 1 then return string.format("\\t(%s,%s,%s)",t_s,t_e,eff) end
   return string.format("\\t(%s,%s,%s,%s)",t_s,t_e,ex,eff)
@@ -550,9 +570,11 @@ function frame_by_frame(sub,accd,opts)
             v.end_time = aegisub.ms_from_frame(accd.startframe+iter)
             v.time_delta = aegisub.ms_from_frame(accd.startframe+iter-1) - aegisub.ms_from_frame(accd.startframe)
             for vk,kv in ipairs(v.trans) do
+              if aegisub.progress.is_cancelled() then error("User cancelled") end
               v.text = transformate(v,kv)
             end
             for vk,kv in ipairs(operations) do -- iterate through the necessary operations
+              if aegisub.progress.is_cancelled() then error("User cancelled") end
               tag = tag..kv(v,mocha,opts,iter)
             end
             tag = tag.."}"..string.char(6)
@@ -591,9 +613,11 @@ function frame_by_frame(sub,accd,opts)
             v.end_time = aegisub.ms_from_frame(accd.startframe+x)
             v.time_delta = aegisub.ms_from_frame(accd.startframe+x-1) - aegisub.ms_from_frame(accd.startframe)
             for vk,kv in ipairs(v.trans) do
+              if aegisub.progress.is_cancelled() then error("User cancelled") end
               v.text = transformate(v,kv)
             end
             for vk,kv in ipairs(operations) do -- iterate through the necessary operations
+              if aegisub.progress.is_cancelled() then error("User cancelled") end
               tag = tag..kv(v,mocha,opts,x)
             end
             tag = tag.."}"..string.char(6)
@@ -671,6 +695,7 @@ function export(accd,mocha)
   for k,v in ipairs(fnames) do
     local it = 0
     repeat
+      if aegisub.progress.is_cancelled() then error("User cancelled") end
       it = it + 1
       local n = string.format(prefix..v,name,it)
       local f = io.open(n,'r')
@@ -683,15 +708,13 @@ function export(accd,mocha)
     table.insert(fhandle,io.open(v,'w'))
   end
   for x = 1, #mocha.xpos do
+    if aegisub.progress.is_cancelled() then error("User cancelled") end
     fhandle[1]:write(string.format("%g %g\n",mocha.xpos[x],mocha.ypos[x]))
     fhandle[2]:write(string.format("%g %g\n",mocha.xpos[x],aegisub.ms_from_frame(accd.startframe+x-1)))
     fhandle[3]:write(string.format("%g %g\n",mocha.xpos[x],aegisub.ms_from_frame(accd.startframe+x-1)))
     fhandle[4]:write(string.format("%g %g\n",mocha.xscl[x],mocha.yscl[x]))
   end
-  fhandle[1]:close()
-  fhandle[2]:close()
-  fhandle[3]:close()
-  fhandle[4]:close()
+  for i,v in ipairs(fhandle) do v:close() end
 end
 
 function transformate(line,trans)
