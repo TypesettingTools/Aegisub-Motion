@@ -66,7 +66,7 @@ gui.main = {
     label = "                                             MOTD"}, --"  Enter the file to the path containing your shear/perspective data."},
   [5] = { class = "label";
       x = 0; y = 0; height = 1; width = 10;
-    label = "                 Paste data or enter a filepath."},
+    label = "                              Paste data or enter a filepath."},
   -- GIVE ME SOME (WHITE)SPACE
   [6] = { class = "label";
       x = 0; y = 6; height = 1; width = 10;
@@ -86,6 +86,9 @@ gui.main = {
   [16] = { class = "checkbox";
       x = 0; y = 9; height = 1; width = 3;
     value = false; name = "rot"; label = "Rotation"},
+  [27] = { class = "checkbox";
+      x = 0; y = 9; height = 1; width = 3;
+    value = true; name = "org"; label = "Origin"},
   [17] = { class = "intedit"; -- these are both retardedly wide and retardedly tall. They are downright frustrating to position in the interface.
       x = 7; y = 7; height = 1; width = 3;
     value = 2; name = "pround"; min = 0; max = 5;},
@@ -121,11 +124,45 @@ gui.main = {
 prefix = aegisub.decode_path("?data/a-mo/")
 
 gui.motd = {
-  "The culprit was a huge truck.";
-  "Error 0x0045AF: Runtime requested to be terminated in an unusual fashion.";
-  "Powered by 100% genuine sweatshop child laborers.";
-  "vsfilter hates you.";
+  "The culprit was a huge truck.",
+  "Error 0x0045AF: Runtime requested to be terminated in an unusual fashion.",
+  "Powered by 100% genuine sweatshop child laborers.",
+  "vsfilter hates you.",
   "OFF DA RAILZ"
+}
+
+patterns = { -- so check out this cool new trick I thought of... which I'm sure is completely unoriginal but still makes me feel slightly intelligent.
+  ['xscl']    = "\\fscx([%d%.]+)",
+  ['yscl']    = "\\fscy([%d%.]+)",
+  ['ali']     = "\\an([1-9])",
+  ['zrot']    = "\\frz?([%-%d%.]+)",
+  ['bord']    = "\\bord([%d%.]+)",
+  ['xbord']   = "\\xbord([%d%.]+)",
+  ['ybord']   = "\\ybord([%d%.]+)",
+  ['shad']    = "\\shad([%-%d%.])",
+  ['xshad']   = "\\xshad([%-%d%.]+)",
+  ['yshad']   = "\\yshad([%-%d%.]+)",
+  ['resetti'] = "\\r([^\\}]+)" -- obsolete, since I decided to not support multiple override blocks per line... though I'll keep it here since it might be useful to my cleanup function?
+}
+
+alltags = {
+  ['alpha']   = "\\alpha&H(%x%x)&", -- oh well.
+  ['l1a']     = "\\1a&H(%x%x)&",
+  ['l2a']     = "\\2a&H(%x%x)&",
+  ['l3a']     = "\\3a&H(%x%x)&",
+  ['l4a']     = "\\4a&H(%x%x)&",
+  ['l1c']     = "\\c&H(%x)+&",
+  ['l1c2']    = "\\1c&H(%x)+&",
+  ['l2c']     = "\\2c&H(%x)+&",
+  ['l3c']     = "\\3c&H(%x)+&",
+  ['l4c']     = "\\4c&H(%x)+&",
+  ['clip']    = "\\clip%((.-)%)",
+  ['iclip']   = "\\iclip%((.-)%)",
+  ['be']      = "\\be([%d%.]+)",
+  ['blur']    = "\\blur([%d%.]+)",
+  ['fax']    = "\\fax([%-%d%.]+)",
+  ['fay']    = "\\fay([%-%d%.]+)",
+  ['fay']    = "\\fay([%-%d%.]+)",
 }
 
 function preprocessing(sub, sel)
@@ -143,7 +180,6 @@ function preprocessing(sub, sel)
       if fade_a then
         line.text = line.text:gsub("\\fade%([%d]+,[%d]+,[%d]+,[%-%d]+,[%-%d]+,[%-%d]+,[%-%d]+%)",string.format("\\alpha&H%X&\\t(%d,%d,\\alpha&H%X&)\\t(%d,%d,\\alpha&H%X&)",fade_a,fade_s,fade_m,fade_a2,fade_m2,fade_3,fade_a3)) -- okay that wasn't actually so bad
       end
-      line.text = line.text:gsub("\\(i?)clip%(([%-%d]+,[%-%d]+,[%-%d]+,[%-%d]+)%)","\\%1clip%2") -- necessary because I can't think of a \t regex that will work properly without it.
     end
     sub[v] = line -- replace
   end
@@ -151,42 +187,27 @@ function preprocessing(sub, sel)
 end
 
 function getinfo(sub, line, styles, num)
-  patterns = { -- so check out this cool new trick I thought of... which I'm sure is completely unoriginal but still makes me feel slightly intelligent.
-    ['xscl'] = "\\fscx([%d%.]+)",
-    ['yscl'] = "\\fscy([%d%.]+)",
-    ['ali'] = "\\an([1-9])",
-    ['zrot'] = "\\frz?([%-%d%.]+)",
-    ['bord'] = "\\bord([%d%.]+)",
-    ['xbord'] = "\\xbord([%d%.]+)",
-    ['ybord'] = "\\ybord([%d%.]+)",
-    ['shad'] = "\\shad([%-%d%.])",
-    ['xshad'] = "\\xshad([%-%d%.]+)",
-    ['yshad'] = "\\yshad([%-%d%.]+)",
-    ['resetti'] = "\\r([^\\}]+)" -- obsolete, since I decided to not support multiple override blocks per line... though I'll keep it here since it might be useful to my cleanup function?
-  }
   local header = { -- yeah imma just keep using it meng
     ['scale_x'] = "xscl",
     ['scale_y'] = "yscl",
-    ['align'] = "ali",
-    ['angle'] = "zrot",
+    ['align']   = "ali",
+    ['angle']   = "zrot",
     ['outline'] = "bord",
-    ['shadow'] = "shad"
+    ['shadow']  = "shad"
   }
   for k, v in pairs(header) do
     line[v] = styles[line.style][k]
     aegisub.log(5,"Line %d: %s set to %g (from header)\n", num, v, line[v])
   end
-  -- convert bord to xbord and ybord
-  if line.bord then line.xbord = tonumber(bord); line.ybord = tonumber(bord); end
-  if line.shad then line.xshad = tonumber(shad); line.yshad = tonumber(shad); end
+  -- don't actually need these.
+  if line.bord then line.xbord = tonumber(line.bord); line.ybord = tonumber(line.bord); end
+  if line.shad then line.xshad = tonumber(line.shad); line.yshad = tonumber(line.shad); end
   if line.text:match("\\pos%([%-%d%.]+,[%-%d%.]+%)") then -- have to check now since default pos is calculated/given by karaskel
     line.xpos, line.ypos = line.text:match("\\pos%(([%-%d%.]+),([%-%d%.]+)%)")
     line.xorg, line.yorg = line.xpos, line.ypos
   end
   if line.text:match("\\org%(([%-%d%.]+),([%-%d%.]+)%)") then -- this should be more correctly handled now
     line.xorg, line.yorg = line.text:match("\\org%(([%-%d%.]+),([%-%d%.]+)%)")
-  else 
-    line.xorg, line.yorg = line.xpos, line.ypos
   end
   line.trans = {}
   local a = line.text:match("%{(.-)%}")
@@ -200,15 +221,21 @@ function getinfo(sub, line, styles, num)
       end
     end
     for b in line.text:gfind("%{(.-)%}") do
-      for t_start,t_end,t_exp,t_eff in b:gfind("\\t%(([%-%d]+),([%-%d]+),([%d%.]*),?(.-)%)") do -- this will return an empty string for t_exp if no exponential factor is specified
+    --[[  for t_start,t_end,t_exp,t_eff in b:gfind("\\t%(([%-%d]+),([%-%d]+),([%d%.]*),?(.-)%)") do -- this will return an empty string for t_exp if no exponential factor is specified
+        if t_exp == "" then t_exp = 1 end -- set it to 1 because stuff and things
+        table.insert(line.trans,{tonumber(t_start),tonumber(t_end),tonumber(t_exp),t_eff})
+        aegisub.log(5,"Line %d: \\t(%g,%g,%g,%s) found\n",num,t_start,t_end,t_exp,t_eff)
+      end --]]
+      for c in b:gfind("\\t(%b())") do -- this will return an empty string for t_exp if no exponential factor is specified
+        t_start,t_end,t_exp,t_eff = c:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
         if t_exp == "" then t_exp = 1 end -- set it to 1 because stuff and things
         table.insert(line.trans,{tonumber(t_start),tonumber(t_end),tonumber(t_exp),t_eff})
         aegisub.log(5,"Line %d: \\t(%g,%g,%g,%s) found\n",num,t_start,t_end,t_exp,t_eff)
       end
     end
     -- have to run it again because of :reasons: related to bad programming
-    if line.bord then line.xbord = tonumber(bord); line.ybord = tonumber(bord); end
-    if line.shad then line.xshad = tonumber(shad); line.yshad = tonumber(shad); end
+    if line.bord then line.xbord = tonumber(line.bord); line.ybord = tonumber(line.bord); end
+    if line.shad then line.xshad = tonumber(line.shad); line.yshad = tonumber(line.shad); end
   else
     aegisub.log(5,"No comment/override block found in line %d: %s\n",v-strt,a)
   end
@@ -241,9 +268,7 @@ function information(sub, sel)
     opline.xpos, opline.ypos = opline.x, opline.y -- cuz like stuff and things man
     opline.xorg, opline.yorg = opline.x, opline.y
     opline = getinfo(sub, opline, accd.styles, v-strt)
-    for k, v in pairs(patterns) do
-      aegisub.log(5,"opline.%s = %s\n", k, tostring(opline[k]))
-    end
+    aegisub.log(0,"opline.xbord = %s\n",tostring(opline.xbord))
     opline.startframe, opline.endframe = aegisub.frame_from_ms(opline.start_time), aegisub.frame_from_ms(opline.end_time)
     if not opline.xpos or not opline.ypos then -- just to be safe
       table.insert(accd.poserrs,{i,v}) -- this is an old data "structure" that I'm not sure I did anything with
@@ -399,12 +424,22 @@ end
 
 function cleanup(sub, sel)
   for i, v in ipairs(sel) do
-    local derp = sub[v]
-    derp.text = derp.text:gsub("}"..string.char(6).."{","")
-    derp.text = derp.text:gsub(string.char(6),"")
-    derp.effect = ""
-    sub[v] = derp
+    local line = sub[v]
+    line.text = line.text:gsub("}"..string.char(6).."{","") -- merge sequential override blocks if they are marked as being the ones we wrote
+    line.text = line.text:gsub(string.char(6),"") -- remove superfluous marker characters for when there is no override block at the beginning of the original line
+    line.text = line.text:gsub("\\t%(([%-%d]+),([%-%d]+),([%d%.]*),?(.-)%)",cleantrans) -- clean up transformations (remove transformations that have completed)
+    --line.text = line.text:gsub("\\(i?clip)([%-%d]+,[%-%d]+,[%-%d]+,[%-%d]+)","\\%1%(%2%)") -- fix our previous \i?clip() mutilation
+    
+    line.effect = ""
+    sub[v] = line
   end
+end
+
+function cleantrans(cont)
+  local t_s, t_e, ex, t_s = cont:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
+  if tonumber(t_e) <= 0 or tonumber(t_e) <= tonumber(t_s) then return string.format("%s",eff) end
+  if tonumber(ex) == 1 then return string.format("\\t(%s,%s,%s)",t_s,t_e,eff) end
+  return string.format("\\t(%s,%s,%s,%s)",t_s,t_e,ex,eff)
 end
 
 function frame_by_frame(sub,accd,opts)
@@ -451,6 +486,7 @@ function frame_by_frame(sub,accd,opts)
     opts.rround = 2
   end
   if opts.rot then
+    table.insert(operations,orgate)
     table.insert(operations,rotate)
     table.insert(eraser,"\\\org%([%-%d%.]+,[%-%d%.]+%)")
     table.insert(eraser,"\\frz[%-%d%.]+")
@@ -507,6 +543,7 @@ function frame_by_frame(sub,accd,opts)
             tag = tag.."}"..string.char(6)
           end
           v.text = tag..v.text
+          v.effect = "aa-mou"
           sub[v.num] = v -- yep
         else
           rstartf, rendf = rendf, rstartf -- un-reverse them
@@ -549,6 +586,7 @@ function frame_by_frame(sub,accd,opts)
             tag = tag.."}"..string.char(6)
           end
           v.text = tag..v.text
+          v.effect = "aa-mou"
           sub[v.num] = v -- yep
         else
           for x = rstartf,rendf do
@@ -654,7 +692,7 @@ end
 function transformate(line,trans)
   local t_s = trans[1] - line.time_delta -- well, that was easy
   local t_e = trans[2] - line.time_delta
-  return line.text:gsub("\\t%([%-%d]+,[%-%d]+,[%d%.]*,?.-%)","\\"..string.char(1)..string.format("t(%d,%d,%g,%s)",t_s,t_e,trans[3],trans[4]),1) -- I hate how messy this expression is
+  return line.text:gsub("\\t%b()","\\"..string.char(1)..string.format("t(%d,%d,%g,%s)",t_s,t_e,trans[3],trans[4]),1)
 end
 
 function scalify(line,mocha,opts)
@@ -694,7 +732,13 @@ function VScalify(line,mocha,opts)
 end
 
 function rotate(line,mocha,opts,iter)
-  return string.format("\\org(%g,%g)\\frz%g",round(mocha.xpos[iter] - line.xorgd,opts.rround),round(mocha.ypos[iter] - line.yorgd,opts.rround),round(mocha.zrot[iter]-line.zrotd,opts.rround)) -- copypasta
+  return string.format("\\frz%g",round(mocha.zrot[iter]-line.zrotd,opts.rround)) -- copypasta
+end
+
+function orgate(line,mocha,opts,iter)
+  local xorg = round(mocha.xpos[iter]-line.xorgd,opts.rround)
+  local yorg = round(mocha.ypos[iter]-line.yorgd,opts.rround)
+  return string.format("\\org(%g,%g)",xorg,yorg) -- copypasta
 end
 
 function printmem(a)
