@@ -1,28 +1,19 @@
-===Now on v0.1.lessbad!===
+Hey there, buddy! If you're reading this, then that means you're probably looking at the next iteration of aegisub-motion!
 
-====Things That Don't Work Right!====
+What does that mean? Well, we've got a whole lot of new features, and the user interface was somewhat "rewritten" to be Less Retarded™.
 
-*\clip() inside of \t isn't handled as well as it could be
+*Clicking on the labels next to checkboxes now checks the checkboxes! Much less mouse-eye coordination required! Great for those of you with Parkinson's Disease!
+*Linear output! For when you don't see a good reason to make a sign span 400 lines in your script when the same effect can be achieved in one!
+*Exporting your data for graphing with gnuplot! Kind of!
+*It doesn't currently work with versions of Aegisub that aren't trunk!
+*Cleaner output, probably! Removal of redundant tags and finished transforms from tracked lines!
+*No more mutilation of \clip!
+*Information gathering made into a more distributed clusterfuck!
+*A slightly larger memory footprint!
+*Progress bars! Bitches love progress bars, right?
+*Much more likely to crash without any explanation!
+*An outdated readme that will potentially be rewritten! Probably!
 
-====Fancy New Features!====
+To clarify, this is the development branch (hurr hurr) of aegisub-motion and as such, is likely to be unstable and bug-riddled, if it even works at all. I don't usually check to make sure the script compiles before pushing commits, the way I do with the master branch, so odds are you might not be able to run it. Well, what can you do about it? You can bitch at me to push a working version, which is usually reasonably fast. Of course, since I've gotten exactly 0 constructive feedback on this project thus far, I doubt things will come to that. Otherwise, sit back, relax, and enjoy the show.
 
-*Accepting pasted data as an alternative to a filepath.
-*Support for \t() transformations, and support for \fad() (by converting it to a transform).
-*Writing configuration to the script header (more or less to create temporary defaults).
-*A potentially more flexible parser. Maybe.
-*Other, even more ambitious things that were deimplemented because they were on the path to miserable failure.
-*Even more painfully horrible code!
-
-And probably there weren't even any regressions that I immediately noticed!
-
-====Fancy Planned Features!====
-
-*Support for \fade().
-*Support for moving \clip() and \iclip() with position (at least rectangular).
-*A nice function that cleans up generated lines.
-*Possibly adding some really hacky gnuplot integration.
-*Investigate memory usage.
-
-====Things This Can't Do for You:====
-
-Nothing!
+But if you do use it, and you have suggestions/requests, '''''tell me about them'''''!
