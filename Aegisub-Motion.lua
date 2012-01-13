@@ -127,20 +127,13 @@ for k,v in pairs(aegisub) do
     gui.main[99] = { class = "label";
       x = 7; y = 21; height = 1; width = 3;
     label = "You are using trunk."}
+    break
   else trunk = false end
 end
 
 if trunk then
   prefix = aegisub.decode_path("?data/a-mo/")
 end
-  
-gui.motd = {
-  "The culprit was a huge truck.",
-  "Error 0x0045AF: Runtime requested to be terminated in an unusual fashion.",
-  "Powered by 100% genuine sweatshop child laborers.",
-  "vsfilter hates you.",
-  "OFF DA RAILZ"
-}
 
 patterns = { -- so check out this cool new trick I thought of... which I'm sure is completely unoriginal but still makes me feel slightly intelligent.
   ['xscl']    = "\\fscx([%d%.]+)",
@@ -331,8 +324,6 @@ function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   aegisub.progress.title("Selecting Gerbils")
   --local ourkeys = check_head(sub)
   gui.main[2].text = accd.errmsg -- insert our error messages
-  local rand = ((os.clock()*os.time()+os.clock())*100) -- I suppose it's bad if this gives more variation than does math.random().
-  gui.main[3].text = gui.motd[math.floor(rand%5)+1] -- this would work a lot better with more than 4 items
   printmem("GUI startup")
   local button, config = aegisub.dialog.display(gui.main, {"Go","Abort","Export"})
   if button == "Go" then
@@ -544,6 +535,8 @@ function frame_by_frame(sub,accd,opts)
           rstartf, rendf = rendf, rstartf -- un-reverse them
           for x = rstartf,rendf do
             printmem("Inner loop")
+            aegisub.progress.title("Processing frame %g/%g",x-rstartf+1,rendf-rstartf+1)
+            aegisub.progress.set((x-rstartf)/(rendf-rstartf)*100)
             if aegisub.progress.is_cancelled() then error("User cancelled") end
             local tag = "{"
             local iter = rendf-x+1 -- hm
@@ -589,6 +582,7 @@ function frame_by_frame(sub,accd,opts)
           for x = rstartf,rendf do
             printmem("Inner loop")
             aegisub.progress.title("Processing frame %g/%g",x-rstartf+1,rendf-rstartf+1)
+            aegisub.progress.set((x-rstartf)/(rendf-rstartf)*100)
             if aegisub.progress.is_cancelled() then error("User cancelled") end -- probably should have put this in here a long time ago
             local tag = "{"
             v.ratx = mocha.xscl[x]/mocha.xscl[rstartf] -- DIVISION IS SLOW
