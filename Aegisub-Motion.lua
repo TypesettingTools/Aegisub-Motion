@@ -121,8 +121,19 @@ gui.main = {
     value = false; name = "exp"; label = "Export"}
 }
 
-prefix = aegisub.decode_path("?data/a-mo/")
+for k,v in pairs(aegisub) do
+  if k == "decode_path" then
+    trunk = true
+    gui.main[99] = { class = "label";
+      x = 7; y = 21; height = 1; width = 3;
+    label = "You are using trunk."}
+  else trunk = false end
+end
 
+if trunk then
+  prefix = aegisub.decode_path("?data/a-mo/")
+end
+  
 gui.motd = {
   "The culprit was a huge truck.",
   "Error 0x0045AF: Runtime requested to be terminated in an unusual fashion.",
@@ -145,8 +156,19 @@ patterns = { -- so check out this cool new trick I thought of... which I'm sure 
   ['resetti'] = "\\r([^\\}]+)" -- obsolete, since I decided to not support multiple override blocks per line... though I'll keep it here since it might be useful to my cleanup function?
 }
 
-alltags = { -- yeah...
-  ['alpha']   = "\\alpha&H(%x%x)&", -- oh well.
+alltags = { -- there is probably a significantly better way to do this.
+  ['xscl']    = "\\fscx([%d%.]+)",
+  ['yscl']    = "\\fscy([%d%.]+)",
+  ['ali']     = "\\an([1-9])",
+  ['zrot']    = "\\frz?([%-%d%.]+)",
+  ['bord']    = "\\bord([%d%.]+)",
+  ['xbord']   = "\\xbord([%d%.]+)",
+  ['ybord']   = "\\ybord([%d%.]+)",
+  ['shad']    = "\\shad([%-%d%.])",
+  ['xshad']   = "\\xshad([%-%d%.]+)",
+  ['yshad']   = "\\yshad([%-%d%.]+)",
+  ['resetti'] = "\\r([^\\}]+)",
+  ['alpha']   = "\\alpha&H(%x%x)&",
   ['l1a']     = "\\1a&H(%x%x)&",
   ['l2a']     = "\\2a&H(%x%x)&",
   ['l3a']     = "\\3a&H(%x%x)&",
@@ -230,7 +252,7 @@ function getinfo(sub, line, styles, num)
     if line.bord then line.xbord = tonumber(line.bord); line.ybord = tonumber(line.bord); end
     if line.shad then line.xshad = tonumber(line.shad); line.yshad = tonumber(line.shad); end
   else
-    aegisub.log(5,"No comment/override block found in line %d: %s\n",v-strt,a)
+    aegisub.log(5,"No comment/override block found in line %d: %s\n",num,a)
   end
   return line
 end
@@ -415,45 +437,6 @@ function parse_input(input,shx,shy)
   return mocha -- hurr durr
 end
 
-function cleanup(sub, sel)
-  for i, v in ipairs(sel) do
-    local line = sub[sel[#sel-i+1]] -- iterate backwards (makes line deletion sane)
-    line.text = line.text:gsub("}"..string.char(6).."{","") -- merge sequential override blocks if they are marked as being the ones we wrote
-    line.text = line.text:gsub(string.char(6),"") -- remove superfluous marker characters for when there is no override block at the beginning of the original line
-    line.text = line.text:gsub("\\t(%b())",cleantrans) -- clean up transformations (remove transformations that have completed)
-    line.text = line.text:gsub("{}","") -- I think this is irrelevant. But whatever.
-    for a in line.text:gmatch("{(.-)}") do
-      local b = a
-      local trans = {}, {}
-      repeat -- have to cut out transformations so their contents don't get detected as dups
-        if aegisub.progress.is_cancelled() then error("User cancelled") end
-        local low, high, trabs = a:find("(\\t%b())")
-        if low then
-          a = a:gsub("\\t%b()",string.char(3),1) -- nngah
-          table.insert(trans,trabs)
-        end
-      until not low 
-      for k,v in pairs(alltags) do
-        local _, num = a:gsub(v,"")
-        a = a:gsub(v,"",num-1)
-      end
-      for i,v in ipairs(trans) do
-        a = a:gsub(string.char(3),v,1)
-      end
-      line.text = line.text:gsub("{(.-)}","{"..a.."}",1) -- I think...
-    end
-    line.effect = ""
-    sub[sel[#sel-i+1]] = line
-  end
-end
-
-function cleantrans(cont)
-  local t_s, t_e, ex, eff = cont:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
-  if tonumber(t_e) <= 0 or tonumber(t_e) <= tonumber(t_s) then return string.format("%s",eff) end
-  if tonumber(ex) == 1 then return string.format("\\t(%s,%s,%s)",t_s,t_e,eff) end
-  return string.format("\\t(%s,%s,%s,%s)",t_s,t_e,ex,eff)
-end
-
 function frame_by_frame(sub,accd,opts)
   printmem("Start of main loop")
   local mocha = parse_input(opts.mocpat,accd.shx,accd.shy) -- global variables have no automatic gc
@@ -537,7 +520,7 @@ function frame_by_frame(sub,accd,opts)
       v.text = v.text:gsub(ei,"")
     end
     local orgtext = v.text -- tables are passed as references.
-    if opts.pos and not v.xpos then
+    if opts.pos and not v.xpos then -- I don't think I need this any more
       aegisub.log(1,"Line %d is being skipped because it is missing a \\pos() tag and you said to track position. Moron.",v.num) -- yeah that should do it.
     else
       if opts.reverse then -- reverse order
@@ -605,6 +588,7 @@ function frame_by_frame(sub,accd,opts)
         else
           for x = rstartf,rendf do
             printmem("Inner loop")
+            aegisub.progress.title("Processing frame %g/%g",x-rstartf+1,rendf-rstartf+1)
             if aegisub.progress.is_cancelled() then error("User cancelled") end -- probably should have put this in here a long time ago
             local tag = "{"
             v.ratx = mocha.xscl[x]/mocha.xscl[rstartf] -- DIVISION IS SLOW
@@ -680,43 +664,6 @@ function possify(line,mocha,opts,iter)
   return string.format("\\pos(%g,%g)",round(xpos,opts.pround),round(ypos,opts.pround))
 end
 
-function export(accd,mocha)
-  -- table of file names
-  local fnames = {
-    "%s X-Y %d.txt",
-    "%s X-T %d.txt",
-    "%s Y-T %d.txt",
-    "%s sclX-sclY %d.txt"
-  }
-  -- open files
-  if prefix == nil then prefix = "" end
-  local name = accd.lines[1].text_stripped:split(" ")
-  name = name[1]
-  for k,v in ipairs(fnames) do
-    local it = 0
-    repeat
-      if aegisub.progress.is_cancelled() then error("User cancelled") end
-      it = it + 1
-      local n = string.format(prefix..v,name,it)
-      local f = io.open(n,'r')
-      if f then io.close(f); f = false else f = true; fnames[k] = n end -- uhhhhhhh...
-    until f == true -- this is probably the worst possible way of doing this imaginable
-  end
-  local fhandle = {}
-  for k,v in ipairs(fnames) do
-    aegisub.log(0,"%d: %s\n",k,v)
-    table.insert(fhandle,io.open(v,'w'))
-  end
-  for x = 1, #mocha.xpos do
-    if aegisub.progress.is_cancelled() then error("User cancelled") end
-    fhandle[1]:write(string.format("%g %g\n",mocha.xpos[x],mocha.ypos[x]))
-    fhandle[2]:write(string.format("%g %g\n",mocha.xpos[x],aegisub.ms_from_frame(accd.startframe+x-1)))
-    fhandle[3]:write(string.format("%g %g\n",mocha.xpos[x],aegisub.ms_from_frame(accd.startframe+x-1)))
-    fhandle[4]:write(string.format("%g %g\n",mocha.xscl[x],mocha.yscl[x]))
-  end
-  for i,v in ipairs(fhandle) do v:close() end
-end
-
 function transformate(line,trans)
   local t_s = trans[1] - line.time_delta -- well, that was easy
   local t_e = trans[2] - line.time_delta
@@ -767,6 +714,87 @@ function orgate(line,mocha,opts,iter)
   local xorg = round(mocha.xpos[iter]-line.xorgd,opts.rround)
   local yorg = round(mocha.ypos[iter]-line.yorgd,opts.rround)
   return string.format("\\org(%g,%g)",xorg,yorg) -- copypasta
+end
+
+function export(accd,mocha)
+  --accd.shx+70, accd.shy+80
+  local bigstring = string.format(" \
+  ")
+  -- table of file names
+  local fnames = {
+    "%s X-Y %d.txt",
+    "%s T-X %d.txt",
+    "%s T-Y %d.txt",
+    "%s sclX-sclY %d.txt"
+  }
+  -- open files
+  if prefix == nil then prefix = "" end
+  local name = accd.lines[1].text_stripped:split(" ")
+  name = name[1]
+  if not name then name = "Untitled" end
+  for k,v in ipairs(fnames) do
+    local it = 0
+    repeat
+      if aegisub.progress.is_cancelled() then error("User cancelled") end
+      it = it + 1
+      local n = string.format(prefix..v,name,it)
+      local f = io.open(n,'r')
+      if f then io.close(f); f = false else f = true; fnames[k] = n end -- uhhhhhhh...
+    until f == true -- this is probably the worst possible way of doing this imaginable
+  end
+  local fhandle = {}
+  for k,v in ipairs(fnames) do
+    aegisub.log(0,"%d: %s\n",k,v)
+    table.insert(fhandle,io.open(v,'w'))
+  end
+  for x = 1, #mocha.xpos do
+    if aegisub.progress.is_cancelled() then error("User cancelled") end
+    local cs = aegisub.ms_from_frame(accd.startframe+x-1)/10 - aegisub.ms_from_frame(accd.startframe)/10 -- (normalized to start time)
+    fhandle[1]:write(string.format("%g %g\n",mocha.xpos[x],mocha.ypos[x]))
+    fhandle[2]:write(string.format("%g %g\n",cs,mocha.xpos[x]))
+    fhandle[3]:write(string.format("%g %g\n",cs,mocha.ypos[x]))
+    fhandle[4]:write(string.format("%g %g\n",mocha.xscl[x],mocha.yscl[x]))
+  end
+  for i,v in ipairs(fhandle) do v:close() end
+end
+
+function cleanup(sub, sel)
+  for i, v in ipairs(sel) do
+    local line = sub[sel[#sel-i+1]] -- iterate backwards (makes line deletion sane)
+    line.text = line.text:gsub("}"..string.char(6).."{","") -- merge sequential override blocks if they are marked as being the ones we wrote
+    line.text = line.text:gsub(string.char(6),"") -- remove superfluous marker characters for when there is no override block at the beginning of the original line
+    line.text = line.text:gsub("\\t(%b())",cleantrans) -- clean up transformations (remove transformations that have completed)
+    line.text = line.text:gsub("{}","") -- I think this is irrelevant. But whatever.
+    for a in line.text:gmatch("{(.-)}") do
+      local b = a
+      local trans = {}, {}
+      repeat -- have to cut out transformations so their contents don't get detected as dups
+        if aegisub.progress.is_cancelled() then error("User cancelled") end
+        local low, high, trabs = a:find("(\\t%b())")
+        if low then
+          a = a:gsub("\\t%b()",string.char(3),1) -- nngah
+          table.insert(trans,trabs)
+        end
+      until not low 
+      for k,v in pairs(alltags) do
+        local _, num = a:gsub(v,"")
+        a = a:gsub(v,"",num-1)
+      end
+      for i,v in ipairs(trans) do
+        a = a:gsub(string.char(3),v,1)
+      end
+      line.text = line.text:gsub("{(.-)}","{"..a.."}",1) -- I think...
+    end
+    line.effect = ""
+    sub[sel[#sel-i+1]] = line
+  end
+end
+
+function cleantrans(cont)
+  local t_s, t_e, ex, eff = cont:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
+  if tonumber(t_e) <= 0 or tonumber(t_e) <= tonumber(t_s) then return string.format("%s",eff) end
+  if tonumber(ex) == 1 then return string.format("\\t(%s,%s,%s)",t_s,t_e,eff) end
+  return string.format("\\t(%s,%s,%s,%s)",t_s,t_e,ex,eff)
 end
 
 function printmem(a)
