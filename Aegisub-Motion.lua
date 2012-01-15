@@ -74,6 +74,9 @@ gui.main = {
   [8] = { class = "checkbox";
       x = 0; y = 7; height = 1; width = 3;
     value = true; name = "pos"; label = "Position"},
+  [9] = { class = "checkbox";
+      x = 3; y = 7; height = 1; width = 3;
+    value = true; name = "clip"; label = "Clip"},
   [10] = { class = "checkbox";
       x = 0; y = 8; height = 1; width = 2;
     value = true; name = "scl"; label = "Scale"},
@@ -124,9 +127,6 @@ gui.main = {
 for k,v in pairs(aegisub) do
   if k == "decode_path" then
     trunk = true
-    gui.main[99] = { class = "label";
-      x = 7; y = 21; height = 1; width = 3;
-    label = "You are using trunk."}
     break
   else trunk = false end
 end
@@ -146,7 +146,7 @@ patterns = { -- so check out this cool new trick I thought of... which I'm sure 
   ['shad']    = "\\shad([%-%d%.])",
   ['xshad']   = "\\xshad([%-%d%.]+)",
   ['yshad']   = "\\yshad([%-%d%.]+)",
-  ['resetti'] = "\\r([^\\}]+)" -- obsolete, since I decided to not support multiple override blocks per line... though I'll keep it here since it might be useful to my cleanup function?
+  ['resetti'] = "\\r([^\\}]+)" -- obsolete, since I decided to not support multiple override blocks per line... though I'll keep it here since it might be useful for the cleanup function?
 }
 
 alltags = { -- there is probably a significantly better way to do this.
@@ -233,6 +233,8 @@ function getinfo(sub, line, styles, num)
         aegisub.log(5,"Line %d: %s set to %s\n",num,k,tostring(_))
       end
     end
+    line.clip = a:match("\\clip(%b())") -- hum
+    line.clip = line.clip:sub(2,-2)
     for b in line.text:gmatch("%{(.-)%}") do
       for c in b:gmatch("\\t(%b())") do -- this will return an empty string for t_exp if no exponential factor is specified
         t_start,t_end,t_exp,t_eff = c:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
@@ -712,12 +714,20 @@ end
 
 function export(accd,mocha)
   --accd.shx+70, accd.shy+80
-  local bigstring = string.format(" \
-  ")
+  local bigstring = string.format("set terminal png small transparent truecolor size %g,%G; set output 'testing X-Y 1.png'\
+set title 'Plot of X vs Y'\
+set xtics %g out; set mxtics 5; set xlabel 'X Position (Pixels)'; set xrange [0:%g]\
+set ytics %g out; set mytics 5; set ylabel 'Y Position (Pixels)'; set yrange [0:%g] reverse\
+set grid; stats 'testing X-Y 1.txt' using 1:2 name 'XvYstat'\
+f(x) = m*x + b; fit f(x) 'testing X-Y 1.txt' using 1:2 via m,b\
+if (b >= 0) slope = sprintf('Equation: y(x) = %.3fx + %.3f',m,b); else slope = sprintf('Equation: y(x) = %.3fx - %.3f',m,0-b)\
+sta = sprintf('R^2: %.3f - RMS of residuals: %.3f',XvYstat_correlation**2,FIT_STDFIT)\
+set label 1 slope at 1,-30 front; set label 2 sta at 1,-18 front\
+plot 'testing X-Y 1.txt' using 1:2 title 'Motion data' with points, f(x) title 'Linear regression' with lines")
   -- table of file names
   local fnames = {
     "%s X-Y %d.txt",
-    "%s T-X %d.txt",
+    "%s T-X %d.txt", -- why time instead of frame, you ask? Simply put, VFR.
     "%s T-Y %d.txt",
     "%s sclX-sclY %d.txt"
   }
