@@ -1,7 +1,12 @@
-Hey there, buddy! If you're reading this, then that means you're probably looking at the next iteration of aegisub-motion!
+This is the unstable branch of aegisub-motion.
 
-What does that mean? Well, we've got a whole lot of new features, and the user interface was somewhat "rewritten" to be Less Retarded™.
+What does that mean? Well, we've got a whole lot of new features, and the user interface was somewhat “rewritten” to be Less Retarded™.
 
+Requested features (will potentially be implemented in the future):
+*Move \i?clip() with position (suggested by tophf)
+*Automatically generate trimmed avisynth script and possibly even automagically encode it (suggested by tp7)
+
+“Implemented” features (prone to not work right or at all):
 *Clicking on the labels next to checkboxes now checks the checkboxes! Much less mouse-eye coordination required! Great for those of you with Parkinson's Disease!
 *Linear output! For when you don't see a good reason to make a sign span 400 lines in your script when the same effect can be achieved in one!
 *Exporting your data for graphing with gnuplot! Kind of!
@@ -12,7 +17,10 @@ What does that mean? Well, we've got a whole lot of new features, and the user i
 *Progress bars! Bitches love progress bars, right?
 *Much more likely to crash without any explanation!
 *An outdated readme that will potentially be rewritten! Probably!
+*Possibly fixed rotation handling maybe! (Needs more investigation)
 
-To clarify, this is the development branch (hurr hurr) of aegisub-motion and as such, is likely to be unstable and bug-riddled, if it even works at all. I don't usually check to make sure the script compiles before pushing commits, the way I do with the master branch, so odds are you might not be able to run it. Well, what can you do about it? You can bitch at me to push a working version, which is usually reasonably fast. Of course, since I've gotten exactly 0 constructive feedback on this project thus far, I doubt things will come to that. Otherwise, sit back, relax, and enjoy the show.
+I don't test this branch before pushing commits, so don't expect it to work.
+
+The last stable version is [https://github.com/torque/aegisub-motion/tree/master still available]. It's not perfect, but at least it works. Mostly (note: I don't think rotation works right).
 
 But if you do use it, and you have suggestions/requests, '''''tell me about them'''''!
