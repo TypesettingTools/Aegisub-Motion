@@ -233,7 +233,7 @@ function getinfo(sub, line, styles, num)
         aegisub.log(5,"Line %d: %s set to %s\n",num,k,tostring(_))
       end
     end
-    line.clip = a:match("\\clip(%b())") -- hum
+    line.clips, line.clip = a:match("\\(i?clip)(%b())") -- hum
     line.clip = line.clip:sub(2,-2)
     for b in line.text:gmatch("%{(.-)%}") do
       for c in b:gmatch("\\t(%b())") do -- this will return an empty string for t_exp if no exponential factor is specified
@@ -446,6 +446,8 @@ function frame_by_frame(sub,accd,opts)
   if opts.pos then
     table.insert(operations,possify)
     table.insert(eraser,"\\\pos%([%-%d%.]+,[%-%d%.]+%)") -- \\\ because I DON'T FUCKING KNOW OKAY THAT'S JUST THE WAY IT WORKS
+    if opts.clip then
+      table.insert(eraser,"\\i?clip%b()")
   end
   if opts.scl then
     if opts.vsfilter then
@@ -657,7 +659,32 @@ end
 function possify(line,mocha,opts,iter)
   local xpos = mocha.xpos[iter]-(line.xdiff*line.ratx) -- allocating memory like a bawss
   local ypos = mocha.ypos[iter]-(line.ydiff*line.raty)
-  return string.format("\\pos(%g,%g)",round(xpos,opts.pround),round(ypos,opts.pround))
+  return string.format("\\pos(%g,%g)",round(xpos,opts.pround),round(ypos,opts.pround)) 
+end
+
+function clippinate(line,mocha,opts,iter)
+  local switch = 0
+  local newvals = {}
+  local xpos = mocha.xpos[iter] - line.xdiff
+  for a in line.clip:gmatch("[%.%d%-]+") do -- about 90% sure no decimal points allowed
+    if switch = 0 then
+      local new = round((tonumber(a) - line.xpos + xpos),0) -- (delta?)
+      table.insert(newvals,new)
+      line.clip:gsub("[%.%d%-]+",string.char(1),1) -- argh, I'm getting tired of this technique, but I don't know any other way of doing this.
+      switch = 1
+    else
+      local new = round((tonumber(a) - line.ypos + ypos),0)
+      table.insert(newvals,new)
+      line.clip:gsub("[%.%d%-]+",string.char(1),1)
+      switch = 0
+    end
+  end
+  local i = 1
+  for a in line.clip:gmatch(string.char(1)) do
+    line.clip:gsub(string.char(1),tostring(newvals[i]),1)
+    i = i+1
+  end
+  return string.format("\\%s(%s)",line.clips,line.clip)
 end
 
 function transformate(line,trans)
