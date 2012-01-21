@@ -47,8 +47,8 @@ INALIABLE RIGHTS:
 --[[ Set these important variables here ]]--
 
 windows = true -- if you are not running this on windows, change to false. 
-prefix = "" -- e.g. C:\\aegisub-motion\\files\\ or /home/derp/aegisub-motion/. Various files might be written here, so make sure the folder exists!
-x264 = "C:\\x264\\x264.exe" -- path to x264 executable
+prefix = "" -- e.g. C:\\aegisub-motion\\files\\ or /home/derp/aegisub-motion/. Include trailing slash. for trunk defaults to 
+x264 = "C:\\x264\\x264.exe" -- full path to an x264 executable (with mp4 output)
 
 --[[ Ignore everything else unless you don't want to! ]]--
 
@@ -84,7 +84,7 @@ gui.main = {
     value = true; name = "pos"; label = "Position"},
   [9] = { class = "checkbox";
       x = 4; y = 7; height = 1; width = 2;
-    value = true; name = "clip"; label = "Clip"},
+    value = false; name = "clip"; label = "Clip"},
   [10] = { class = "checkbox";
       x = 0; y = 8; height = 1; width = 2;
     value = true; name = "scl"; label = "Scale"},
@@ -255,7 +255,7 @@ function getinfo(sub, line, styles, num)
     if line.bord then line.xbord = tonumber(line.bord); line.ybord = tonumber(line.bord); end
     if line.shad then line.xshad = tonumber(line.shad); line.yshad = tonumber(line.shad); end
   else
-    aegisub.log(5,"No comment/override block found in line %d: %s\n",num,a)
+    aegisub.log(5,"No comment/override block found in line %d\n",num)
   end
   return line
 end
@@ -307,9 +307,9 @@ function information(sub, sel)
     if opline.endframe-opline.startframe>1 then
       table.insert(accd.lines,opline) -- SOLVED
     end
-    opline.comment = true
-    sub[v] = opline
-    opline.comment = false -- because fuck you shallow copy.
+    --opline.comment = true
+    --sub[v] = opline
+    --opline.comment = false -- because fuck you shallow copy.
   end
   local length = #accd.lines
   local copy = {}
@@ -351,11 +351,6 @@ function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
     export(accd,mocha)
   else
     aegisub.progress.task("ABORT")
-    for k,v in pairs(accd) do -- uncomment lines that were commented in the thingy
-      local derp = sub[v.num]
-      derp.comment = false
-      sub[v.num] = derp
-    end
   end
   aegisub.set_undo_point("Motion Data")
   printmem("Closing")
@@ -369,7 +364,7 @@ function check_head(subs)
     if l.class == "info" then
       if l.key:match("aa%-mou") then
         --aegisub.log(0,string.format("[%d] = %s: %s\n",tostring(i),tostring(l.key),l.value:match(" (.+)")))
-        keytab[l.key] = i -- grabbed with the space in front of the value? Eurgh.
+        keytab[l.key] = i:sub(2) -- grabbed with the space in front of the value
       end
     end
   end
@@ -444,6 +439,12 @@ function parse_input(input,shx,shy)
 end
 
 function frame_by_frame(sub,accd,opts)
+  for k,v in ipairs(accd.lines) do -- comment lines that were commented in the thingy
+    local derp = sub[v.num]
+    aegisub.log(0,"%d",v.num)
+    derp.comment = true
+    sub[v.num] = derp
+  end
   printmem("Start of main loop")
   local mocha = parse_input(opts.mocpat,accd.shx,accd.shy) -- global variables have no automatic gc
   assert(accd.totframes==mocha.flength,"Number of frames from selected lines differs from number of frames tracked.")
@@ -553,7 +554,7 @@ function frame_by_frame(sub,accd,opts)
           rstartf, rendf = rendf, rstartf -- un-reverse them
           for x = rstartf,rendf do
             printmem("Inner loop")
-            aegisub.progress.title("Processing frame %g/%g",x-rstartf+1,rendf-rstartf+1)
+            aegisub.progress.title(string.format("Processing frame %g/%g",x-rstartf+1,rendf-rstartf+1))
             aegisub.progress.set((x-rstartf)/(rendf-rstartf)*100)
             if aegisub.progress.is_cancelled() then error("User cancelled") end
             local tag = "{"
@@ -599,7 +600,7 @@ function frame_by_frame(sub,accd,opts)
         else
           for x = rstartf,rendf do
             printmem("Inner loop")
-            aegisub.progress.title("Processing frame %g/%g",x-rstartf+1,rendf-rstartf+1)
+            aegisub.progress.title(string.format("Processing frame %g/%g",x-rstartf+1,rendf-rstartf+1))
             aegisub.progress.set((x-rstartf)/(rendf-rstartf)*100)
             if aegisub.progress.is_cancelled() then error("User cancelled") end -- probably should have put this in here a long time ago
             local tag = "{"
@@ -764,22 +765,13 @@ end
 
 function export(accd,mocha)
   --accd.shx+70, accd.shy+80
-  local bigstring = string.format("set terminal png small transparent truecolor size %g,%g; set output 'testing X-Y 1.png'\
-set title 'Plot of X vs Y'\
-set xtics %g out; set mxtics 5; set xlabel 'X Position (Pixels)'; set xrange [0:%g]\
-set ytics %g out; set mytics 5; set ylabel 'Y Position (Pixels)'; set yrange [0:%g] reverse\
-set grid; stats 'testing X-Y 1.txt' using 1:2 name 'XvYstat'\
-f(x) = m*x + b; fit f(x) 'testing X-Y 1.txt' using 1:2 via m,b\
-if (b >= 0) slope = sprintf('Equation: y(x) = %.3fx + %.3f',m,b); else slope = sprintf('Equation: y(x) = %.3fx - %.3f',m,0-b)\
-sta = sprintf('R^2: %.3f - RMS of residuals: %.3f',XvYstat_correlation**2,FIT_STDFIT)\
-set label 1 slope at 1,-30 front; set label 2 sta at 1,-18 front\
-plot 'testing X-Y 1.txt' using 1:2 title 'Motion data' with points, f(x) title 'Linear regression' with lines")
   -- table of file names
   local fnames = {
     "%s X-Y %d.txt",
     "%s T-X %d.txt", -- why time instead of frame, you ask? Simply put, VFR.
     "%s T-Y %d.txt",
-    "%s sclX-sclY %d.txt"
+    "%s sclX-sclY %d.txt",
+    "%s gnuplot-command-%d.txt"
   }
   -- open files
   if prefix == nil then prefix = "" end
@@ -797,6 +789,16 @@ plot 'testing X-Y 1.txt' using 1:2 title 'Motion data' with points, f(x) title '
     until f == true -- this is probably the worst possible way of doing this imaginable
   end
   local fhandle = {}
+  local bigstring = string.format("set terminal png small transparent truecolor size %g,%g; set output '%s'\
+set title 'Plot of X vs Y'\
+set xtics 40 out; set mxtics 5; set xlabel 'X Position (Pixels)'; set xrange [0:%g]\
+set ytics 40 out; set mytics 5; set ylabel 'Y Position (Pixels)'; set yrange [0:%g] reverse\
+set grid; stats '%s' using 1:2 name 'XvYstat'\
+f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b\
+if (b >= 0) slope = sprintf('Equation: y(x) = %%.3fx + %%.3f',m,b); else slope = sprintf('Equation: y(x) = %%.3fx - %%.3f',m,0-b)\
+sta = sprintf('R^2: %%.3f - RMS of residuals: %%.3f',XvYstat_correlation**2,FIT_STDFIT)\
+set label 1 slope at 1,-30 front; set label 2 sta at 1,-18 front\
+plot '%s' using 1:2 title 'Motion data' with points, f(x) title 'Linear regression' with lines",accd.shx+70,accd.shy+80,fnames[1]..".png",accd.shx,accd.shy,fnames[1],fnames[1],fnames[1])
   for k,v in ipairs(fnames) do
     aegisub.log(0,"%d: %s\n",k,v)
     table.insert(fhandle,io.open(v,'w'))
@@ -809,6 +811,7 @@ plot 'testing X-Y 1.txt' using 1:2 title 'Motion data' with points, f(x) title '
     fhandle[3]:write(string.format("%g %g\n",cs,mocha.ypos[x]))
     fhandle[4]:write(string.format("%g %g\n",mocha.xscl[x],mocha.yscl[x]))
   end
+  fhandle[5]:write(bigstring)
   for i,v in ipairs(fhandle) do v:close() end
 end
 
@@ -847,7 +850,7 @@ end
 function cleantrans(cont)
   local t_s, t_e, ex, eff = cont:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
   if tonumber(t_e) <= 0 or tonumber(t_e) <= tonumber(t_s) then return string.format("%s",eff) end
-  if tonumber(ex) == 1 then return string.format("\\t(%s,%s,%s)",t_s,t_e,eff) end
+  if tonumber(ex) == 1 or ex == "" then return string.format("\\t(%s,%s,%s)",t_s,t_e,eff) end
   return string.format("\\t(%s,%s,%s,%s)",t_s,t_e,ex,eff)
 end
 
