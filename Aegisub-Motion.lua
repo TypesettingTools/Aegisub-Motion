@@ -44,6 +44,14 @@ INALIABLE RIGHTS:
     三人變更為第一人稱的損害，但我以為本的精妙之處都將丟失，到谷歌翻譯。總之，你他媽的。
 --]]
 
+--[[ Set these important variables here ]]--
+
+windows = true -- if you are not running this on windows, change to false. 
+prefix = "" -- e.g. C:\\aegisub-motion\\files\\ or /home/derp/aegisub-motion/. Various files might be written here, so make sure the folder exists!
+x264 = "C:\\x264\\x264.exe" -- path to x264 executable
+
+--[[ Ignore everything else unless you don't want to! ]]--
+
 script_name = "Aegisub-Motion"
 script_description = "Adobe After Effects 6.0 keyframe data parser for Aegisub" -- and it might have memory issues. I think.
 script_author = "torque"
@@ -75,7 +83,7 @@ gui.main = {
       x = 0; y = 7; height = 1; width = 3;
     value = true; name = "pos"; label = "Position"},
   [9] = { class = "checkbox";
-      x = 3; y = 7; height = 1; width = 3;
+      x = 4; y = 7; height = 1; width = 2;
     value = true; name = "clip"; label = "Clip"},
   [10] = { class = "checkbox";
       x = 0; y = 8; height = 1; width = 2;
@@ -90,7 +98,7 @@ gui.main = {
       x = 0; y = 9; height = 1; width = 3;
     value = false; name = "rot"; label = "Rotation"},
   [27] = { class = "checkbox";
-      x = 3; y = 9; height = 1; width = 3;
+      x = 4; y = 9; height = 1; width = 2;
     value = true; name = "org"; label = "Origin"},
   [17] = { class = "intedit"; -- these are both retardedly wide and retardedly tall. They are downright frustrating to position in the interface.
       x = 7; y = 7; height = 1; width = 3;
@@ -131,7 +139,7 @@ for k,v in pairs(aegisub) do
   else trunk = false end
 end
 
-if trunk then
+if trunk and prefix=="" then
   prefix = aegisub.decode_path("?data/a-mo/")
 end
 
@@ -149,7 +157,7 @@ patterns = { -- so check out this cool new trick I thought of... which I'm sure 
   ['resetti'] = "\\r([^\\}]+)" -- obsolete, since I decided to not support multiple override blocks per line... though I'll keep it here since it might be useful for the cleanup function?
 }
 
-alltags = { -- there is probably a significantly better way to do this.
+alltags = { -- http://lua-users.org/wiki/SwitchStatement yuuup.
   ['xscl']    = "\\fscx([%d%.]+)",
   ['yscl']    = "\\fscy([%d%.]+)",
   ['ali']     = "\\an([1-9])",
@@ -201,7 +209,7 @@ function preprocessing(sub, sel)
 end
 
 function getinfo(sub, line, styles, num)
-  local header = { -- yeah imma just keep using it meng
+  local header = { -- something about heap allocation and this being more efficient here than in the script header.
     ['xscl'] = "scale_x",
     ['yscl'] = "scale_y",
     ['ali']  = "align",
@@ -223,7 +231,7 @@ function getinfo(sub, line, styles, num)
     line.xorg, line.yorg = line.text:match("\\org%(([%-%d%.]+),([%-%d%.]+)%)")
   end
   line.trans = {}
-  local a = line.text:match("%{(.-)%}")
+  local a = line.text:match("%{(.-)}")
   if a then
     aegisub.log(5,"Found a comment/override block in line %d: %s\n",num,a)
     for k, v in pairs(patterns) do
@@ -234,7 +242,7 @@ function getinfo(sub, line, styles, num)
       end
     end
     line.clips, line.clip = a:match("\\(i?clip)(%b())") -- hum
-    line.clip = line.clip:sub(2,-2)
+    if line.clip then line.clip = line.clip:sub(2,-2) end
     for b in line.text:gmatch("%{(.-)%}") do
       for c in b:gmatch("\\t(%b())") do -- this will return an empty string for t_exp if no exponential factor is specified
         t_start,t_end,t_exp,t_eff = c:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
@@ -343,6 +351,11 @@ function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
     export(accd,mocha)
   else
     aegisub.progress.task("ABORT")
+    for k,v in pairs(accd) do -- uncomment lines that were commented in the thingy
+      local derp = sub[v.num]
+      derp.comment = false
+      sub[v.num] = derp
+    end
   end
   aegisub.set_undo_point("Motion Data")
   printmem("Closing")
@@ -448,6 +461,7 @@ function frame_by_frame(sub,accd,opts)
     table.insert(eraser,"\\\pos%([%-%d%.]+,[%-%d%.]+%)") -- \\\ because I DON'T FUCKING KNOW OKAY THAT'S JUST THE WAY IT WORKS
     if opts.clip then
       table.insert(eraser,"\\i?clip%b()")
+    end
   end
   if opts.scl then
     if opts.vsfilter then
@@ -662,12 +676,21 @@ function possify(line,mocha,opts,iter)
   return string.format("\\pos(%g,%g)",round(xpos,opts.pround),round(ypos,opts.pround)) 
 end
 
-function clippinate(line,mocha,opts,iter)
+function clippinate(line,mocha,opts,iter) -- these do not support decimal numbers, which means no subpixel clips.
+  --[[ How it seems to work (based on 30 seconds of research):
+        For \\clip(%d,%d,%d,%d), libass will round to the nearest integer (5-> up 4-> down).
+         Vsfilter will floor the value (ignore the decimal point) as it does with other tags
+         that it only accepts integer values for.
+        For a vector clip, libass will again round all decimal values to the nearest integer.
+         VSfilter will break parsing as soon as it hits a decimal point, ignoring all numbers
+         that come after the decimal point, and treating any digits that lead up to it as the
+         whole number (eg 350.5 -> 350). Come to think of it, this is probably how it handles
+         all of the tags it can only read integer values from. --]]
   local switch = 0
   local newvals = {}
   local xpos = mocha.xpos[iter] - line.xdiff
   for a in line.clip:gmatch("[%.%d%-]+") do -- about 90% sure no decimal points allowed
-    if switch = 0 then
+    if switch == 0 then
       local new = round((tonumber(a) - line.xpos + xpos),0) -- (delta?)
       table.insert(newvals,new)
       line.clip:gsub("[%.%d%-]+",string.char(1),1) -- argh, I'm getting tired of this technique, but I don't know any other way of doing this.
@@ -741,7 +764,7 @@ end
 
 function export(accd,mocha)
   --accd.shx+70, accd.shy+80
-  local bigstring = string.format("set terminal png small transparent truecolor size %g,%G; set output 'testing X-Y 1.png'\
+  local bigstring = string.format("set terminal png small transparent truecolor size %g,%g; set output 'testing X-Y 1.png'\
 set title 'Plot of X vs Y'\
 set xtics %g out; set mxtics 5; set xlabel 'X Position (Pixels)'; set xrange [0:%g]\
 set ytics %g out; set mytics 5; set ylabel 'Y Position (Pixels)'; set yrange [0:%g] reverse\
@@ -798,7 +821,7 @@ function cleanup(sub, sel)
     line.text = line.text:gsub("{}","") -- I think this is irrelevant. But whatever.
     for a in line.text:gmatch("{(.-)}") do
       local b = a
-      local trans = {}, {}
+      local trans = {}
       repeat -- have to cut out transformations so their contents don't get detected as dups
         if aegisub.progress.is_cancelled() then error("User cancelled") end
         local low, high, trabs = a:find("(\\t%b())")
@@ -849,3 +872,111 @@ function isvideo() -- a very rudimentary (but hopefully efficient) check to see 
 end
 
 aegisub.register_macro("Apply motion data","Applies properly formatted motion tracking data to selected subtitles.", preprocessing, isvideo)
+
+gui.t = {
+    [1] = { class = "textbox";
+      x =0; y = 0; height = 1; width = 30;
+    name = "vid"; hint = "Derp"},
+    [2] = { class = "textbox";
+      x =0; y = 1; height = 1; width = 30;
+    name = "ind"; hint = "Herp"},
+    [3] = { class = "intedit";
+      x =0; y = 2; height = 1; width = 15;
+    name = "sf"; hint = "Herp"},
+    [4] = { class = "intedit";
+      x =15; y = 2; height = 1; width = 15;
+    name = "ef"; hint = "Herp"},
+    [5] = { class = "textbox";
+      x =0; y = 3; height = 1; width = 30;
+    name = "op"; hint = "Durr"},
+}
+
+function collecttrim(sub,sel,act)
+  local sf, ef = aegisub.frame_from_ms(sub[sel[1]].start_time), aegisub.frame_from_ms(sub[sel[1]].end_time)
+  for i,v in ipairs(sel) do
+    local l = sub[v]
+    local lsf, lef = aegisub.frame_from_ms(l.start_time), aegisub.frame_from_ms(l.end_time)
+    if lsf < sf then sf = lsf end
+    if lef > ef then ef = lef end
+  end
+  return sf,ef-1
+end
+
+function trimnthings(sub,sel)
+  local video = ""
+  local sf,ef = collecttrim(sub,sel)
+  for x = 1,#sub do
+    if sub[x].class == "info" then
+      if sub[x].key == "Video File" then
+        video = sub[x].value:sub(2)
+        assert(not video:match("?dummy"), "No dummy videos allowed. Sorry.")
+        break
+      end
+    end
+  end
+  if trunk then
+    video = video:gsub("%.%.[\\/]","")
+    local vp = aegisub.decode_path("?video")..video -- so easy. and accurate. and FUCK 2.1.X 
+    local vn = video:reverse():gsub("[^%.]+","",1):sub(2):reverse() -- beautiful.
+    someguiorsmth(sf,ef,vp,vn)
+  else
+    local vp = unfuckpath(video)
+    local vn = video:reverse():gsub("[^%.]+","",1):sub(2):reverse()
+    someguiorsmth(sf,ef,vp,video)
+  end
+end
+
+function unfuckpath(path) -- fuck my life.
+  local derp
+  if windows then 
+    local argh = io.popen("echo %CD%") -- safe to assume the working directory is the directory that the script is in?
+    derp = argh:read("*l") -- No it's not, but I don't have anything else to assume. Fuck 2.1.X
+    assert(derp:match("[A-Z]:\\"),"Working directory is not a valid windows path. Are you using windows?")
+    derp = derp:reverse()
+    if path:match("\\") then
+      for a in path:gmatch("%.%.\\") do
+        path = path:gsub("%.%.\\","",1)
+        derp = derp:gsub("\\[^\\]+","",1)
+      end
+    end
+    derp='\\'..derp
+  else
+    local argh = io.popen("pwd") -- safe to assume the working directory is the directory that the script is in? And that they are using bash/zsh (or other valid shells)?
+    derp = argh:read("*l") -- No it isn't, but I don't have anything else to assume. Fuck 2.1.X
+    derp = derp:reverse()
+    for a in path:gmatch("%.%./") do
+      path = path:gsub("%.%./","",1)
+      derp = derp:gsub("/[^/]+","",1)
+    end
+    derp = '/'..derp
+  end
+  return derp:reverse()..path
+end
+
+function someguiorsmth(sf,ef,vp,vn)
+  gui.t[1].text = vp
+  gui.t[2].text = prefix..vn..".index"
+  gui.t[3].value = sf
+  gui.t[4].value = ef
+  gui.t[5].text = prefix..vn.."-%d.avs"
+  local derp, herp = aegisub.dialog.display(gui.t)
+  if derp then writeandencode(herp) end
+end
+
+function writeandencode(opts)
+  local it = 0
+  local out
+  repeat
+    if aegisub.progress.is_cancelled() then error("User cancelled") end
+    it = it + 1
+    local n = string.format(opts.op,it)
+    local f = io.open(n,'r')
+    if f then io.close(f); f = false else f = true; out = n end
+  until f == true -- crappypasta
+  local avs = io.open(out,'w')
+  avs:write(string.format('FFVideoSource("%s",cachefile="%s").trim(%d,%d)',opts.vid,opts.ind,opts.sf,opts.ef))
+  avs:close()
+  os.execute(x264..' --crf 16 --preset veryslow --profile high -o "'..out:sub(1,-4)..'mp4" "'..out..'"')
+end
+
+aegisub.register_macro("Cut scene for mocha","Creates an avisynth file with trim set to the length of the selected lineset (for use with motion tracking software)", trimnthings, isvideo)
