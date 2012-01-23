@@ -32,7 +32,7 @@ INALIABLE RIGHTS:
     be legally OPPRESSED by ME in a COURT OF LAW.
   7. Should THE SCRIPT turn out to secretly be a cleverly disguised COMPUTER VIRUS in
     disguise, THE USER has agreed that any or all information it has gathered hereby
-    belongs to ME and I CLAIM FULL RIGHTS OF IT, INCLUDING THE RIGHT TO REDISTRIBUTE
+    belongs to ME and I CLAIM FULL RIGHTS TO IT, INCLUDING THE RIGHT TO REDISTRIBUTE
     IT AS I SEE FIT. THE USER also agrees to make NO PREVENTATIVE MEASURES to keep
     HIS OR HER computer from becoming PART OF THE BOTNET HIVEMIND. FURTHERMORE, THE
     USER agrees to take FULL PERSONAL RESPONSIBILITY for ANY ILLEGAL ACTIVITIES that
@@ -47,15 +47,15 @@ INALIABLE RIGHTS:
 --[[ Set these important variables here ]]--
 
 windows = true -- if you are not running this on windows, change to false. 
-prefix = "" -- e.g. C:\\aegisub-motion\\files\\ or /home/derp/aegisub-motion/. Include trailing slash. for trunk defaults to 
-x264 = "C:\\x264\\x264.exe" -- full path to an x264 executable (with mp4 output)
+prefix = "" -- e.g. C:\\aegisub-motion\\files\\ or /home/derp/aegisub-motion/. Include trailing slash. For trunk defaults to ?data/a-mo (will probably change this).
+x264 = "C:\\x264\\x264.exe" -- full path to an x264 executable
 
 --[[ Ignore everything else unless you don't want to! ]]--
 
 script_name = "Aegisub-Motion"
 script_description = "Adobe After Effects 6.0 keyframe data parser for Aegisub" -- and it might have memory issues. I think.
 script_author = "torque"
-script_version = "9.0.0-1" -- no, I have no idea how this versioning system works either.
+script_version = "μοε" -- no, I have no idea how this versioning system works either.
 include("karaskel.lua")
 
 gui = {} -- I'm really beginning to think this shouldn't be a global variable
@@ -69,9 +69,6 @@ gui.main = {
   [3] = { class = "textbox";
       x = 0; y = 14; height = 3; width = 10;
     name = "mocper"; hint = "ETA to perspective/shear support: never."},
-  [4] = { class = "label";
-      x = 0; y = 13; height = 1; width = 10;
-    label = "                                             MOTD"}, --"  Enter the file to the path containing your shear/perspective data."},
   [5] = { class = "label";
       x = 0; y = 0; height = 1; width = 10;
     label = "                            Paste data or enter a filepath."},
@@ -242,7 +239,7 @@ function getinfo(sub, line, styles, num)
       end
     end
     line.clips, line.clip = a:match("\\(i?clip)(%b())") -- hum
-    if line.clip then line.clip = line.clip:sub(2,-2) end
+    if line.clip then line.clip = line.clip:sub(2,-2); aegisub.log(0,"%s%s\n",line.clips,line.clip) end
     for b in line.text:gmatch("%{(.-)%}") do
       for c in b:gmatch("\\t(%b())") do -- this will return an empty string for t_exp if no exponential factor is specified
         t_start,t_end,t_exp,t_eff = c:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
@@ -441,13 +438,13 @@ end
 function frame_by_frame(sub,accd,opts)
   for k,v in ipairs(accd.lines) do -- comment lines that were commented in the thingy
     local derp = sub[v.num]
-    aegisub.log(0,"%d",v.num)
     derp.comment = true
     sub[v.num] = derp
   end
   printmem("Start of main loop")
   local mocha = parse_input(opts.mocpat,accd.shx,accd.shy) -- global variables have no automatic gc
   assert(accd.totframes==mocha.flength,"Number of frames from selected lines differs from number of frames tracked.")
+  if opts.exp then export(accd,mocha) end
   local _ = nil
   local newlines = {} -- table to stick indicies of tracked lines into for cleanup... haven't really decided what the cleanup function is going to be. I might expose it to automation as a standalone depending on if it turns out to be garbage or not.
   if not opts.scl then
@@ -461,6 +458,7 @@ function frame_by_frame(sub,accd,opts)
     table.insert(operations,possify)
     table.insert(eraser,"\\\pos%([%-%d%.]+,[%-%d%.]+%)") -- \\\ because I DON'T FUCKING KNOW OKAY THAT'S JUST THE WAY IT WORKS
     if opts.clip then
+      table.insert(operations,clippinate)
       table.insert(eraser,"\\i?clip%b()")
     end
   end
@@ -491,9 +489,11 @@ function frame_by_frame(sub,accd,opts)
     opts.rround = 2
   end
   if opts.rot then
-    table.insert(operations,orgate)
+    if opts.org then 
+      table.insert(operations,orgate)
+      table.insert(eraser,"\\org%([%-%d%.]+,[%-%d%.]+%)")
+    end
     table.insert(operations,rotate)
-    table.insert(eraser,"\\\org%([%-%d%.]+,[%-%d%.]+%)")
     table.insert(eraser,"\\frz[%-%d%.]+")
   end
   --table.insert(eraser,"{}") -- I think this is redundant with the next line
@@ -686,29 +686,35 @@ function clippinate(line,mocha,opts,iter) -- these do not support decimal number
          VSfilter will break parsing as soon as it hits a decimal point, ignoring all numbers
          that come after the decimal point, and treating any digits that lead up to it as the
          whole number (eg 350.5 -> 350). Come to think of it, this is probably how it handles
-         all of the tags it can only read integer values from. --]]
-  local switch = 0
-  local newvals = {}
-  local xpos = mocha.xpos[iter] - line.xdiff
-  for a in line.clip:gmatch("[%.%d%-]+") do -- about 90% sure no decimal points allowed
-    if switch == 0 then
-      local new = round((tonumber(a) - line.xpos + xpos),0) -- (delta?)
-      table.insert(newvals,new)
-      line.clip:gsub("[%.%d%-]+",string.char(1),1) -- argh, I'm getting tired of this technique, but I don't know any other way of doing this.
-      switch = 1
-    else
-      local new = round((tonumber(a) - line.ypos + ypos),0)
-      table.insert(newvals,new)
-      line.clip:gsub("[%.%d%-]+",string.char(1),1)
-      switch = 0
+         all of the tags it can only read integer values from. ]]--
+  if line.clip then
+    local switch = 0
+    local newvals = {}
+    local xpos = mocha.xpos[iter] - line.xdiff*line.ratx
+    local ypos = mocha.ypos[iter] - line.ydiff*line.raty
+    local newclip = line.clip
+    for a in newclip:gmatch("[%.%d%-]+") do
+      if switch == 0 then
+        local new = round((tonumber(a) - line.xpos + xpos),0) -- (delta?)
+        aegisub.log(5,"x: %s -> %s\n",a,new)
+        table.insert(newvals,new)
+        newclip = newclip:gsub("[%.%d%-]+",string.char(1),1) -- argh, I'm getting tired of this technique, but I don't know any other way of doing this.
+        switch = 1
+      else
+        local new = round((tonumber(a) - line.ypos + ypos),0)
+        aegisub.log(5,"y: %s -> %s\n",a,new)
+        table.insert(newvals,new)
+        newclip = newclip:gsub("[%.%d%-]+",string.char(1),1)
+        switch = 0
+      end
     end
-  end
-  local i = 1
-  for a in line.clip:gmatch(string.char(1)) do
-    line.clip:gsub(string.char(1),tostring(newvals[i]),1)
-    i = i+1
-  end
-  return string.format("\\%s(%s)",line.clips,line.clip)
+    local i = 1
+    for a in newclip:gmatch(string.char(1)) do
+      newclip = newclip:gsub(string.char(1),tostring(newvals[i]),1)
+      i = i+1
+    end
+    return string.format("\\%s(%s)",line.clips,newclip)
+  else return "" end
 end
 
 function transformate(line,trans)
@@ -758,8 +764,8 @@ function rotate(line,mocha,opts,iter)
 end
 
 function orgate(line,mocha,opts,iter)
-  local xorg = round(mocha.xpos[iter]-line.xorgd,opts.rround)
-  local yorg = round(mocha.ypos[iter]-line.yorgd,opts.rround)
+  local xorg = round(mocha.xpos[iter],opts.rround)
+  local yorg = round(mocha.ypos[iter],opts.rround)
   return string.format("\\org(%g,%g)",xorg,yorg) -- copypasta
 end
 
@@ -816,8 +822,10 @@ plot '%s' using 1:2 title 'Motion data' with points, f(x) title 'Linear regressi
 end
 
 function cleanup(sub, sel)
+  local linediff
   for i, v in ipairs(sel) do
     local line = sub[sel[#sel-i+1]] -- iterate backwards (makes line deletion sane)
+    linediff = line.end_time - line.start_time
     line.text = line.text:gsub("}"..string.char(6).."{","") -- merge sequential override blocks if they are marked as being the ones we wrote
     line.text = line.text:gsub(string.char(6),"") -- remove superfluous marker characters for when there is no override block at the beginning of the original line
     line.text = line.text:gsub("\\t(%b())",cleantrans) -- clean up transformations (remove transformations that have completed)
@@ -845,13 +853,13 @@ function cleanup(sub, sel)
     line.effect = ""
     sub[sel[#sel-i+1]] = line
   end
-end
-
-function cleantrans(cont)
-  local t_s, t_e, ex, eff = cont:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
-  if tonumber(t_e) <= 0 or tonumber(t_e) <= tonumber(t_s) then return string.format("%s",eff) end
-  if tonumber(ex) == 1 or ex == "" then return string.format("\\t(%s,%s,%s)",t_s,t_e,eff) end
-  return string.format("\\t(%s,%s,%s,%s)",t_s,t_e,ex,eff)
+  function cleantrans(cont) -- internal function because that's the only way to pass the line difference to it
+    local t_s, t_e, ex, eff = cont:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
+    if tonumber(t_e) <= 0 or tonumber(t_e) <= tonumber(t_s) then return string.format("%s",eff) end
+    if tonumber(t_s) > linediff then return "" end
+    if tonumber(ex) == 1 or ex == "" then return string.format("\\t(%s,%s,%s)",t_s,t_e,eff) end
+    return string.format("\\t(%s,%s,%s,%s)",t_s,t_e,ex,eff)
+  end
 end
 
 function printmem(a)
