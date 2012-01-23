@@ -1,4 +1,4 @@
-This is the unstable branch of aegisub-motion.
+Welcome to the future.
 
 What does that mean? Well, we've got a whole lot of new features, and the user interface was somewhat “rewritten” to be Less Retarded™.
 
