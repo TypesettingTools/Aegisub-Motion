@@ -239,7 +239,7 @@ function getinfo(sub, line, styles, num)
       end
     end
     line.clips, line.clip = a:match("\\(i?clip)(%b())") -- hum
-    if line.clip then line.clip = line.clip:sub(2,-2); aegisub.log(0,"%s%s\n",line.clips,line.clip) end
+    if line.clip then line.clip = line.clip:sub(2,-2); aegisub.log(5,"%s(%s)\n",line.clips,line.clip) end
     for b in line.text:gmatch("%{(.-)%}") do
       for c in b:gmatch("\\t(%b())") do -- this will return an empty string for t_exp if no exponential factor is specified
         t_start,t_end,t_exp,t_eff = c:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
@@ -360,7 +360,6 @@ function check_head(subs)
 		local l = subs[i]
     if l.class == "info" then
       if l.key:match("aa%-mou") then
-        --aegisub.log(0,string.format("[%d] = %s: %s\n",tostring(i),tostring(l.key),l.value:match(" (.+)")))
         keytab[l.key] = i:sub(2) -- grabbed with the space in front of the value
       end
     end
@@ -806,7 +805,7 @@ sta = sprintf('R^2: %%.3f - RMS of residuals: %%.3f',XvYstat_correlation**2,FIT_
 set label 1 slope at 1,-30 front; set label 2 sta at 1,-18 front\
 plot '%s' using 1:2 title 'Motion data' with points, f(x) title 'Linear regression' with lines",accd.shx+70,accd.shy+80,fnames[1]..".png",accd.shx,accd.shy,fnames[1],fnames[1],fnames[1])
   for k,v in ipairs(fnames) do
-    aegisub.log(0,"%d: %s\n",k,v)
+    aegisub.log(5,"%d: %s\n",k,v)
     table.insert(fhandle,io.open(v,'w'))
   end
   for x = 1, #mocha.xpos do
