@@ -42,7 +42,7 @@ INALIABLE RIGHTS:
     可能的事件，這確實發生,將會有什麼，以配合我的謀殺。此外，我正好有一個獨立的國家，不關心小東西，如
     謀殺一個非常漂亮的的公寓。此外，我將我的律師起訴你悲痛欲絕的家人對我的好名字，你有污點，使我從第
     三人變更為第一人稱的損害，但我以為本的精妙之處都將丟失，到谷歌翻譯。總之，你他媽的。
---]]
+   ]]--
 
 --[[ Set these important variables here ]]--
 
@@ -69,10 +69,12 @@ gui.main = {
   [3] = { class = "textbox";
       x = 0; y = 14; height = 3; width = 10;
     name = "mocper"; hint = "ETA to perspective/shear support: never."},
+  [4] = { class = "label";
+      x = 0; y = 13; height = 1; width = 10;
+    label = "        Files will be written to this directory."},
   [5] = { class = "label";
       x = 0; y = 0; height = 1; width = 10;
     label = "                            Paste data or enter a filepath."},
-  -- GIVE ME SOME (WHITE)SPACE
   [6] = { class = "label";
       x = 0; y = 6; height = 1; width = 10;
     label = "What tracking data should be applied?         Rounding"}, -- allows more accurate positioning >_>
@@ -130,14 +132,25 @@ gui.main = {
 }
 
 for k,v in pairs(aegisub) do
+  trunk = false
   if k == "decode_path" then
     trunk = true
     break
-  else trunk = false end
+  end
 end
 
-if trunk and prefix=="" then
+if trunk and prefix == "" then
   prefix = aegisub.decode_path("?data/a-mo/")
+end
+
+if prefix == "" then -- checking for trunk is redundant. I think.
+  if windows then -- jesus fuck more code dupication because fffff
+    local argh = io.popen("echo %CD%")
+    prefix = argh:read("*l")
+  else
+    local argh = io.popen("pwd")
+    prefix = argh:read("*l")
+  end
 end
 
 patterns = { -- so check out this cool new trick I thought of... which I'm sure is completely unoriginal but still makes me feel slightly intelligent.
@@ -284,11 +297,6 @@ function information(sub, sel)
     opline.xorg, opline.yorg = opline.x, opline.y
     opline = getinfo(sub, opline, accd.styles, v-strt)
     opline.startframe, opline.endframe = aegisub.frame_from_ms(opline.start_time), aegisub.frame_from_ms(opline.end_time)
-    if not opline.xpos or not opline.ypos then -- just to be safe
-      table.insert(accd.poserrs,{i,v}) -- this is an old data "structure" that I'm not sure I did anything with
-      accd.errmsg = accd.errmsg..string.format("Line %d does not seem to have a position override tag.\n", v-strt)
-    end
-    --aegisub.log(5,"%d",opline.ali)
     if opline.ali ~= 5 then
       table.insert(accd.alignerrs,{i,v})
       accd.errmsg = accd.errmsg..string.format("Line %d does not seem aligned \\an5.\n", v-strt)
@@ -302,7 +310,7 @@ function information(sub, sel)
       accd.endframe = opline.endframe
     end
     if opline.endframe-opline.startframe>1 then
-      table.insert(accd.lines,opline) -- SOLVED
+      table.insert(accd.lines,opline)
     end
     --opline.comment = true
     --sub[v] = opline
@@ -330,7 +338,8 @@ end
 function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   aegisub.progress.title("Selecting Gerbils")
   --local ourkeys = check_head(sub)
-  gui.main[2].text = accd.errmsg -- insert our error messages
+  gui.main[2].text = accd.errmsg -- so close to being obsolete
+  gui.main[3].text = prefix
   printmem("GUI startup")
   local button, config = aegisub.dialog.display(gui.main, {"Go","Abort","Export"})
   if button == "Go" then
@@ -803,7 +812,8 @@ f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b\
 if (b >= 0) slope = sprintf('Equation: y(x) = %%.3fx + %%.3f',m,b); else slope = sprintf('Equation: y(x) = %%.3fx - %%.3f',m,0-b)\
 sta = sprintf('R^2: %%.3f - RMS of residuals: %%.3f',XvYstat_correlation**2,FIT_STDFIT)\
 set label 1 slope at 1,-30 front; set label 2 sta at 1,-18 front\
-plot '%s' using 1:2 title 'Motion data' with points, f(x) title 'Linear regression' with lines",accd.shx+70,accd.shy+80,fnames[1]..".png",accd.shx,accd.shy,fnames[1],fnames[1],fnames[1])
+plot '%s' using 1:2 title 'Motion data' with points, f(x) title 'Linear regression' with lines\
+",accd.shx+70,accd.shy+80,fnames[1]..".png",accd.shx,accd.shy,fnames[1],fnames[1],fnames[1])
   for k,v in ipairs(fnames) do
     aegisub.log(5,"%d: %s\n",k,v)
     table.insert(fhandle,io.open(v,'w'))
@@ -881,24 +891,47 @@ function isvideo() -- a very rudimentary (but hopefully efficient) check to see 
   return aegisub.video_size() and true or false -- and forces boolean conversion
 end
 
-aegisub.register_macro("Apply motion data","Applies properly formatted motion tracking data to selected subtitles.", preprocessing, isvideo)
+function helpstring()
+  if aegisub.video_size() then
+    return "Applies properly formatted motion tracking data to selected subtitles."
+  else
+    return "Validation failed: you don't have a video loaded."
+  end
+end
+
+aegisub.register_macro("Apply motion data", helpstring, preprocessing, isvideo)
 
 gui.t = {
     [1] = { class = "textbox";
-      x =0; y = 0; height = 1; width = 30;
+      x = 0; y = 1; height = 1; width = 30;
     name = "vid"; hint = "Derp"},
+    [6] = { class = "label";
+      x = 0; y = 0; height = 1; width = 30;
+    label = "The path to the loaded video (guessed)"},
     [2] = { class = "textbox";
-      x =0; y = 1; height = 1; width = 30;
-    name = "ind"; hint = "Herp"},
-    [3] = { class = "intedit";
-      x =0; y = 2; height = 1; width = 15;
-    name = "sf"; hint = "Herp"},
-    [4] = { class = "intedit";
-      x =15; y = 2; height = 1; width = 15;
-    name = "ef"; hint = "Herp"},
-    [5] = { class = "textbox";
       x =0; y = 3; height = 1; width = 30;
+    name = "ind"; hint = "Herp"},
+    [7] = { class = "label";
+      x = 0; y = 2; height = 1; width = 30;
+    label = "The path to the index file."},
+    [3] = { class = "intedit";
+      x = 0; y = 5; height = 1; width = 15;
+    name = "sf"; hint = "Herp"},
+    [8] = { class = "label";
+      x = 0; y = 4; height = 1; width = 15;
+    label = "Start frame"},
+    [4] = { class = "intedit";
+      x = 15; y = 5; height = 1; width = 15;
+    name = "ef"; hint = "Herp"},
+    [9] = { class = "label";
+      x = 15; y = 4; height = 1; width = 15;
+    label = "End frame"},
+    [5] = { class = "textbox";
+      x = 0; y = 7; height = 1; width = 30;
     name = "op"; hint = "Durr"},
+    [10] = { class = "label";
+      x = 0; y = 6; height = 1; width = 30;
+    label = "Video file to be written"},
 }
 
 function collecttrim(sub,sel,act)
@@ -968,7 +1001,7 @@ function someguiorsmth(sf,ef,vp,vn)
   gui.t[2].text = prefix..vn..".index"
   gui.t[3].value = sf
   gui.t[4].value = ef
-  gui.t[5].text = prefix..vn.."-%d.avs"
+  gui.t[5].text = prefix..vn.."-"..sf.."-%d.mp4"
   local derp, herp = aegisub.dialog.display(gui.t)
   if derp then writeandencode(herp) end
 end
@@ -983,10 +1016,7 @@ function writeandencode(opts)
     local f = io.open(n,'r')
     if f then io.close(f); f = false else f = true; out = n end
   until f == true -- crappypasta
-  local avs = io.open(out,'w')
-  avs:write(string.format('FFVideoSource("%s",cachefile="%s").trim(%d,%d)',opts.vid,opts.ind,opts.sf,opts.ef))
-  avs:close()
-  os.execute(x264..' --crf 16 --preset veryslow --profile high -o "'..out:sub(1,-4)..'mp4" "'..out..'"')
+  os.execute(x264..' --crf 16 --preset fast --fps 23.976  --profile high --index "'..opts.ind..'" --seek '..opts.sf..' --frames '..(opts.ef-opts.sf+1)..' -o "'..out..'" "'..opts.vid..'"')
 end
 
 aegisub.register_macro("Cut scene for mocha","Creates an avisynth file with trim set to the length of the selected lineset (for use with motion tracking software)", trimnthings, isvideo)
