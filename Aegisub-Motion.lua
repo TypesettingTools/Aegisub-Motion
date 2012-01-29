@@ -44,13 +44,15 @@ INALIABLE RIGHTS:
     三人變更為第一人稱的損害，但我以為本的精妙之處都將丟失，到谷歌翻譯。總之，你他媽的。
    ]]--
 
---[[ Set these important variables here ]]--
+--[=[ Set these important variables here ]=]--
 
 windows = true -- if you are not running this on windows, change to false. 
-prefix = "" -- e.g. C:\\aegisub-motion\\files\\ or /home/derp/aegisub-motion/. Include trailing slash. For trunk defaults to ?data/a-mo (will probably change this).
-x264 = "C:\\x264\\x264.exe" -- full path to an x264 executable
+prefix = "C:\\!derp\\!herp derp!\\" -- e.g. C:\\aegisub-motion\\files\\ or /home/derp/aegisub-motion/. Include trailing slash. For trunk defaults to ?data/a-mo (will probably change this).
+x264 = "C:\\x264\\x264.exe" -- full path to an x264 executable (vanilla doesn't have mp4 problems that JEEB's does)
+gui_trim = true -- enable gui for the trim macro (untested)
+gui_expo = true -- enable gui for the export macro (doesn't exist yet)
 
---[[ Ignore everything else unless you don't want to! ]]--
+--[=[ Ignore everything else unless you don't want to! ]=]--
 
 script_name = "Aegisub-Motion"
 script_description = "Adobe After Effects 6.0 keyframe data parser for Aegisub" -- and it might have memory issues. I think.
@@ -61,7 +63,7 @@ include("karaskel.lua")
 gui = {} -- I'm really beginning to think this shouldn't be a global variable
 gui.main = {
   [1] = { class = "textbox"; -- 1 - because it is best if it starts out highlighted.
-      x =0; y = 1; height = 4; width = 10;
+      x = 0; y = 1; height = 4; width = 10;
     name = "mocpat"; hint = "Paste data or the path to a file containing it. No quotes or escapes."},
   [2] = { class = "textbox";
       x = 0; y = 17; height = 4; width = 10;
@@ -195,6 +197,10 @@ alltags = { -- http://lua-users.org/wiki/SwitchStatement yuuup.
   ['blur']    = "\\blur([%d%.]+)",
   ['fax']     = "\\fax([%-%d%.]+)",
   ['fay']     = "\\fay([%-%d%.]+)"
+}
+
+numconftable = {
+  
 }
 
 function preprocessing(sub, sel)
@@ -408,7 +414,6 @@ function parse_input(input,shx,shy)
   local xmult = shx/tonumber(sw)
   local ymult = shy/tonumber(sh)
   for keys, valu in ipairs(ftab) do -- idk it might be more flexible now or something
-    ---[[
     if valu == "Position" then
     sect = sect + 1
     elseif valu == "Scale" then
@@ -435,7 +440,7 @@ function parse_input(input,shx,shy)
         val = valu:split("\t")
         table.insert(mocha.zrot,-tonumber(val[2]))
       end
-    end--]]
+    end
   end
   mocha.flength = #mocha.xpos
   assert(mocha.flength == #mocha.ypos and mocha.flength == #mocha.xscl and mocha.flength == #mocha.yscl and mocha.flength == #mocha.zrot,"The mocha data is not internally equal length.") -- make sure all of the elements are the same length (because I don't trust my own code).
@@ -504,7 +509,6 @@ function frame_by_frame(sub,accd,opts)
     table.insert(operations,rotate)
     table.insert(eraser,"\\frz[%-%d%.]+")
   end
-  --table.insert(eraser,"{}") -- I think this is redundant with the next line
   printmem("End of table insertion")
   for i,v in ipairs(accd.lines) do
     printmem("Outer loop")
@@ -686,15 +690,17 @@ function possify(line,mocha,opts,iter)
 end
 
 function clippinate(line,mocha,opts,iter) -- these do not support decimal numbers, which means no subpixel clips.
-  --[[ How it seems to work (based on 30 seconds of research):
-        For \\clip(%d,%d,%d,%d), libass will round to the nearest integer (5-> up 4-> down).
-         Vsfilter will floor the value (ignore the decimal point) as it does with other tags
-         that it only accepts integer values for.
-        For a vector clip, libass will again round all decimal values to the nearest integer.
-         VSfilter will break parsing as soon as it hits a decimal point, ignoring all numbers
-         that come after the decimal point, and treating any digits that lead up to it as the
-         whole number (eg 350.5 -> 350). Come to think of it, this is probably how it handles
-         all of the tags it can only read integer values from. ]]--
+  --[[ 
+   How it seems to work (based on 30 seconds of research):
+    For \\clip(%d,%d,%d,%d), libass will round to the nearest integer (5-> up 4-> down).
+     Vsfilter will floor the value (ignore the decimal point) as it does with other tags
+     that it only accepts integer values for.
+    For a vector clip, libass will again round all decimal values to the nearest integer.
+     VSfilter will break parsing as soon as it hits a decimal point, ignoring all numbers
+     that come after the decimal point, and treating any digits that lead up to it as the
+     whole number (eg 350.5 -> 350). Come to think of it, this is probably how it handles
+     all of the tags it can only read integer values from.
+  ]]--
   if line.clip then
     local switch = 0
     local newvals = {}
@@ -803,17 +809,17 @@ function export(accd,mocha)
     until f == true -- this is probably the worst possible way of doing this imaginable
   end
   local fhandle = {}
-  local bigstring = string.format("set terminal png small transparent truecolor size %g,%g; set output '%s'\
-set title 'Plot of X vs Y'\
-set xtics 40 out; set mxtics 5; set xlabel 'X Position (Pixels)'; set xrange [0:%g]\
-set ytics 40 out; set mytics 5; set ylabel 'Y Position (Pixels)'; set yrange [0:%g] reverse\
-set grid; stats '%s' using 1:2 name 'XvYstat'\
-f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b\
-if (b >= 0) slope = sprintf('Equation: y(x) = %%.3fx + %%.3f',m,b); else slope = sprintf('Equation: y(x) = %%.3fx - %%.3f',m,0-b)\
-sta = sprintf('R^2: %%.3f - RMS of residuals: %%.3f',XvYstat_correlation**2,FIT_STDFIT)\
-set label 1 slope at 1,-30 front; set label 2 sta at 1,-18 front\
-plot '%s' using 1:2 title 'Motion data' with points, f(x) title 'Linear regression' with lines\
-",accd.shx+70,accd.shy+80,fnames[1]..".png",accd.shx,accd.shy,fnames[1],fnames[1],fnames[1])
+  local bigstring = string.format([=[set terminal png small transparent truecolor size %g,%g; set output '%s'
+set title 'Plot of X vs Y'
+set xtics 40 out; set mxtics 5; set xlabel 'X Position (Pixels)'; set xrange [0:%g]
+set ytics 40 out; set mytics 5; set ylabel 'Y Position (Pixels)'; set yrange [0:%g] reverse
+set grid; stats '%s' using 1:2 name 'XvYstat'
+f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b
+if (b >= 0) slope = sprintf('Equation: y(x) = %%.3fx + %%.3f',m,b); else slope = sprintf('Equation: y(x) = %%.3fx - %%.3f',m,0-b)
+sta = sprintf('R^2: %%.3f - RMS of residuals: %%.3f',XvYstat_correlation**2,FIT_STDFIT)
+set label 1 slope at 1,-30 front; set label 2 sta at 1,-18 front
+plot '%s' using 1:2 title 'Motion data' with points, f(x) title 'Linear regression' with lines
+]=],accd.shx+70,accd.shy+80,fnames[1]..".png",accd.shx,accd.shy,fnames[1],fnames[1],fnames[1])
   for k,v in ipairs(fnames) do
     aegisub.log(5,"%d: %s\n",k,v)
     table.insert(fhandle,io.open(v,'w'))
@@ -839,6 +845,7 @@ function cleanup(sub, sel)
     line.text = line.text:gsub(string.char(6),"") -- remove superfluous marker characters for when there is no override block at the beginning of the original line
     line.text = line.text:gsub("\\t(%b())",cleantrans) -- clean up transformations (remove transformations that have completed)
     line.text = line.text:gsub("{}","") -- I think this is irrelevant. But whatever.
+    --[=[ -- this is broken. Disable it until I have time to look at it for a fix
     for a in line.text:gmatch("{(.-)}") do
       local b = a
       local trans = {}
@@ -859,6 +866,7 @@ function cleanup(sub, sel)
       end
       line.text = line.text:gsub("{(.-)}","{"..a.."}",1) -- I think...
     end
+    --]=]
     line.effect = ""
     sub[sel[#sel-i+1]] = line
   end
@@ -887,19 +895,24 @@ function string:split(sep) -- borrowed from the lua-users wiki (single character
   return fields
 end
 
-function isvideo() -- a very rudimentary (but hopefully efficient) check to see if there is a video loaded.
-  return aegisub.video_size() and true or false -- and forces boolean conversion
+function string:splitconf()
+  return self:match("(.-):(.*)")
 end
 
-function helpstring()
-  if aegisub.video_size() then
-    return "Applies properly formatted motion tracking data to selected subtitles."
+function isvideo() -- a very rudimentary (but hopefully efficient) check to see if there is a video loaded.
+  local l = aegisub.video_size() and true or false -- and forces boolean conversion?
+  if trunk then
+    if l then
+      return l,"Applies properly formatted motion tracking data to selected subtitles."
+    else
+      return l,"Validation failed: you don't have a video loaded."
+    end
   else
-    return "Validation failed: you don't have a video loaded."
+    return l
   end
 end
 
-aegisub.register_macro("Apply motion data", helpstring, preprocessing, isvideo)
+aegisub.register_macro("Apply motion data", "Applies properly formatted motion tracking data to selected subtitles.", preprocessing, isvideo)
 
 gui.t = {
     [1] = { class = "textbox";
@@ -907,7 +920,7 @@ gui.t = {
     name = "vid"; hint = "Derp"},
     [6] = { class = "label";
       x = 0; y = 0; height = 1; width = 30;
-    label = "The path to the loaded video (guessed)"},
+    label = "The path to the loaded video"},
     [2] = { class = "textbox";
       x =0; y = 3; height = 1; width = 30;
     name = "ind"; hint = "Herp"},
@@ -934,7 +947,7 @@ gui.t = {
     label = "Video file to be written"},
 }
 
-function collecttrim(sub,sel,act)
+function collecttrim(sub,sel)
   local sf, ef = aegisub.frame_from_ms(sub[sel[1]].start_time), aegisub.frame_from_ms(sub[sel[1]].end_time)
   for i,v in ipairs(sel) do
     local l = sub[v]
@@ -947,6 +960,8 @@ end
 
 function trimnthings(sub,sel)
   local video = ""
+  local vp
+  local vn
   local sf,ef = collecttrim(sub,sel)
   for x = 1,#sub do
     if sub[x].class == "info" then
@@ -958,14 +973,21 @@ function trimnthings(sub,sel)
     end
   end
   if trunk then
-    video = video:gsub("%.%.[\\/]","")
-    local vp = aegisub.decode_path("?video")..video -- so easy. and accurate. and FUCK 2.1.X 
-    local vn = video:reverse():gsub("[^%.]+","",1):sub(2):reverse() -- beautiful.
+    video = video:gsub("[A-Z]:\\","")
+    video = video:gsub(".-[^\\]\\","")
+    --video = video:gsub("%.%.[\\/]","") -- the name of the video from the header
+    vp = aegisub.decode_path("?video")..video -- the name of the video appended to the video path from aegisub.
+    vn = video:match("(.+)%.[^%.]+$") -- the name of the video, with its extension removed. This expression is sketchy.
     someguiorsmth(sf,ef,vp,vn)
   else
-    local vp = unfuckpath(video)
-    local vn = video:reverse():gsub("[^%.]+","",1):sub(2):reverse()
-    someguiorsmth(sf,ef,vp,video)
+    vp = unfuckpath(video)
+    vn = video:reverse():gsub("[^%.]+","",1):sub(2):reverse()
+  end
+  if gui_trim then
+    someguiorsmth(sf,ef,vp,vn)
+  else
+    local tabae = { ['vid'] = vp, ['sf'] = sf, ['ef'] = ef, ['ind'] = prefix..vn..".index", ['op'] = prefix..vn.."-"..sf.."-%d.mp4"}
+    writeandencode(tabae)
   end
 end
 
@@ -1002,8 +1024,10 @@ function someguiorsmth(sf,ef,vp,vn)
   gui.t[3].value = sf
   gui.t[4].value = ef
   gui.t[5].text = prefix..vn.."-"..sf.."-%d.mp4"
+  if not trunk then gui.t[6].label = gui.t[6].label.." (guessed)" end
   local derp, herp = aegisub.dialog.display(gui.t)
-  if derp then writeandencode(herp) end
+  if derp then writeandencode(herp)
+  else  end
 end
 
 function writeandencode(opts)
@@ -1016,7 +1040,8 @@ function writeandencode(opts)
     local f = io.open(n,'r')
     if f then io.close(f); f = false else f = true; out = n end
   until f == true -- crappypasta
-  os.execute(x264..' --crf 16 --preset fast --fps 23.976  --profile high --index "'..opts.ind..'" --seek '..opts.sf..' --frames '..(opts.ef-opts.sf+1)..' -o "'..out..'" "'..opts.vid..'"')
+  -- use vanilla x264, not JEEB's builds.
+  os.execute(x264..' --crf 18 --preset fast -i 250 -I 250 --fps 23.976 --tune fastdecode --index "'..opts.ind..'" --seek '..opts.sf..' --frames '..(opts.ef-opts.sf+1)..' -o "'..out..'" "'..opts.vid..'"')
 end
 
 aegisub.register_macro("Cut scene for mocha","Creates an avisynth file with trim set to the length of the selected lineset (for use with motion tracking software)", trimnthings, isvideo)
