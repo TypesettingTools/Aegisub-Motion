@@ -453,6 +453,7 @@ function frame_by_frame(sub,accd,opts)
     local derp = sub[v.num]
     derp.comment = true
     sub[v.num] = derp
+    v.comment = false
   end
   printmem("Start of main loop")
   local mocha = parse_input(opts.mocpat,accd.shx,accd.shy) -- global variables have no automatic gc
