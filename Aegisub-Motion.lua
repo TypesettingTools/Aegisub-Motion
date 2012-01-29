@@ -47,8 +47,8 @@ INALIABLE RIGHTS:
 --[=[ Set these important variables here ]=]--
 
 windows = true -- if you are not running this on windows, change to false. 
-prefix = "C:\\!derp\\!herp derp!\\" -- e.g. C:\\aegisub-motion\\files\\ or /home/derp/aegisub-motion/. Include trailing slash. For trunk defaults to ?data/a-mo (will probably change this).
-x264 = "C:\\x264\\x264.exe" -- full path to an x264 executable (vanilla doesn't have mp4 problems that JEEB's does)
+prefix = "" -- e.g. C:\\aegisub-motion\\files\\ or /home/derp/aegisub-motion/. Include trailing slash. For trunk defaults to ?data/a-mo (will probably change this).
+x264 = "C:\\x264\\x264-vanilla-8-64.exe" -- full path to an x264 executable (vanilla doesn't have mp4 problems that JEEB's does)
 gui_trim = true -- enable gui for the trim macro (untested)
 gui_expo = true -- enable gui for the export macro (doesn't exist yet)
 
@@ -978,7 +978,6 @@ function trimnthings(sub,sel)
     --video = video:gsub("%.%.[\\/]","") -- the name of the video from the header
     vp = aegisub.decode_path("?video")..video -- the name of the video appended to the video path from aegisub.
     vn = video:match("(.+)%.[^%.]+$") -- the name of the video, with its extension removed. This expression is sketchy.
-    someguiorsmth(sf,ef,vp,vn)
   else
     vp = unfuckpath(video)
     vn = video:reverse():gsub("[^%.]+","",1):sub(2):reverse()
@@ -1025,12 +1024,14 @@ function someguiorsmth(sf,ef,vp,vn)
   gui.t[4].value = ef
   gui.t[5].text = prefix..vn.."-"..sf.."-%d.mp4"
   if not trunk then gui.t[6].label = gui.t[6].label.." (guessed)" end
-  local derp, herp = aegisub.dialog.display(gui.t)
-  if derp then writeandencode(herp)
-  else  end
+  local button, opts = aegisub.dialog.display(gui.t)
+  if button then 
+    local len = prefix:len() + 1
+    writeandencode(opts,len)
+  end
 end
 
-function writeandencode(opts)
+function writeandencode(opts,len)
   local it = 0
   local out
   repeat
@@ -1040,8 +1041,7 @@ function writeandencode(opts)
     local f = io.open(n,'r')
     if f then io.close(f); f = false else f = true; out = n end
   until f == true -- crappypasta
-  -- use vanilla x264, not JEEB's builds.
-  os.execute(x264..' --crf 18 --preset fast -i 250 -I 250 --fps 23.976 --tune fastdecode --index "'..opts.ind..'" --seek '..opts.sf..' --frames '..(opts.ef-opts.sf+1)..' -o "'..out..'" "'..opts.vid..'"')
-end
+  os.execute('cd '..prefix..' && '..x264..' --crf 18 --tune fastdecode -i 250 --fps 23.976 --index "'..opts.ind:sub(len)..'" --seek '..opts.sf..' --frames '..(opts.ef-opts.sf+1)..' -o "'..out:sub(len)..'" "'..opts.vid..'"')
+ end
 
 aegisub.register_macro("Cut scene for mocha","Creates an avisynth file with trim set to the length of the selected lineset (for use with motion tracking software)", trimnthings, isvideo)
