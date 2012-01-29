@@ -186,11 +186,11 @@ alltags = { -- http://lua-users.org/wiki/SwitchStatement yuuup.
   ['l2a']     = "\\2a&H(%x%x)&",
   ['l3a']     = "\\3a&H(%x%x)&",
   ['l4a']     = "\\4a&H(%x%x)&",
-  ['l1c']     = "\\c&H(%x)+&",
-  ['l1c2']    = "\\1c&H(%x)+&",
-  ['l2c']     = "\\2c&H(%x)+&",
-  ['l3c']     = "\\3c&H(%x)+&",
-  ['l4c']     = "\\4c&H(%x)+&",
+  ['l1c']     = "\\c&H(%x+)&",
+  ['l1c2']    = "\\1c&H(%x+)&",
+  ['l2c']     = "\\2c&H(%x+)&",
+  ['l3c']     = "\\3c&H(%x+)&",
+  ['l4c']     = "\\4c&H(%x+)&",
   ['clip']    = "\\clip%((.-)%)",
   ['iclip']   = "\\iclip%((.-)%)",
   ['be']      = "\\be([%d%.]+)",
@@ -836,16 +836,17 @@ plot '%s' using 1:2 title 'Motion data' with points, f(x) title 'Linear regressi
   for i,v in ipairs(fhandle) do v:close() end
 end
 
-function cleanup(sub, sel)
+function cleanup(sub, sel) -- make into its own macro eventually.
   local linediff
   for i, v in ipairs(sel) do
-    local line = sub[sel[#sel-i+1]] -- iterate backwards (makes line deletion sane)
+    local lnum = sel[#sel-i+1]
+    local line = sub[lnum] -- iterate backwards (makes line deletion sane)
     linediff = line.end_time - line.start_time
     line.text = line.text:gsub("}"..string.char(6).."{","") -- merge sequential override blocks if they are marked as being the ones we wrote
     line.text = line.text:gsub(string.char(6),"") -- remove superfluous marker characters for when there is no override block at the beginning of the original line
     line.text = line.text:gsub("\\t(%b())",cleantrans) -- clean up transformations (remove transformations that have completed)
     line.text = line.text:gsub("{}","") -- I think this is irrelevant. But whatever.
-    --[=[ -- this is broken. Disable it until I have time to look at it for a fix
+    ---[=[ -- seems to work as intended now
     for a in line.text:gmatch("{(.-)}") do
       local b = a
       local trans = {}
@@ -859,16 +860,19 @@ function cleanup(sub, sel)
       until not low 
       for k,v in pairs(alltags) do
         local _, num = a:gsub(v,"")
+        --aegisub.log(0,"v: %s, num: %s, a: %s\n",v,num,a)
         a = a:gsub(v,"",num-1)
       end
       for i,v in ipairs(trans) do
         a = a:gsub(string.char(3),v,1)
       end
-      line.text = line.text:gsub("{(.-)}","{"..a.."}",1) -- I think...
+      line.text = line.text:gsub("{.-}",string.char(1)..a..string.char(2),1) -- I think...
     end
+    line.text = line.text:gsub(string.char(1),"{")
+    line.text = line.text:gsub(string.char(2),"}")
     --]=]
     line.effect = ""
-    sub[sel[#sel-i+1]] = line
+    sub[lnum] = line
   end
   function cleantrans(cont) -- internal function because that's the only way to pass the line difference to it
     local t_s, t_e, ex, eff = cont:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
