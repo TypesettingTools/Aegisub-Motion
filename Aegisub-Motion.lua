@@ -788,11 +788,11 @@ function export(accd,mocha)
   --accd.shx+70, accd.shy+80
   -- table of file names
   local fnames = {
-    "%s X-Y %d.txt",
-    "%s T-X %d.txt", -- why time instead of frame, you ask? Simply put, VFR.
-    "%s T-Y %d.txt",
-    "%s sclX-sclY %d.txt",
-    "%s gnuplot-command-%d.txt"
+    "%s X-Y %d-%d.txt",
+    "%s T-X %d-%d.txt", -- why time instead of frame, you ask? Simply put, VFR.
+    "%s T-Y %d-%d.txt",
+    "%s sclX-sclY %d-%d.txt",
+    "%s gnuplot-command %d-%d.txt"
   }
   -- open files
   if prefix == nil then prefix = "" end
@@ -804,36 +804,49 @@ function export(accd,mocha)
     repeat
       if aegisub.progress.is_cancelled() then error("User cancelled") end
       it = it + 1
-      local n = string.format(prefix..v,name,it)
+      local n = string.format(prefix..v,name,accd.startframe,it)
       local f = io.open(n,'r')
       if f then io.close(f); f = false else f = true; fnames[k] = n end -- uhhhhhhh...
     until f == true -- this is probably the worst possible way of doing this imaginable
   end
   local fhandle = {}
-  local bigstring = string.format([=[set terminal png small transparent truecolor size %g,%g; set output '%s'
-set title 'Plot of X vs Y'
-set xtics 40 out; set mxtics 5; set xlabel 'X Position (Pixels)'; set xrange [0:%g]
-set ytics 40 out; set mytics 5; set ylabel 'Y Position (Pixels)'; set yrange [0:%g] reverse
-set grid; stats '%s' using 1:2 name 'XvYstat'
-f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b
-if (b >= 0) slope = sprintf('Equation: y(x) = %%.3fx + %%.3f',m,b); else slope = sprintf('Equation: y(x) = %%.3fx - %%.3f',m,0-b)
-sta = sprintf('R^2: %%.3f - RMS of residuals: %%.3f',XvYstat_correlation**2,FIT_STDFIT)
-set label 1 slope at 1,-30 front; set label 2 sta at 1,-18 front
-plot '%s' using 1:2 title 'Motion data' with points, f(x) title 'Linear regression' with lines
-]=],accd.shx+70,accd.shy+80,fnames[1]..".png",accd.shx,accd.shy,fnames[1],fnames[1],fnames[1])
+  local len = (aegisub.ms_from_frame(accd.endframe) - aegisub.ms_from_frame(accd.startframe))/10
+  local bigstring = {}
+  table.insert(bigstring,string.format([=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',accd.shx+70,accd.shy+80,fnames[1]))
+  table.insert(bigstring,string.format([=[set title 'Plot of X vs Y']=]..'\n'))
+  table.insert(bigstring,string.format([=[unset xtics; set x2tics out mirror; set mx2tics 5; set x2label 'X Position (Pixels)'; set xrange [0:%d]]=]..'\n',accd.shx))
+  table.insert(bigstring,string.format([=[set ytics out; set mytics 5; set ylabel 'Y Position (Pixels)'; set yrange [0:%d] reverse]=]..'\n',accd.shy))
+  table.insert(bigstring,string.format([=[set grid x2tics mx2tics mytics ytics; stats '%s' using 1:2 name 'XvYstat']=]..'\n',fnames[1]))
+  table.insert(bigstring,string.format([=[f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b]=]..'\n',fnames[1]))
+  table.insert(bigstring,string.format([=[if (b >= 0) slope = sprintf('Equation: y(x) = %%.3fx + %%.3f',m,b); else slope = sprintf('Equation: y(x) = %%.3fx - %%.3f',m,0-b)]=]..'\n'))
+  table.insert(bigstring,string.format([=[sta = sprintf('R^2: %%.3f - RMS of residuals: %%.3f',XvYstat_correlation**2,FIT_STDFIT)]=]..'\n'))
+  table.insert(bigstring,string.format([=[set label 1 slope at 1,-55 front; set label 2 sta at 1,-40 front]=]..'\n'))
+  table.insert(bigstring,string.format([=[plot '%s' using 1:2 title 'Motion data' with points, f(x) title 'Linear regression' with lines]=]..'\n',fnames[1]))
+  table.insert(bigstring,string.format('\n'..[=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',round(len*2+70,0),accd.shx+80,fnames[2]))
+  table.insert(bigstring,string.format([=[set title 'Plot of T vs X'; unset x2label]=]..'\n'))
+  table.insert(bigstring,string.format([=[unset x2tics; unset mx2tics; set xtics out mirror; set mxtics 5; set xlabel 'Time (centiseconds)'; set xrange [0:%d]]=]..'\n',round(len,0)))
+  table.insert(bigstring,string.format([=[set ytics out; set mytics 5; set ylabel 'X Position (Pixels)'; set yrange [0:%d] reverse]=]..'\n',accd.shx))
+  table.insert(bigstring,string.format([=[set grid xtics mxtics ytics mytics; stats '%s' using 1:2 name 'TvXstat']=]..'\n',fnames[2]))
+  table.insert(bigstring,string.format([=[f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b]=]..'\n',fnames[2]))
+  table.insert(bigstring,string.format([=[if (b >= 0) slope = sprintf('Equation: x(t) = %%.3ft + %%.3f',m,b); else slope = sprintf('Equation: x(t) = %%.3ft - %%.3f',m,0-b)]=]..'\n'))
+  table.insert(bigstring,string.format([=[sta = sprintf('R^2: %%.3f - RMS of residuals: %%.3f',TvXstat_correlation**2,FIT_STDFIT)]=]..'\n'))
+  table.insert(bigstring,string.format([=[set label 1 slope at 1,-35 front; set label 2 sta at 1,-20 front]=]..'\n'))
+  table.insert(bigstring,string.format([=[plot '%s' using 1:2 title 'Motion data' with points, f(x) title 'Linear regression' with lines]=]..'\n',fnames[2]))
   for k,v in ipairs(fnames) do
     aegisub.log(5,"%d: %s\n",k,v)
     table.insert(fhandle,io.open(v,'w'))
   end
   for x = 1, #mocha.xpos do
     if aegisub.progress.is_cancelled() then error("User cancelled") end
-    local cs = aegisub.ms_from_frame(accd.startframe+x-1)/10 - aegisub.ms_from_frame(accd.startframe)/10 -- (normalized to start time)
+    local cs = (aegisub.ms_from_frame(accd.startframe+x-1) - aegisub.ms_from_frame(accd.startframe))/10 -- (normalized to start time)
     fhandle[1]:write(string.format("%g %g\n",mocha.xpos[x],mocha.ypos[x]))
     fhandle[2]:write(string.format("%g %g\n",cs,mocha.xpos[x]))
     fhandle[3]:write(string.format("%g %g\n",cs,mocha.ypos[x]))
     fhandle[4]:write(string.format("%g %g\n",mocha.xscl[x],mocha.yscl[x]))
   end
-  fhandle[5]:write(bigstring)
+  for i,v in ipairs(bigstring) do
+    fhandle[5]:write(v)
+  end
   for i,v in ipairs(fhandle) do v:close() end
 end
 
