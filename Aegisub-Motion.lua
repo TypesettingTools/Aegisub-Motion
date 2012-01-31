@@ -47,7 +47,7 @@ INALIABLE RIGHTS:
 --[=[ Set these important variables here ]=]--
 
 windows = true -- if you are not running this on windows, change to false. 
-prefix = "" -- e.g. C:\\aegisub-motion\\files\\ or /home/derp/aegisub-motion/. Include trailing slash. For trunk defaults to ?data/a-mo (will probably change this).
+prefix = "" -- e.g. C:\\aegisub-motion\\files\\ or /home/derp/aegisub-motion/. Include trailing slash. For trunk, defaults to ?script (the folder the script is in).
 x264 = "C:\\x264\\x264-vanilla-8-64.exe" -- full path to an x264 executable (vanilla doesn't have mp4 problems that JEEB's does)
 gui_trim = true -- enable gui for the trim macro (untested)
 gui_expo = true -- enable gui for the export macro (doesn't exist yet)
@@ -55,7 +55,7 @@ gui_expo = true -- enable gui for the export macro (doesn't exist yet)
 --[=[ Ignore everything else unless you don't want to! ]=]--
 
 script_name = "Aegisub-Motion"
-script_description = "Adobe After Effects 6.0 keyframe data parser for Aegisub" -- and it might have memory issues. I think.
+script_description = "A series of tools for simplifying the process of creating and applying motion tracking data with Aegisub." -- and it might have memory issues. I think.
 script_author = "torque"
 script_version = "μοε" -- no, I have no idea how this versioning system works either.
 include("karaskel.lua")
@@ -70,10 +70,10 @@ gui.main = {
     name = "preerr"; hint = "Any lines that might have problems are listed here."},
   [3] = { class = "textbox";
       x = 0; y = 14; height = 3; width = 10;
-    name = "mocper"; hint = "ETA to perspective/shear support: never."},
+    name = "mocper"; hint = "The prefix"},
   [4] = { class = "label";
       x = 0; y = 13; height = 1; width = 10;
-    label = "        Files will be written to this directory."},
+    label = "                     Files will be written to this directory."},
   [5] = { class = "label";
       x = 0; y = 0; height = 1; width = 10;
     label = "                            Paste data or enter a filepath."},
@@ -142,20 +142,30 @@ for k,v in pairs(aegisub) do
 end
 
 if trunk and prefix == "" then
-  prefix = aegisub.decode_path("?data/a-mo/")
+  prefix = aegisub.decode_path("?script/")
 end
 
 if prefix == "" then -- checking for trunk is redundant. I think.
   if windows then -- jesus fuck more code dupication because fffff
     local argh = io.popen("echo %CD%")
     prefix = argh:read("*l")
+    argh:close()
   else
     local argh = io.popen("pwd")
     prefix = argh:read("*l")
+    argh:close()
   end
 end
 
-patterns = { -- so check out this cool new trick I thought of... which I'm sure is completely unoriginal but still makes me feel slightly intelligent.
+header = {
+  ['xscl'] = "scale_x",
+  ['yscl'] = "scale_y",
+  ['ali']  = "align",
+  ['zrot'] = "angle",
+  ['bord'] = "outline",
+  ['shad'] = "shadow"
+}
+patterns = {
   ['xscl']    = "\\fscx([%d%.]+)",
   ['yscl']    = "\\fscy([%d%.]+)",
   ['ali']     = "\\an([1-9])",
@@ -165,10 +175,8 @@ patterns = { -- so check out this cool new trick I thought of... which I'm sure 
   ['ybord']   = "\\ybord([%d%.]+)",
   ['shad']    = "\\shad([%-%d%.])",
   ['xshad']   = "\\xshad([%-%d%.]+)",
-  ['yshad']   = "\\yshad([%-%d%.]+)",
-  ['resetti'] = "\\r([^\\}]+)" -- obsolete, since I decided to not support multiple override blocks per line... though I'll keep it here since it might be useful for the cleanup function?
+  ['yshad']   = "\\yshad([%-%d%.]+)"
 }
-
 alltags = { -- http://lua-users.org/wiki/SwitchStatement yuuup.
   ['xscl']    = "\\fscx([%d%.]+)",
   ['yscl']    = "\\fscy([%d%.]+)",
@@ -218,6 +226,7 @@ function preprocessing(sub, sel)
       if fade_a then
         line.text = line.text:gsub("\\fade%([%d]+,[%d]+,[%d]+,[%-%d]+,[%-%d]+,[%-%d]+,[%-%d]+%)",string.format("\\alpha&H%X&\\t(%d,%d,\\alpha&H%X&)\\t(%d,%d,\\alpha&H%X&)",fade_a,fade_s,fade_m,fade_a2,fade_m2,fade_3,fade_a3)) -- okay that wasn't actually so bad
       end
+      local p1, p2 = a:match("\\move%(([%-%d%.]+),([%-%d%.]+),[%-%d%.]+,[%-%d%.]+,?[%-%d]*,?[%-%d]*%)")
     end
     sub[v] = line -- replace
   end
@@ -225,14 +234,6 @@ function preprocessing(sub, sel)
 end
 
 function getinfo(sub, line, styles, num)
-  local header = { -- something about heap allocation and this being more efficient here than in the script header.
-    ['xscl'] = "scale_x",
-    ['yscl'] = "scale_y",
-    ['ali']  = "align",
-    ['zrot'] = "angle",
-    ['bord'] = "outline",
-    ['shad'] = "shadow"
-  }
   for k, v in pairs(header) do
     line[k] = styles[line.style][v]
     aegisub.log(5,"Line %d: %s set to %g (from header)\n", num, v, line[k])
@@ -852,6 +853,13 @@ end
 
 function cleanup(sub, sel) -- make into its own macro eventually.
   local linediff
+  function cleantrans(cont) -- internal function because that's the only way to pass the line difference to it
+    local t_s, t_e, ex, eff = cont:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
+    if tonumber(t_e) <= 0 or tonumber(t_e) <= tonumber(t_s) then return string.format("%s",eff) end
+    if tonumber(t_s) > linediff then return "" end
+    if tonumber(ex) == 1 or ex == "" then return string.format("\\t(%s,%s,%s)",t_s,t_e,eff) end
+    return string.format("\\t(%s,%s,%s,%s)",t_s,t_e,ex,eff)
+  end
   for i, v in ipairs(sel) do
     local lnum = sel[#sel-i+1]
     local line = sub[lnum] -- iterate backwards (makes line deletion sane)
@@ -888,13 +896,7 @@ function cleanup(sub, sel) -- make into its own macro eventually.
     line.effect = ""
     sub[lnum] = line
   end
-  function cleantrans(cont) -- internal function because that's the only way to pass the line difference to it
-    local t_s, t_e, ex, eff = cont:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
-    if tonumber(t_e) <= 0 or tonumber(t_e) <= tonumber(t_s) then return string.format("%s",eff) end
-    if tonumber(t_s) > linediff then return "" end
-    if tonumber(ex) == 1 or ex == "" then return string.format("\\t(%s,%s,%s)",t_s,t_e,eff) end
-    return string.format("\\t(%s,%s,%s,%s)",t_s,t_e,ex,eff)
-  end
+  
 end
 
 function printmem(a)
