@@ -48,14 +48,17 @@ INALIABLE RIGHTS:
 
 windows = true -- if you are not running this on windows, change to false. 
 prefix = "" -- e.g. C:\\aegisub-motion\\files\\ or /home/derp/aegisub-motion/. Include trailing slash. For trunk, defaults to ?script (the folder the script is in).
-x264 = "C:\\x264\\x264-vanilla-8-64.exe" -- full path to an x264 executable (vanilla doesn't have mp4 problems that JEEB's does)
-gui_trim = true -- enable gui for the trim macro (untested)
+x264 = "C:\\x264\\x264-vanilla-8-64.exe" -- full path to an x264 executable (vanilla supposedly doesn't have mp4 problems that JEEB's does?)
+x264opts = "--crf 16 --tune fastdecode -i 250 --fps 23.976" -- the options that are passed to x264
+-- tune fastdecode is recommended so quicktime doesn't spend a lot of cpu time decoding heavily compressed frames
+-- fps <something> is recommended because vfr mp4s don't seem to work with mocha, and the actual framerate is irrelevant anyway
+gui_trim = true -- set to false to skip gui when encoding clip (only works with trunk aegisub. Only do this if you trust it to find the files correctly (which /should/ work fine with trunk)).
 gui_expo = true -- enable gui for the export macro (doesn't exist yet)
 
 --[=[ Ignore everything else unless you don't want to! ]=]--
 
 script_name = "Aegisub-Motion"
-script_description = "A series of tools for simplifying the process of creating and applying motion tracking data with Aegisub." -- and it might have memory issues. I think.
+script_description = "A set of tools for simplifying the process of creating and applying motion tracking data with Aegisub." -- and it might have memory issues. I think.
 script_author = "torque"
 script_version = "μοε" -- no, I have no idea how this versioning system works either.
 include("karaskel.lua")
@@ -146,7 +149,7 @@ if trunk and prefix == "" then
 end
 
 if prefix == "" then -- checking for trunk is redundant. I think.
-  if windows then -- jesus fuck more code dupication because fffff
+  if windows then -- jesus fuck more code duplication because fffff
     local argh = io.popen("echo %CD%")
     prefix = argh:read("*l")
     argh:close()
@@ -382,7 +385,7 @@ function check_head(subs)
   end
   return keytab
 end
-  
+
 function parse_input(input,shx,shy)
   printmem("Start of input parsing")
   local ftab = {}
@@ -1002,11 +1005,11 @@ function trimnthings(sub,sel)
     vp = unfuckpath(video)
     vn = video:reverse():gsub("[^%.]+","",1):sub(2):reverse()
   end
-  if gui_trim then
-    someguiorsmth(sf,ef,vp,vn)
-  else
+  if trunk and not gui_trim then 
     local tabae = { ['vid'] = vp, ['sf'] = sf, ['ef'] = ef, ['ind'] = prefix..vn..".index", ['op'] = prefix..vn.."-"..sf.."-%d.mp4"}
     writeandencode(tabae)
+  else
+    someguiorsmth(sf,ef,vp,vn)
   end
 end
 
@@ -1046,12 +1049,11 @@ function someguiorsmth(sf,ef,vp,vn)
   if not trunk then gui.t[6].label = gui.t[6].label.." (guessed)" end
   local button, opts = aegisub.dialog.display(gui.t)
   if button then 
-    local len = prefix:len() + 1
-    writeandencode(opts,len)
+    writeandencode(opts)
   end
 end
 
-function writeandencode(opts,len)
+function writeandencode(opts)
   local it = 0
   local out
   repeat
@@ -1061,7 +1063,14 @@ function writeandencode(opts,len)
     local f = io.open(n,'r')
     if f then io.close(f); f = false else f = true; out = n end
   until f == true -- crappypasta
-  os.execute('cd '..prefix..' && '..x264..' --crf 18 --tune fastdecode -i 250 --fps 23.976 --index "'..opts.ind:sub(len)..'" --seek '..opts.sf..' --frames '..(opts.ef-opts.sf+1)..' -o "'..out:sub(len)..'" "'..opts.vid..'"')
+  if windows then
+    local sh = io.open(prefix.."encode.bat","w+") -- to solve the 250 char limit, we write to a self-deleting batch file on windows.
+    sh:write(x264..' '..x264opts..' --index "'..opts.ind..'" --seek '..opts.sf..' --frames '..(opts.ef-opts.sf+1)..' -o "'..out..'" "'..opts.vid..'"\ndel %0')
+    sh:close()
+    os.execute(prefix.."encode.bat")
+  else -- nfi what to do on lunix: dunno if it will allow execution of a shell script without explicitly setting the permissions.
+    os.execute(x264..' '..x264opts..' --index "'..opts.ind..'" --seek '..opts.sf..' --frames '..(opts.ef-opts.sf+1)..' -o "'..out..'" "'..opts.vid..'"')
+  end
  end
 
 aegisub.register_macro("Cut scene for mocha","Creates an avisynth file with trim set to the length of the selected lineset (for use with motion tracking software)", trimnthings, isvideo)
