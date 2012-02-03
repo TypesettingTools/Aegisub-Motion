@@ -2,11 +2,15 @@ Welcome to the future.
 
 What does that mean? Well, we've got a whole lot of new features, and the user interface was somewhat “rewritten” to be Less Retarded™.
 
+If you are having a problem that causes the script to not work (this is not uncommon), don't hesitate to ask about it. If you think it's something that needs to be fixed, you should provide me with a copy of a) the full subtitle lines you're trying to apply the data to, and b) the tracking data itself. A list of the options you are using, and a description of the error would be nice as well.
+
+I am (normally) available as torque @ rizon.
+
 Unfinished features:
 *Exporting your data for graphing with gnuplot (need to test with non-720p resolutions and finish writing the gnuplot command)
 *Different organization of tracked lines (sorting by frame suggested by tophf)
 *Writing config file to disk
-*Rewritten
+*The "cut scene for mocha" macro involves a lot of filesystem operations, and is completely untested on linux/OS X. Use at your own risk (or give me feedback if it doesn't work right~).
 
 Newly “Implemented” features (mostly tested and mostly working):
 *Clicking on the labels next to checkboxes now checks the checkboxes! Much less mouse-eye coordination required! Great for those of you with Parkinson's Disease!
@@ -19,13 +23,11 @@ Newly “Implemented” features (mostly tested and mostly working):
 *Move \i?clip() with position—does ''not'' scale (subject to change) (suggested by tophf)
 *Possibly fixed rotation handling maybe! (Actually I did a few more tests and the rotation seems okay? I'd need proof otherwise, at least.)
 *Gathers default position via karaskel so \pos is no longer necessary (but still recommended).
-*Automatically generate trimmed avisynth script and automagically encode it (suggested by tp7)
+*Automagically trim and encode video clip for mocha (suggested by tp7).
+*Along with that, an option to turn off the gui for the clip encoding, to make it go faster (only works with trunk).
 *Automagic “Upscaling” or “downscaling” of the tracking data to match the script header resolution (no more warnings about this; assumes a PAR of 1)
 *Separation of \frz and \org handling
 *Spits out “memory usage” (which seems to be somewhat arbitrary) if your log level is high enough (Still haven't figured out the cause of the “out of memory” runtime error).
 *No longer comments lines out when canceled.
-*Nearing 1000 loc. I never expected this to become this huge.
 
 The current version seems to work for most things.
-
-If you do use this script, and you have suggestions/requests, '''''tell me about them'''''!
