@@ -133,7 +133,14 @@ gui.main = {
     value = false; name = "reverse"; label = "Reverse"},
   [26] = { class = "checkbox";
       x = 8; y = 12; height = 1; width = 2;
-    value = false; name = "exp"; label = "Export"}
+    value = false; name = "exp"; label = "Export"},
+  [27] = { class = "dropdown"; 
+      x = 5; y = 5; width = 4; height = 1;
+      name = "sort"; hint = "Sort lines by"; 
+     value = "Default"; items = {"Default", "Time"}}, 
+  [28] = { class = "label";
+      x = 1; y = 5; width = 4; height = 1;
+    label = "      Sort Method:"},
 }
 
 for k,v in pairs(aegisub) do
@@ -215,6 +222,7 @@ numconftable = {
 }
 
 function preprocessing(sub, sel)
+  aegisub.log(5,"%s\n",prefix)
   for i,v in ipairs(sel) do
     local line = sub[v]
     local a = line.text:match("%{(.-)%}")
@@ -225,7 +233,7 @@ function preprocessing(sub, sel)
       if fad_s then -- Swap out fade for a transform so we can stage it.
         line.text = line.text:gsub("\\fad%([%d]+,[%d]+%)",string.format("\\alpha&HFF&\\t(%d,%d,1,\\alpha&H00&)\\t(%d,%d,1,\\alpha&HFF&)",0,fad_s,length-fad_e,length))
       end
-      local fade_a,fade_a2,fade_a3,fade_s,fade_m,fade_m2,fade_e = a:match("\\fade%(([%d]+),([%d]+),([%d]+),([%d]+),([%d]+),([%d]+),([%d]+)%)") -- This is a large pita fuck you fuck you fuck you fuck you fuck you fuck you if you use this
+      local fade_a,fade_a2,fade_a3,fade_s,fade_m,fade_m2,fade_e = a:match("\\fade%(([%d]+),([%d]+),([%d]+),([%d]+),([%d]+),([%d]+),([%d]+)%)") -- I imagine this has never actually been tested
       if fade_a then
         line.text = line.text:gsub("\\fade%([%d]+,[%d]+,[%d]+,[%-%d]+,[%-%d]+,[%-%d]+,[%-%d]+%)",string.format("\\alpha&H%X&\\t(%d,%d,\\alpha&H%X&)\\t(%d,%d,\\alpha&H%X&)",fade_a,fade_s,fade_m,fade_a2,fade_m2,fade_3,fade_a3)) -- okay that wasn't actually so bad
       end
@@ -261,8 +269,11 @@ function getinfo(sub, line, styles, num)
         aegisub.log(5,"Line %d: %s set to %s\n",num,k,tostring(_))
       end
     end
-    line.clips, line.clip = a:match("\\(i?clip)(%b())") -- hum
-    if line.clip then line.clip = line.clip:sub(2,-2); aegisub.log(5,"%s(%s)\n",line.clips,line.clip) end
+    line.clips, line.clip = a:match("\\(i?clip%()([%-%d]+,[%-%d]+,[%-%d]+,[%-%d]+)%)") -- hum
+    if not line.clip then
+      line.clips, line.clip = a:match("\\(i?clip%([%d]*,?)(.-)%)")
+    end
+    if line.clip then aegisub.log(5,"Clip: %s%s)\n",line.clips,line.clip) end -- because otherwise it crashes!
     for b in line.text:gmatch("%{(.-)%}") do
       for c in b:gmatch("\\t(%b())") do -- this will return an empty string for t_exp if no exponential factor is specified
         t_start,t_end,t_exp,t_eff = c:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
@@ -360,7 +371,8 @@ function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
     end
     printmem("Go")
     local newsel = frame_by_frame(sub,accd,config)
-    cleanup(sub,newsel)
+    aegisub.progress.title("Reformatting Gerbils")
+    cleanup(sub,newsel,config)
   elseif button == "Export" then
     aegisub.progress.title("Exporting Gerbils")
     local mocha = parse_input(config.mocpat,accd.shx,accd.shy)
@@ -694,7 +706,7 @@ function possify(line,mocha,opts,iter)
   return string.format("\\pos(%g,%g)",round(xpos,opts.pround),round(ypos,opts.pround)) 
 end
 
-function clippinate(line,mocha,opts,iter) -- these do not support decimal numbers, which means no subpixel clips.
+function clippinate(line,mocha,opts,iter) -- vsfilter can do subpixel clips through power of 2 scaling.
   --[[ 
    How it seems to work (based on 30 seconds of research):
     For \\clip(%d,%d,%d,%d), libass will round to the nearest integer (5-> up 4-> down).
@@ -854,7 +866,7 @@ function export(accd,mocha)
   for i,v in ipairs(fhandle) do v:close() end
 end
 
-function cleanup(sub, sel) -- make into its own macro eventually.
+function cleanup(sub, sel, opts) -- make into its own macro eventually.
   local linediff
   function cleantrans(cont) -- internal function because that's the only way to pass the line difference to it
     local t_s, t_e, ex, eff = cont:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
@@ -899,7 +911,41 @@ function cleanup(sub, sel) -- make into its own macro eventually.
     line.effect = ""
     sub[lnum] = line
   end
-  
+  if opts.sort ~= "Default" then
+    dialog_sort(sub, sel, opts.sort)
+  end
+end
+
+function dialog_sort(sub, sel, sor)
+  local function compareItems(a,b)
+    if a.key == b.key then
+      return a.num < b.num -- solve the disorganized sort problem.
+    else
+      return a.key < b.key
+    end
+  end -- local because why not?
+  local funcs = {
+    ['Time'] = function(l,n) return { key = l.start_time, num = n, data = l } end, --..string.format("%09d",n)
+  }
+  local lines = {}
+  local op = funcs[sor]
+  for i,v in ipairs(sel) do
+    if aegisub.progress.is_cancelled() then error("User cancelled") end -- should probably put these in every loop
+    local line = sub[v]
+    table.insert(lines,op(line,v))
+  end
+  local strt = sel[1] -- not strictly necessary
+  table.sort(lines, compareItems)
+  for i, v in ipairs(sel) do
+    if aegisub.progress.is_cancelled() then error("User cancelled") end
+    sub.delete(sel[#sel-i+1]) -- BALEET (in reverse because they are not necessarily contiguous)
+  end
+  for i, v in ipairs(lines) do
+    if aegisub.progress.is_cancelled() then error("User cancelled") end
+    aegisub.log(5,"Key: "..v.key..', Num: '..v.num..'\n')
+    aegisub.progress.set(i/#lines*100)
+    sub.insert(strt+i-1,v.data) -- not sure this is the best place to do this but owell
+  end
 end
 
 function printmem(a)
