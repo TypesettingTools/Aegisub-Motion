@@ -1,9 +1,10 @@
-﻿--[=[ Set this important variable here ]=]--
-config_file = "C:\\aegisub-motion.config"
---[=[ YOU ARE LEGALLY BOUND AND GAGGED BY THE TERMS AND CONDITIONS OF THE LICENSE,
-      EVEN IF YOU HAVEN'T READ THEM ]=]--
-
---[[
+﻿  --[=[ Please set the full path to the config file. ]=]--
+  --[=[ Note: with trunk, defaults to /path/to/aegisub.exe/aegisub-motion.conf if set to an empty string ]=]--
+config_file = "C:\\aegisub-motion.config" -- e.g. C:\\path\\to the\\a-mo.conf or /home/path to/the/aegi-moti.conf
+  --[=[ YOU ARE LEGALLY BOUND AND GAGGED BY THE TERMS AND CONDITIONS OF THE LICENSE,
+        EVEN IF YOU HAVEN'T READ THEM. ]=]--
+      
+--[=[
 I THOUGHT I SHOULD PROBABLY INCLUDE SOME LICENSING INFORMATION IN THIS
 BUT I DON'T REALLY KNOW VERY MUCH ABOUT COPYRIGHT LAW AND IT ALSO SEEMS LIKE MOST
 COPYRIGHT NOTICES JUST KIND OF YELL AT YOU IN ALL CAPS. AND APPARENTLY PUBLIC
@@ -47,18 +48,20 @@ INALIABLE RIGHTS:
     RABIES WOLF, in a timely manner to THE MURDER OF YOUR PACKAGE, and then eat YOUR
     BODY. There will be ANY OF THE AUTHORITIES to find you the possibility of leaving
     are VERY SLIM, even IN THE UNLIKELY EVENT THIS DOES OCCUR, will have to cope with
-    the murder. In addition, I happen to have an independent country, DO NOT CARE
+    the MURDER. In addition, I HAPPEN TO HAVE an independent country, DO NOT CARE
     ABOUT THE LITTLE THINGS, such as THE MURDER OF A BEAUTIFUL APARTMENT. Besides, I
-    have my lawyer to prosecute THE GOOD NAME OF YOUR DISTRAUGHT FAMILY, you have a
-    stain, so I change from third person to first person harm, but I think this
+    have MY LAWYER to prosecute THE GOOD NAME OF YOUR DISTRAUGHT FAMILY, you have a
+    stain, so I CHANGE FROM THIRD PERSON TO FIRST PERSON HARM, but I think this
     subtlety will be lost to Google Translate. In short, FUCK YOU.
   9. THE USER understands that while the inclusion of a CHINESE MOONRUNE CLAUSE in
     the LICENSE AGREEMENT was VITALLY IMPORTANT, it unfortunately HAD TO BE REMOVED
     because THE LUA PARSER IS EVER SO FRAGILE and has been known to do VERY CONFUSING
     THINGS in the face of MULTIBYTE CHARACTERS, even when THE SCRIPT is encoded as
     UTF-8. A HIGH QUALITY translation of the PREVIOUS TERM HAS BEEN SUBSTITUTED IN
-    for the FORESEEABLE FUTURE. Should it raise ANY QUESTIONS,
-  ]]--
+    for the FORESEEABLE FUTURE. Should it raise ANY QUESTIONS, THE USER is welcome to
+    JUST GO AHEAD AND JUMP OFF OF A BRIDGE because his or her stupidity is OBVIOUSLY
+    INCURABLE.
+  ]=]--
 
 script_name = "Aegisub-Motion"
 script_description = "A set of tools for simplifying the process of creating and applying motion tracking data with Aegisub." -- and it might have memory issues. I think.
@@ -154,6 +157,8 @@ for k,v in pairs(aegisub) do
   end
 end
 
+if config == "" and dpath then config = aegisub.decode_path("?data/aegisub-motion.conf") end
+
 global = {
   windows  = true,
   prefix   = "",
@@ -240,7 +245,7 @@ function readconf()
     aegisub.log(5,"Reading config file...\n")
     for line in cf:lines() do
       local key, val = line:splitconf()
-      aegisub.log(5,"%s -> %s\n", key, tostring(val:tobool()))
+      aegisub.log(5,"Read: %s -> %s\n", key, tostring(val:tobool()))
       valtab[key] = val:tobool()
     end
     cf:close()
@@ -254,13 +259,14 @@ end
 
 function convertfromconf(valtab)
   for i,v in pairs(guiconf) do
-    aegisub.log(5,"%s <- %s\n", i, tostring(valtab[v]))
+    aegisub.log(5,"Set: %s <- %s\n", v, tostring(valtab[v]))
     gui.main[i].value = valtab[v]
   end
 end
 
 function globalvars(valtab)
   for k,v in pairs(global) do
+    aegisub.log(5,"Set: %s <- %s\n",k,tostring(valtab[k]))
     global[k] = valtab[k]
   end
 end
@@ -276,9 +282,24 @@ function string:tobool()
   else return self end
 end
 
+function writeconf(options)
+  local cf = io.open(config_file,'w+')
+  if not cf then 
+    aegisub.log(0,'Config write failed! Check that %s exists and has write permission.\n',config_file)
+    return nil
+  end
+  for k,v in pairs(global) do
+    aegisub.log(5,"Conf <- %s:%s\n",k,tostring(v))
+    cf:write(string.format("%s:%s\n",k,tostring(v)))
+  end
+  for i,v in pairs(guiconf) do
+    aegisub.log(5,"Conf <- %s:%s\n",v,tostring(options[v]))
+    cf:write(string.format("%s:%s\n",v,tostring(options[v])))
+  end
+  cf:close()
+end
+
 function preprocessing(sub, sel)
-  aegisub.log(5,[=[]=])
-  aegisub.log(5,"%s\n",global.prefix)
   for i,v in ipairs(sel) do
     local line = sub[v]
     local a = line.text:match("%{(.-)%}")
@@ -415,7 +436,7 @@ function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   gui.main[2].text = accd.errmsg -- so close to being obsolete
   gui.main[3].text = global.prefix
   printmem("GUI startup")
-  local button, config = aegisub.dialog.display(gui.main, {"Go","Abort","Export"})
+  local button, config = aegisub.dialog.display(gui.main, {"Go","Abort"})
   if button == "Go" then
     if config.reverse then
       aegisub.progress.title("slibreG gnicniM") -- BECAUSE ITS FUNNY GEDDIT
@@ -428,8 +449,8 @@ function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
     cleanup(sub,newsel,config)
   elseif button == "Export" then
     aegisub.progress.title("Exporting Gerbils")
-    local mocha = parse_input(config.mocpat,accd.shx,accd.shy)
-    export(accd,mocha)
+    --local mocha = parse_input(config.mocpat,accd.shx,accd.shy)
+    writeconf(config)
   else
     aegisub.progress.task("ABORT")
   end
