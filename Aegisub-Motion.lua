@@ -1,4 +1,9 @@
-﻿--[[
+﻿--[=[ Set this important variable here ]=]--
+config_file = "C:\\aegisub-motion.config"
+--[=[ YOU ARE LEGALLY BOUND AND GAGGED BY THE TERMS AND CONDITIONS OF THE LICENSE,
+      EVEN IF YOU HAVEN'T READ THEM ]=]--
+
+--[[
 I THOUGHT I SHOULD PROBABLY INCLUDE SOME LICENSING INFORMATION IN THIS
 BUT I DON'T REALLY KNOW VERY MUCH ABOUT COPYRIGHT LAW AND IT ALSO SEEMS LIKE MOST
 COPYRIGHT NOTICES JUST KIND OF YELL AT YOU IN ALL CAPS. AND APPARENTLY PUBLIC
@@ -37,25 +42,23 @@ INALIABLE RIGHTS:
     HIS OR HER computer from becoming PART OF THE BOTNET HIVEMIND. FURTHERMORE, THE
     USER agrees to take FULL PERSONAL RESPONSIBILITY for ANY ILLEGAL ACTIVITIES that
     HIS OR HER computer partakes in while under the CONTROL OF THE BOTNET.
-  8. 這是一個重要的通知，你應該嘗試詐騙某種愚蠢的假髮，他冒充這個軟件的作者，你會被追殺一個合理狂犬
-    病的狼，及時將謀殺你的包，然後吃掉你的屍體。會有任何當局找到你離開的可能性是微乎其微，甚至在不太
-    可能的事件，這確實發生,將會有什麼，以配合我的謀殺。此外，我正好有一個獨立的國家，不關心小東西，如
-    謀殺一個非常漂亮的的公寓。此外，我將我的律師起訴你悲痛欲絕的家人對我的好名字，你有污點，使我從第
-    三人變更為第一人稱的損害，但我以為本的精妙之處都將丟失，到谷歌翻譯。總之，你他媽的。
-   ]]--
-
---[=[ Set these important variables here ]=]--
-
-windows = true -- if you are not running this on windows, change to false. 
-prefix = "" -- e.g. C:\\aegisub-motion\\files\\ or /home/derp/aegisub-motion/. Include trailing slash. For trunk, defaults to ?script (the folder the script is in).
-x264 = "C:\\x264\\x264-vanilla-8-64.exe" -- full path to an x264 executable (vanilla supposedly doesn't have mp4 problems that JEEB's does?)
-x264opts = "--crf 16 --tune fastdecode -i 250 --fps 23.976" -- the options that are passed to x264
--- tune fastdecode is recommended so quicktime doesn't spend a lot of cpu time decoding heavily compressed frames
--- fps <something> is recommended because vfr mp4s don't seem to work with mocha, and the actual framerate is irrelevant anyway
-gui_trim = true -- set to false to skip gui when encoding clip (only works with trunk aegisub. Only do this if you trust it to find the files correctly (which /should/ work fine with trunk)).
-gui_expo = true -- enable gui for the export macro (doesn't exist yet)
-
---[=[ Ignore everything else unless you don't want to! ]=]--
+  8. This is an IMPORTANT NOTIFICATION, you should try to defraud SOME STUPID WIG
+    posing as THE AUTHOR OF THIS SOFTWARE, you will be hunted down to a REASONABLE
+    RABIES WOLF, in a timely manner to THE MURDER OF YOUR PACKAGE, and then eat YOUR
+    BODY. There will be ANY OF THE AUTHORITIES to find you the possibility of leaving
+    are VERY SLIM, even IN THE UNLIKELY EVENT THIS DOES OCCUR, will have to cope with
+    the murder. In addition, I happen to have an independent country, DO NOT CARE
+    ABOUT THE LITTLE THINGS, such as THE MURDER OF A BEAUTIFUL APARTMENT. Besides, I
+    have my lawyer to prosecute THE GOOD NAME OF YOUR DISTRAUGHT FAMILY, you have a
+    stain, so I change from third person to first person harm, but I think this
+    subtlety will be lost to Google Translate. In short, FUCK YOU.
+  9. THE USER understands that while the inclusion of a CHINESE MOONRUNE CLAUSE in
+    the LICENSE AGREEMENT was VITALLY IMPORTANT, it unfortunately HAD TO BE REMOVED
+    because THE LUA PARSER IS EVER SO FRAGILE and has been known to do VERY CONFUSING
+    THINGS in the face of MULTIBYTE CHARACTERS, even when THE SCRIPT is encoded as
+    UTF-8. A HIGH QUALITY translation of the PREVIOUS TERM HAS BEEN SUBSTITUTED IN
+    for the FORESEEABLE FUTURE. Should it raise ANY QUESTIONS,
+  ]]--
 
 script_name = "Aegisub-Motion"
 script_description = "A set of tools for simplifying the process of creating and applying motion tracking data with Aegisub." -- and it might have memory issues. I think.
@@ -92,16 +95,16 @@ gui.main = {
   [10] = { class = "checkbox";
       x = 0; y = 8; height = 1; width = 2;
     value = true; name = "scl"; label = "Scale"},
-  [12] = { class = "checkbox";
+  [11] = { class = "checkbox";
       x = 2; y = 8; height = 1; width = 2;
     value = true; name = "bord"; label = "Border"},
-  [14] = { class = "checkbox";
+  [12] = { class = "checkbox";
       x = 4; y = 8; height = 1; width = 2;
     value = true; name = "shad"; label = "Shadow"},
-  [16] = { class = "checkbox";
+  [15] = { class = "checkbox";
       x = 0; y = 9; height = 1; width = 3;
     value = false; name = "rot"; label = "Rotation"},
-  [27] = { class = "checkbox";
+  [16] = { class = "checkbox";
       x = 4; y = 9; height = 1; width = 2;
     value = true; name = "org"; label = "Origin"},
   [17] = { class = "intedit"; -- these are both retardedly wide and retardedly tall. They are downright frustrating to position in the interface.
@@ -115,7 +118,7 @@ gui.main = {
     value = 2; name = "rround"; min = 0; max = 5;},
   [20] = { class = "checkbox";
       x = 0; y = 11; height = 1; width = 4;
-    value = false; name = "conf"; label = "Read/write header"},
+    value = false; name = "conf"; label = "Write config"},
   [21] = { class = "floatedit";
       x = 7; y = 11; height = 1; width = 3;
     value = 1; name = "xmult"},
@@ -144,28 +147,21 @@ gui.main = {
 }
 
 for k,v in pairs(aegisub) do
-  trunk = false
+  dpath = false
   if k == "decode_path" then
-    trunk = true
+    dpath = true
     break
   end
 end
 
-if trunk and prefix == "" then
-  prefix = aegisub.decode_path("?script/")
-end
-
-if prefix == "" then -- checking for trunk is redundant. I think.
-  if windows then -- jesus fuck more code duplication because fffff
-    local argh = io.popen("echo %CD%")
-    prefix = argh:read("*l")
-    argh:close()
-  else
-    local argh = io.popen("pwd")
-    prefix = argh:read("*l")
-    argh:close()
-  end
-end
+global = {
+  windows  = true,
+  prefix   = "",
+  x264     = "",
+  x264op   = "",
+  gui_trim = true,
+  gui_expo = true,
+}
 
 header = {
   ['xscl'] = "scale_x",
@@ -217,12 +213,72 @@ alltags = { -- http://lua-users.org/wiki/SwitchStatement yuuup.
   ['fay']     = "\\fay([%-%d%.]+)"
 }
 
-numconftable = {
-  
+guiconf = {
+  [8]  = "pos",
+  [9]  = "clip",
+  [10] = "scl",
+  [11] = "bord",
+  [12] = "shad",
+  [15] = "rot",
+  [16] = "org",
+  [22] = "ovr",
+  [21] = "xmult",
+  [23] = "vsfilter",
+  [24] = "linear",
+  [25] = "reverse",
+  [26] = "exp",
+  [27] = "sort",
+  [17] = "pround",
+  [18] = "sround",
+  [19] = "rround",
 }
 
+function readconf()
+  local valtab = {}
+  local cf = io.open(config_file,'r')
+  if cf then
+    aegisub.log(5,"Reading config file...\n")
+    for line in cf:lines() do
+      local key, val = line:splitconf()
+      aegisub.log(5,"%s -> %s\n", key, tostring(val:tobool()))
+      valtab[key] = val:tobool()
+    end
+    cf:close()
+    convertfromconf(valtab)
+    globalvars(valtab)
+    return true
+  else
+    return nil
+  end
+end
+
+function convertfromconf(valtab)
+  for i,v in pairs(guiconf) do
+    aegisub.log(5,"%s <- %s\n", i, tostring(valtab[v]))
+    gui.main[i].value = valtab[v]
+  end
+end
+
+function globalvars(valtab)
+  for k,v in pairs(global) do
+    global[k] = valtab[k]
+  end
+end
+
+function string:splitconf()
+  local line = self:gsub("[\r\n]*","")
+  return line:match("^(.-):(.*)$")
+end
+
+function string:tobool()
+  if self == "true" then return true
+  elseif self == "false" then return false
+  else return self end
+end
+
 function preprocessing(sub, sel)
-  aegisub.log(5,"%s\n",prefix)
+  aegisub.log(5,[=[]=])
+  aegisub.log(5,"%s\n",global.prefix)
   for i,v in ipairs(sel) do
     local line = sub[v]
     local a = line.text:match("%{(.-)%}")
@@ -333,9 +389,6 @@ function information(sub, sel)
     if opline.endframe-opline.startframe>1 then
       table.insert(accd.lines,opline)
     end
-    --opline.comment = true
-    --sub[v] = opline
-    --opline.comment = false -- because fuck you shallow copy.
   end
   local length = #accd.lines
   local copy = {}
@@ -358,9 +411,9 @@ end
 
 function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   aegisub.progress.title("Selecting Gerbils")
-  --local ourkeys = check_head(sub)
+  if not readconf() then accd.errmsg = "CONFIG READ FAILED\n"..accd.errmsg end
   gui.main[2].text = accd.errmsg -- so close to being obsolete
-  gui.main[3].text = prefix
+  gui.main[3].text = global.prefix
   printmem("GUI startup")
   local button, config = aegisub.dialog.display(gui.main, {"Go","Abort","Export"})
   if button == "Go" then
@@ -382,20 +435,6 @@ function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   end
   aegisub.set_undo_point("Motion Data")
   printmem("Closing")
-end
-
-function check_head(subs)
-  local keytab = {}
-  for i = 1, #subs do -- so it's like shooting in the dark
-		if aegisub.progress.is_cancelled() then error("User cancelled") end
-		local l = subs[i]
-    if l.class == "info" then
-      if l.key:match("aa%-mou") then
-        keytab[l.key] = i:sub(2) -- grabbed with the space in front of the value
-      end
-    end
-  end
-  return keytab
 end
 
 function parse_input(input,shx,shy)
@@ -558,6 +597,8 @@ function frame_by_frame(sub,accd,opts)
     for ie, ei in pairs(eraser) do -- have to do it before inserting our new values :s (also before setting the orgline >___>)
       v.text = v.text:gsub(ei,"")
     end
+    if not v.effect then v.effect = "" end
+    local orgeff = v.effect
     local orgtext = v.text -- tables are passed as references.
     if opts.pos and not v.xpos then -- I don't think I need this any more
       aegisub.log(1,"Line %d is being skipped because it is missing a \\pos() tag and you said to track position. Moron.",v.num) -- yeah that should do it.
@@ -577,7 +618,7 @@ function frame_by_frame(sub,accd,opts)
             tag = tag.."}"..string.char(6)
           end
           v.text = tag..v.text
-          v.effect = "aa-mou"
+          v.effect = "aa-mou"..v.effect
           sub[v.num] = v -- yep
         else
           rstartf, rendf = rendf, rstartf -- un-reverse them
@@ -604,8 +645,9 @@ function frame_by_frame(sub,accd,opts)
             tag = tag.."}"..string.char(6)
             v.text = v.text:gsub(string.char(1),"")
             v.text = tag..v.text
-            v.effect = "aa-mou"
+            v.effect = "aa-mou"..v.effect
             sub.insert(v.num+1,v)
+            v.effect = orgeff
             v.text = orgtext
           end
         end
@@ -624,7 +666,7 @@ function frame_by_frame(sub,accd,opts)
             tag = tag.."}"..string.char(6)
           end
           v.text = tag..v.text
-          v.effect = "aa-mou"
+          v.effect = "aa-mou"..v.effect
           sub[v.num] = v -- yep
         else
           for x = rstartf,rendf do
@@ -649,8 +691,9 @@ function frame_by_frame(sub,accd,opts)
             tag = tag.."}"..string.char(6)
             v.text = v.text:gsub(string.char(1),"")
             v.text = tag..v.text
-            v.effect = "aa-mou" -- gotta keep track of it somehow
+            v.effect = "aa-mou"..v.effect -- make it nondestructive.
             sub.insert(v.num+x-rstartf+1,v)
+            v.effect = orgeff
             v.text = orgtext
           end
         end
@@ -658,7 +701,9 @@ function frame_by_frame(sub,accd,opts)
     end
   end
   for x = 1,#sub do
-    if sub[x].effect == "aa-mou" then
+    --aegisub.log(5,"%s\n",tostring(sub[x].effect))
+    if tostring(sub[x].effect):match("^aa%-mou") then -- I wonder if a second if 
+      aegisub.log(5,"I choose you, %d!\n",x)
       table.insert(newlines,x) -- seems to work as intended.
     end
   end
@@ -807,11 +852,10 @@ function export(accd,mocha)
     "%s X-Y %d-%d.txt",
     "%s T-X %d-%d.txt", -- why time instead of frame, you ask? Simply put, VFR.
     "%s T-Y %d-%d.txt",
-    "%s sclX-sclY %d-%d.txt",
+    "%s T-sclX %d-%d.txt",
     "%s gnuplot-command %d-%d.txt"
   }
   -- open files
-  if prefix == nil then prefix = "" end
   local name = accd.lines[1].text_stripped:split(" ")
   name = name[1]
   if not name then name = "Untitled" end
@@ -820,9 +864,9 @@ function export(accd,mocha)
     repeat
       if aegisub.progress.is_cancelled() then error("User cancelled") end
       it = it + 1
-      local n = string.format(prefix..v,name,accd.startframe,it)
+      local n = string.format(global.prefix..v,name,accd.startframe,it)
       local f = io.open(n,'r')
-      if f then io.close(f); f = false else f = true; fnames[k] = n end -- uhhhhhhh...
+      if f then f:close(); f = false else f = true; fnames[k] = n end -- uhhhhhhh...
     until f == true -- this is probably the worst possible way of doing this imaginable
   end
   local fhandle = {}
@@ -838,6 +882,7 @@ function export(accd,mocha)
   table.insert(bigstring,string.format([=[sta = sprintf('R^2: %%.3f - RMS of residuals: %%.3f',XvYstat_correlation**2,FIT_STDFIT)]=]..'\n'))
   table.insert(bigstring,string.format([=[set label 1 slope at 1,-55 front; set label 2 sta at 1,-40 front]=]..'\n'))
   table.insert(bigstring,string.format([=[plot '%s' using 1:2 title 'Motion data' with points, f(x) title 'Linear regression' with lines]=]..'\n',fnames[1]))
+  
   table.insert(bigstring,string.format('\n'..[=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',round(len*2+70,0),accd.shx+80,fnames[2]))
   table.insert(bigstring,string.format([=[set title 'Plot of T vs X'; unset x2label]=]..'\n'))
   table.insert(bigstring,string.format([=[unset x2tics; unset mx2tics; set xtics out mirror; set mxtics 5; set xlabel 'Time (centiseconds)'; set xrange [0:%d]]=]..'\n',round(len,0)))
@@ -848,6 +893,17 @@ function export(accd,mocha)
   table.insert(bigstring,string.format([=[sta = sprintf('R^2: %%.3f - RMS of residuals: %%.3f',TvXstat_correlation**2,FIT_STDFIT)]=]..'\n'))
   table.insert(bigstring,string.format([=[set label 1 slope at 1,-35 front; set label 2 sta at 1,-20 front]=]..'\n'))
   table.insert(bigstring,string.format([=[plot '%s' using 1:2 title 'Motion data' with points, f(x) title 'Linear regression' with lines]=]..'\n',fnames[2]))
+
+  table.insert(bigstring,string.format('\n'..[=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',round(len*2+70,0),accd.shx+80,fnames[3]))
+  table.insert(bigstring,string.format([=[set title 'Plot of T vs Y'; unset x2label]=]..'\n'))
+  table.insert(bigstring,string.format([=[unset x2tics; unset mx2tics; set xtics out mirror; set mxtics 5; set xlabel 'Time (centiseconds)'; set xrange [0:%d]]=]..'\n',round(len,0)))
+  table.insert(bigstring,string.format([=[set ytics out; set mytics 5; set ylabel 'Y Position (Pixels)'; set yrange [0:%d] reverse]=]..'\n',accd.shy))
+  table.insert(bigstring,string.format([=[set grid xtics mxtics ytics mytics; stats '%s' using 1:2 name 'TvXstat']=]..'\n',fnames[3]))
+  table.insert(bigstring,string.format([=[f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b]=]..'\n',fnames[3]))
+  table.insert(bigstring,string.format([=[if (b >= 0) slope = sprintf('Equation: x(t) = %%.3ft + %%.3f',m,b); else slope = sprintf('Equation: x(t) = %%.3ft - %%.3f',m,0-b)]=]..'\n'))
+  table.insert(bigstring,string.format([=[sta = sprintf('R^2: %%.3f - RMS of residuals: %%.3f',TvXstat_correlation**2,FIT_STDFIT)]=]..'\n'))
+  table.insert(bigstring,string.format([=[set label 1 slope at 1,-35 front; set label 2 sta at 1,-20 front]=]..'\n'))
+  table.insert(bigstring,string.format([=[plot '%s' using 1:2 title 'Motion data' with points, f(x) title 'Linear regression' with lines]=]..'\n',fnames[3]))
   for k,v in ipairs(fnames) do
     aegisub.log(5,"%d: %s\n",k,v)
     table.insert(fhandle,io.open(v,'w'))
@@ -870,12 +926,13 @@ function cleanup(sub, sel, opts) -- make into its own macro eventually.
   local linediff
   function cleantrans(cont) -- internal function because that's the only way to pass the line difference to it
     local t_s, t_e, ex, eff = cont:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
-    if tonumber(t_e) <= 0 or tonumber(t_e) <= tonumber(t_s) then return string.format("%s",eff) end
-    if tonumber(t_s) > linediff then return "" end
-    if tonumber(ex) == 1 or ex == "" then return string.format("\\t(%s,%s,%s)",t_s,t_e,eff) end
-    return string.format("\\t(%s,%s,%s,%s)",t_s,t_e,ex,eff)
+    if tonumber(t_e) <= 0 or tonumber(t_e) <= tonumber(t_s) then return string.format("%s",eff) end -- if the end time is less than or equal to zero, the transformation has finished. Replace it with only its contents.
+    if tonumber(t_s) > linediff then return "" end -- if the start time is greater than the length of the line, the transform has not yet started, and can be removed from the line.
+    if tonumber(ex) == 1 or ex == "" then return string.format("\\t(%s,%s,%s)",t_s,t_e,eff) end -- if the exponential factor is equal to 1 or isn't there, remove it (just makes it look cleaner)
+    return string.format("\\t(%s,%s,%s,%s)",t_s,t_e,ex,eff) -- otherwise, return an untouched transform.
   end
   for i, v in ipairs(sel) do
+    aegisub.progress.title(string.format("Castrating gerbils: %d/%d",i,#sel))
     local lnum = sel[#sel-i+1]
     local line = sub[lnum] -- iterate backwards (makes line deletion sane)
     linediff = line.end_time - line.start_time
@@ -883,21 +940,21 @@ function cleanup(sub, sel, opts) -- make into its own macro eventually.
     line.text = line.text:gsub(string.char(6),"") -- remove superfluous marker characters for when there is no override block at the beginning of the original line
     line.text = line.text:gsub("\\t(%b())",cleantrans) -- clean up transformations (remove transformations that have completed)
     line.text = line.text:gsub("{}","") -- I think this is irrelevant. But whatever.
-    ---[=[ -- seems to work as intended now
     for a in line.text:gmatch("{(.-)}") do
-      local b = a
+      aegisub.progress.set(math.random(100)) -- professional progress bars
       local trans = {}
       repeat -- have to cut out transformations so their contents don't get detected as dups
         if aegisub.progress.is_cancelled() then error("User cancelled") end
         local low, high, trabs = a:find("(\\t%b())")
         if low then
+          aegisub.log(5,"Cleanup: %s found\n",trabs)
           a = a:gsub("\\t%b()",string.char(3),1) -- nngah
           table.insert(trans,trabs)
         end
       until not low 
       for k,v in pairs(alltags) do
         local _, num = a:gsub(v,"")
-        --aegisub.log(0,"v: %s, num: %s, a: %s\n",v,num,a)
+        aegisub.log(5,"v: %s, num: %s, a: %s\n",v,num,a)
         a = a:gsub(v,"",num-1)
       end
       for i,v in ipairs(trans) do
@@ -907,8 +964,7 @@ function cleanup(sub, sel, opts) -- make into its own macro eventually.
     end
     line.text = line.text:gsub(string.char(1),"{")
     line.text = line.text:gsub(string.char(2),"}")
-    --]=]
-    line.effect = ""
+    line.effect = line.effect:gsub("aa%-mou","",1)
     sub[lnum] = line
   end
   if opts.sort ~= "Default" then
@@ -917,32 +973,38 @@ function cleanup(sub, sel, opts) -- make into its own macro eventually.
 end
 
 function dialog_sort(sub, sel, sor)
-  local function compareItems(a,b)
+  local function compare(a,b)
     if a.key == b.key then
       return a.num < b.num -- solve the disorganized sort problem.
     else
       return a.key < b.key
     end
   end -- local because why not?
-  local funcs = {
-    ['Time'] = function(l,n) return { key = l.start_time, num = n, data = l } end, --..string.format("%09d",n)
-  }
+  local sortF = ({
+    ['Time'] = function(l,n) return { key = l.start_time, num = n, data = l } end;
+    --[[ These are pretty pointless since they should all end up in the same order as "Default"
+    ['Actor'] = function(l,n) return { key = l.actor, num = n, data = l } end;
+    ['Effect'] = function(l,n) return { key = l.effect, num = n, data = l } end;
+    ['Style'] = function(l,n) return { key = l.style, num = n, data = l } end;
+    --]]
+  })[sor] -- thanks, tophf
   local lines = {}
-  local op = funcs[sor]
   for i,v in ipairs(sel) do
     if aegisub.progress.is_cancelled() then error("User cancelled") end -- should probably put these in every loop
     local line = sub[v]
-    table.insert(lines,op(line,v))
+    table.insert(lines,sortF(line,v))
   end
   local strt = sel[1] -- not strictly necessary
-  table.sort(lines, compareItems)
+  table.sort(lines, compare)
   for i, v in ipairs(sel) do
     if aegisub.progress.is_cancelled() then error("User cancelled") end
     sub.delete(sel[#sel-i+1]) -- BALEET (in reverse because they are not necessarily contiguous)
   end
   for i, v in ipairs(lines) do
     if aegisub.progress.is_cancelled() then error("User cancelled") end
-    aegisub.log(5,"Key: "..v.key..', Num: '..v.num..'\n')
+    aegisub.progress.title(string.format("Sorting gerbils: %d/%d",i,#lines))
+    aegisub.progress.set(i/#lines*100) 
+    aegisub.log(5,"Key: "..v.key..'\n')
     aegisub.progress.set(i/#lines*100)
     sub.insert(strt+i-1,v.data) -- not sure this is the best place to do this but owell
   end
@@ -964,15 +1026,11 @@ function string:split(sep) -- borrowed from the lua-users wiki (single character
   return fields
 end
 
-function string:splitconf()
-  return self:match("(.-):(.*)")
-end
-
 function isvideo() -- a very rudimentary (but hopefully efficient) check to see if there is a video loaded.
   local l = aegisub.video_size() and true or false -- and forces boolean conversion?
-  if trunk then
+  if dpath then
     if l then
-      return l,"Applies properly formatted motion tracking data to selected subtitles."
+      return l
     else
       return l,"Validation failed: you don't have a video loaded."
     end
@@ -1041,58 +1099,27 @@ function trimnthings(sub,sel)
       end
     end
   end
-  if trunk then
+  if dpath then
     video = video:gsub("[A-Z]:\\","")
     video = video:gsub(".-[^\\]\\","")
     --video = video:gsub("%.%.[\\/]","") -- the name of the video from the header
     vp = aegisub.decode_path("?video")..video -- the name of the video appended to the video path from aegisub.
     vn = video:match("(.+)%.[^%.]+$") -- the name of the video, with its extension removed. This expression is sketchy.
-  else
-    vp = unfuckpath(video)
-    vn = video:reverse():gsub("[^%.]+","",1):sub(2):reverse()
   end
-  if trunk and not gui_trim then 
-    local tabae = { ['vid'] = vp, ['sf'] = sf, ['ef'] = ef, ['ind'] = prefix..vn..".index", ['op'] = prefix..vn.."-"..sf.."-%d.mp4"}
+  if not global.gui_trim then 
+    local tabae = { ['vid'] = vp, ['sf'] = sf, ['ef'] = ef, ['ind'] = global.prefix..vn..".index", ['op'] = global.prefix..vn.."-"..sf.."-%d.mp4"}
     writeandencode(tabae)
   else
     someguiorsmth(sf,ef,vp,vn)
   end
 end
 
-function unfuckpath(path) -- fuck my life.
-  local derp
-  if windows then 
-    local argh = io.popen("echo %CD%") -- safe to assume the working directory is the directory that the script is in?
-    derp = argh:read("*l") -- No it's not, but I don't have anything else to assume. Fuck 2.1.X
-    assert(derp:match("[A-Z]:\\"),"Working directory is not a valid windows path. Are you using windows?")
-    derp = derp:reverse()
-    if path:match("\\") then
-      for a in path:gmatch("%.%.\\") do
-        path = path:gsub("%.%.\\","",1)
-        derp = derp:gsub("\\[^\\]+","",1)
-      end
-    end
-    derp='\\'..derp
-  else
-    local argh = io.popen("pwd") -- safe to assume the working directory is the directory that the script is in? And that they are using bash/zsh (or other valid shells)?
-    derp = argh:read("*l") -- No it isn't, but I don't have anything else to assume. Fuck 2.1.X
-    derp = derp:reverse()
-    for a in path:gmatch("%.%./") do
-      path = path:gsub("%.%./","",1)
-      derp = derp:gsub("/[^/]+","",1)
-    end
-    derp = '/'..derp
-  end
-  return derp:reverse()..path
-end
-
 function someguiorsmth(sf,ef,vp,vn)
   gui.t[1].text = vp
-  gui.t[2].text = prefix..vn..".index"
+  gui.t[2].text = global.prefix..vn..".index"
   gui.t[3].value = sf
   gui.t[4].value = ef
-  gui.t[5].text = prefix..vn.."-"..sf.."-%d.mp4"
-  if not trunk then gui.t[6].label = gui.t[6].label.." (guessed)" end
+  gui.t[5].text = global.prefix..vn.."-"..sf.."-%d.mp4"
   local button, opts = aegisub.dialog.display(gui.t)
   if button then 
     writeandencode(opts)
@@ -1109,14 +1136,14 @@ function writeandencode(opts)
     local f = io.open(n,'r')
     if f then io.close(f); f = false else f = true; out = n end
   until f == true -- crappypasta
-  if windows then
-    local sh = io.open(prefix.."encode.bat","w+") -- to solve the 250 char limit, we write to a self-deleting batch file on windows.
-    sh:write(x264..' '..x264opts..' --index "'..opts.ind..'" --seek '..opts.sf..' --frames '..(opts.ef-opts.sf+1)..' -o "'..out..'" "'..opts.vid..'"\ndel %0')
+  if global.windows then
+    local sh = io.open(global.prefix.."encode.bat","w+") -- to solve the 250 char limit, we write to a self-deleting batch file on windows.
+    sh:write(global.x264..' '..global.x264op..' --index "'..opts.ind..'" --seek '..opts.sf..' --frames '..(opts.ef-opts.sf+1)..' -o "'..out..'" "'..opts.vid..'"\ndel %0')
     sh:close()
-    os.execute(prefix.."encode.bat")
-  else -- nfi what to do on lunix: dunno if it will allow execution of a shell script without explicitly setting the permissions.
-    os.execute(x264..' '..x264opts..' --index "'..opts.ind..'" --seek '..opts.sf..' --frames '..(opts.ef-opts.sf+1)..' -o "'..out..'" "'..opts.vid..'"')
+    os.execute(global.prefix.."encode.bat")
+  else -- nfi what to do on lunix: dunno if it will allow execution of a shell script without explicitly setting the permissions. "x264 `cat x264opts.txt`" perhaps
+    os.execute(global.x264..' '..global.x264op..' --index "'..opts.ind..'" --seek '..opts.sf..' --frames '..(opts.ef-opts.sf+1)..' -o "'..out..'" "'..opts.vid..'"')
   end
  end
 
-aegisub.register_macro("Cut scene for mocha","Creates an avisynth file with trim set to the length of the selected lineset (for use with motion tracking software)", trimnthings, isvideo)
+if dpath then aegisub.register_macro("Cut scene for mocha","Creates an avisynth file with trim set to the length of the selected lineset (for use with motion tracking software)", trimnthings, isvideo) end
