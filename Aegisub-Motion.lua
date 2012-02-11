@@ -165,7 +165,6 @@ global = {
   x264     = "",
   x264op   = "--crf 16 --tune fastdecode -i 250 --fps 23.976",
   gui_trim = true,
-  gui_expo = true,
 }
 
 header = {
@@ -226,7 +225,7 @@ guiconf = {
   [12] = "shad",
   [15] = "rot",
   [16] = "org",
-  [20] = "conf",
+  --[20] = "conf", -- no, this is dumb
   [21] = "xmult",
   [22] = "ovr",
   [23] = "vsfilter",
@@ -332,7 +331,7 @@ function preprocessing(sub, sel)
     end
     sub[v] = line -- replace
   end
-  information(sub,sel) -- selected line numbers are the same
+  return information(sub,sel) -- selected line numbers are the same
 end
 
 function getinfo(sub, line, styles, num)
@@ -395,6 +394,7 @@ function information(sub, sel)
   local accd = {}
   local _ = nil
   accd.meta, accd.styles = karaskel.collect_head(sub, false) -- dump everything I need later into the table so I don't have to pass o9k variables to the other functions
+  accd.vn = getvideoname(sub):gsub("[A-Z]:\\",""):gsub(".-[^\\]\\","")
   accd.lines = {}
   accd.endframe = aegisub.frame_from_ms(sub[sel[1]].end_time) -- get the end frame of the first selected line
   accd.startframe = aegisub.frame_from_ms(sub[sel[1]].start_time) -- get the start frame of the first selected line
@@ -441,16 +441,17 @@ function information(sub, sel)
   end
   assert(#accd.lines>0,"You have to select at least one line that is longer than one frame long.") -- pro error checking
   printmem("End of preproc loop")
-  init_input(sub,accd)
+  return accd
 end
 
-function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
+function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   aegisub.progress.title("Selecting Gerbils")
-  if not readconf() then accd.errmsg = "CONFIG READ FAILED\n"..accd.errmsg end
+  local accd = preprocessing(sub,sel)
+  if not readconf() then accd.errmsg = "FAILED TO READ CONFIG\n"..accd.errmsg end
   gui.main[2].text = accd.errmsg -- so close to being obsolete
   gui.main[3].text = global.prefix
   printmem("GUI startup")
-  local button, config = aegisub.dialog.display(gui.main, {"Go","Abort"})
+  local button, config = aegisub.dialog.display(gui.main, {"Go","Abort","Export"})
   if button == "Go" then
     if config.reverse then
       aegisub.progress.title("slibreG gnicniM") -- BECAUSE ITS FUNNY GEDDIT
@@ -464,8 +465,11 @@ function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
     local newsel = frame_by_frame(sub,accd,config)
     aegisub.progress.title("Reformatting Gerbils")
     cleanup(sub,newsel,config)
+  elseif button == "Export" then
+    export(accd,parse_input(config.mocpat,accd.shx,accd.shy),config)
   else
     aegisub.progress.task("ABORT")
+    if dpath then aegisub.cancel() end
   end
   aegisub.set_undo_point("Motion Data")
   printmem("Closing")
@@ -522,12 +526,18 @@ function parse_input(input,shx,shy)
       if valu:match("%d") then
         val = valu:split("\t")
         table.insert(mocha.xscl,tonumber(val[2]))
+        if not mocha.xsmax then mocha.xsmax = tonumber(val[2]) elseif tonumber(val[2]) > mocha.xsmax then mocha.xsmax = tonumber(val[2]) end
+        if not mocha.xsmin then mocha.xsmin = tonumber(val[2]) elseif tonumber(val[2]) < mocha.xsmin then mocha.xsmin = tonumber(val[2]) end
         table.insert(mocha.yscl,tonumber(val[3]))
+        if not mocha.ysmax then mocha.ysmax = tonumber(val[3]) elseif tonumber(val[3]) > mocha.ysmax then mocha.ysmax = tonumber(val[3]) end
+        if not mocha.ysmin then mocha.ysmin = tonumber(val[3]) elseif tonumber(val[3]) < mocha.ysmin then mocha.ysmin = tonumber(val[3]) end
       end
     elseif sect <= 7 and sect >= 4 then
       if valu:match("%d") then
         val = valu:split("\t")
         table.insert(mocha.zrot,-tonumber(val[2]))
+        if not mocha.rmax then mocha.rmax = -tonumber(val[2]) elseif -tonumber(val[2]) > mocha.rmax then mocha.rmax = -tonumber(val[2]) end
+        if not mocha.rmin then mocha.rmin = -tonumber(val[2]) elseif -tonumber(val[2]) < mocha.rmin then mocha.rmin = -tonumber(val[2]) end
       end
     end
   end
@@ -547,7 +557,7 @@ function frame_by_frame(sub,accd,opts)
   printmem("Start of main loop")
   local mocha = parse_input(opts.mocpat,accd.shx,accd.shy) -- global variables have no automatic gc
   assert(accd.totframes==mocha.flength,"Number of frames from selected lines differs from number of frames tracked.")
-  if opts.exp then export(accd,mocha) end
+  if opts.exp then export(accd,mocha,opts) end
   local _ = nil
   local newlines = {} -- table to stick indicies of tracked lines into for cleanup... haven't really decided what the cleanup function is going to be. I might expose it to automation as a standalone depending on if it turns out to be garbage or not.
   if not opts.scl then
@@ -794,7 +804,7 @@ function clippinate(line,mocha,opts,iter) -- vsfilter can do subpixel clips thro
     For a vector clip, libass will again round all decimal values to the nearest integer.
      VSfilter will break parsing as soon as it hits a decimal point, ignoring all numbers
      that come after the decimal point, and treating any digits that lead up to it as the
-     whole number (eg 350.5 -> 350). Come to think of it, this is probably how it handles
+     whole number (e.g. 350.5 -> 350). Come to think of it, this is probably how it handles
      all of the tags it can only read integer values from.
   ]]--
   if line.clip then
@@ -877,83 +887,6 @@ function orgate(line,mocha,opts,iter)
   local xorg = round(mocha.xpos[iter],opts.rround)
   local yorg = round(mocha.ypos[iter],opts.rround)
   return string.format("\\org(%g,%g)",xorg,yorg) -- copypasta
-end
-
-function export(accd,mocha)
-  --accd.shx+70, accd.shy+80
-  -- table of file names
-  local fnames = {
-    "%s X-Y %d-%d.txt",
-    "%s T-X %d-%d.txt", -- why time instead of frame, you ask? Simply put, VFR.
-    "%s T-Y %d-%d.txt",
-    "%s T-sclX %d-%d.txt",
-    "%s gnuplot-command %d-%d.txt"
-  }
-  -- open files
-  local name = accd.lines[1].text_stripped:split(" ")
-  name = name[1]
-  if not name then name = "Untitled" end
-  for k,v in ipairs(fnames) do
-    local it = 0
-    repeat
-      if aegisub.progress.is_cancelled() then error("User cancelled") end
-      it = it + 1
-      local n = string.format(global.prefix..v,name,accd.startframe,it)
-      local f = io.open(n,'r')
-      if f then f:close(); f = false else f = true; fnames[k] = n end -- uhhhhhhh...
-    until f == true -- this is probably the worst possible way of doing this imaginable
-  end
-  local fhandle = {}
-  local len = (aegisub.ms_from_frame(accd.endframe) - aegisub.ms_from_frame(accd.startframe))/10
-  local bigstring = {}
-  table.insert(bigstring,string.format([=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',accd.shx+70,accd.shy+80,fnames[1]))
-  table.insert(bigstring,string.format([=[set title 'Plot of X vs Y']=]..'\n'))
-  table.insert(bigstring,string.format([=[unset xtics; set x2tics out mirror; set mx2tics 5; set x2label 'X Position (Pixels)'; set xrange [0:%d]]=]..'\n',accd.shx))
-  table.insert(bigstring,string.format([=[set ytics out; set mytics 5; set ylabel 'Y Position (Pixels)'; set yrange [0:%d] reverse]=]..'\n',accd.shy))
-  table.insert(bigstring,string.format([=[set grid x2tics mx2tics mytics ytics; stats '%s' using 1:2 name 'XvYstat']=]..'\n',fnames[1]))
-  table.insert(bigstring,string.format([=[f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b]=]..'\n',fnames[1]))
-  table.insert(bigstring,string.format([=[if (b >= 0) slope = sprintf('Equation: y(x) = %%.3fx + %%.3f',m,b); else slope = sprintf('Equation: y(x) = %%.3fx - %%.3f',m,0-b)]=]..'\n'))
-  table.insert(bigstring,string.format([=[sta = sprintf('R^2: %%.3f - RMS of residuals: %%.3f',XvYstat_correlation**2,FIT_STDFIT)]=]..'\n'))
-  table.insert(bigstring,string.format([=[set label 1 slope at 1,-55 front; set label 2 sta at 1,-40 front]=]..'\n'))
-  table.insert(bigstring,string.format([=[plot '%s' using 1:2 title 'Motion data' with points, f(x) title 'Linear regression' with lines]=]..'\n',fnames[1]))
-  
-  table.insert(bigstring,string.format('\n'..[=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',round(len*2+70,0),accd.shx+80,fnames[2]))
-  table.insert(bigstring,string.format([=[set title 'Plot of T vs X'; unset x2label]=]..'\n'))
-  table.insert(bigstring,string.format([=[unset x2tics; unset mx2tics; set xtics out mirror; set mxtics 5; set xlabel 'Time (centiseconds)'; set xrange [0:%d]]=]..'\n',round(len,0)))
-  table.insert(bigstring,string.format([=[set ytics out; set mytics 5; set ylabel 'X Position (Pixels)'; set yrange [0:%d] reverse]=]..'\n',accd.shx))
-  table.insert(bigstring,string.format([=[set grid xtics mxtics ytics mytics; stats '%s' using 1:2 name 'TvXstat']=]..'\n',fnames[2]))
-  table.insert(bigstring,string.format([=[f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b]=]..'\n',fnames[2]))
-  table.insert(bigstring,string.format([=[if (b >= 0) slope = sprintf('Equation: x(t) = %%.3ft + %%.3f',m,b); else slope = sprintf('Equation: x(t) = %%.3ft - %%.3f',m,0-b)]=]..'\n'))
-  table.insert(bigstring,string.format([=[sta = sprintf('R^2: %%.3f - RMS of residuals: %%.3f',TvXstat_correlation**2,FIT_STDFIT)]=]..'\n'))
-  table.insert(bigstring,string.format([=[set label 1 slope at 1,-35 front; set label 2 sta at 1,-20 front]=]..'\n'))
-  table.insert(bigstring,string.format([=[plot '%s' using 1:2 title 'Motion data' with points, f(x) title 'Linear regression' with lines]=]..'\n',fnames[2]))
-
-  table.insert(bigstring,string.format('\n'..[=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',round(len*2+70,0),accd.shx+80,fnames[3]))
-  table.insert(bigstring,string.format([=[set title 'Plot of T vs Y'; unset x2label]=]..'\n'))
-  table.insert(bigstring,string.format([=[unset x2tics; unset mx2tics; set xtics out mirror; set mxtics 5; set xlabel 'Time (centiseconds)'; set xrange [0:%d]]=]..'\n',round(len,0)))
-  table.insert(bigstring,string.format([=[set ytics out; set mytics 5; set ylabel 'Y Position (Pixels)'; set yrange [0:%d] reverse]=]..'\n',accd.shy))
-  table.insert(bigstring,string.format([=[set grid xtics mxtics ytics mytics; stats '%s' using 1:2 name 'TvXstat']=]..'\n',fnames[3]))
-  table.insert(bigstring,string.format([=[f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b]=]..'\n',fnames[3]))
-  table.insert(bigstring,string.format([=[if (b >= 0) slope = sprintf('Equation: x(t) = %%.3ft + %%.3f',m,b); else slope = sprintf('Equation: x(t) = %%.3ft - %%.3f',m,0-b)]=]..'\n'))
-  table.insert(bigstring,string.format([=[sta = sprintf('R^2: %%.3f - RMS of residuals: %%.3f',TvXstat_correlation**2,FIT_STDFIT)]=]..'\n'))
-  table.insert(bigstring,string.format([=[set label 1 slope at 1,-35 front; set label 2 sta at 1,-20 front]=]..'\n'))
-  table.insert(bigstring,string.format([=[plot '%s' using 1:2 title 'Motion data' with points, f(x) title 'Linear regression' with lines]=]..'\n',fnames[3]))
-  for k,v in ipairs(fnames) do
-    aegisub.log(5,"%d: %s\n",k,v)
-    table.insert(fhandle,io.open(v,'w'))
-  end
-  for x = 1, #mocha.xpos do
-    if aegisub.progress.is_cancelled() then error("User cancelled") end
-    local cs = (aegisub.ms_from_frame(accd.startframe+x-1) - aegisub.ms_from_frame(accd.startframe))/10 -- (normalized to start time)
-    fhandle[1]:write(string.format("%g %g\n",mocha.xpos[x],mocha.ypos[x]))
-    fhandle[2]:write(string.format("%g %g\n",cs,mocha.xpos[x]))
-    fhandle[3]:write(string.format("%g %g\n",cs,mocha.ypos[x]))
-    fhandle[4]:write(string.format("%g %g\n",mocha.xscl[x],mocha.yscl[x]))
-  end
-  for i,v in ipairs(bigstring) do
-    fhandle[5]:write(v)
-  end
-  for i,v in ipairs(fhandle) do v:close() end
 end
 
 function cleanup(sub, sel, opts) -- make into its own macro eventually.
@@ -1073,7 +1006,120 @@ function isvideo() -- a very rudimentary (but hopefully efficient) check to see 
   end
 end
 
-aegisub.register_macro("Apply motion data", "Applies properly formatted motion tracking data to selected subtitles.", preprocessing, isvideo)
+aegisub.register_macro("Apply motion data", "Applies properly formatted motion tracking data to selected subtitles.", init_input, isvideo)
+
+function export(accd,mocha,opts)
+  local fnames = {}
+  if opts.pos then
+    fnames[1] = "%s X-Y %d-%d.txt"
+    fnames[2] = "%s T-X %d-%d.txt"
+    fnames[3] = "%s T-Y %d-%d.txt"
+  end
+  if opts.scl then
+    fnames[4] = "%s T-sclX %d-%d.txt"
+    fnames[5] = "%s T-sclY %d-%d.txt"
+  end
+  if opts.rot then
+    fnames[6] = "%s T-rot %d-%d.txt"
+  end
+  fnames[7] = "%s gnuplot-command %d-%d.txt"
+  -- open files
+  local name = accd.lines[1].effect or accd.lines[1].actor or accd.vn or "Untitled"
+  for k,v in pairs(fnames) do
+    local it = 0
+    repeat
+      if aegisub.progress.is_cancelled() then error("User cancelled") end
+      it = it + 1
+      local n = string.format(global.prefix..v,name,accd.startframe,it)
+      local f = io.open(n,'r')
+      if f then f:close(); f = false else f = true; fnames[k] = n end -- uhhhhhhh...
+    until f == true -- this is probably the worst possible way of doing this imaginable
+  end
+  local fhandle = {}
+  local len = (aegisub.ms_from_frame(accd.endframe) - aegisub.ms_from_frame(accd.startframe))/10
+  local bigstring = {}
+  if opts.pos then
+    table.insert(bigstring,string.format([=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',accd.shx+70,accd.shy+80,fnames[1]:sub(0,-5)))
+    table.insert(bigstring,string.format([=[set title 'Plot of X vs Y']=]..'\n'))
+    table.insert(bigstring,string.format([=[unset xtics; set x2tics out mirror; set mx2tics 5; set x2label 'X Position (Pixels)'; set xrange [0:%d]]=]..'\n',accd.shx))
+    table.insert(bigstring,string.format([=[set ytics out; set mytics 5; set ylabel 'Y Position (Pixels)'; set yrange [0:%d] reverse]=]..'\n',accd.shy))
+    table.insert(bigstring,string.format([=[set grid x2tics mx2tics mytics ytics; stats '%s' using 1:2 name 'XvYstat']=]..'\n',fnames[1]))
+    table.insert(bigstring,string.format([=[f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b]=]..'\n',fnames[1]))
+    table.insert(bigstring,string.format([=[if (b >= 0) slope = sprintf('y(x) = %%.3fx + %%.3f : R^2: %%.3f',m,b,XvYstat_correlation**2); else slope = sprintf('y(x) = %%.3fx - %%.3f : R^2: %%.3f',m,0-b,XvYstat_correlation**2)]=]..'\n'))
+    table.insert(bigstring,string.format([=[plot '%s' using 1:2 notitle with points, f(x) title slope with lines]=]..'\n',fnames[1]))
+
+    table.insert(bigstring,string.format('\n'..[=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',round(len*2+70,0),accd.shx+80,fnames[2]:sub(0,-5)))
+    table.insert(bigstring,string.format([=[set title 'Plot of T vs X'; unset x2label]=]..'\n'))
+    table.insert(bigstring,string.format([=[unset x2tics; unset mx2tics; set xtics out mirror; set mxtics 5; set xlabel 'Time (centiseconds)'; set xrange [0:%d]]=]..'\n',round(len,0)))
+    table.insert(bigstring,string.format([=[set ytics out; set mytics 5; set ylabel 'X Position (Pixels)'; set yrange [0:%d] reverse]=]..'\n',accd.shx))
+    table.insert(bigstring,string.format([=[set grid xtics mxtics ytics mytics; stats '%s' using 1:2 name 'TvXstat']=]..'\n',fnames[2]))
+    table.insert(bigstring,string.format([=[f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b]=]..'\n',fnames[2]))
+    table.insert(bigstring,string.format([=[if (b >= 0) slope = sprintf('Equation: x(t) = %%.3ft + %%.3f : R^2: %%.3f',m,b,TvXstat_correlation**2); else slope = sprintf('Equation: x(t) = %%.3ft - %%.3f : R^2: %%.3f',m,0-b,TvXstat_correlation**2)]=]..'\n'))
+    table.insert(bigstring,string.format([=[plot '%s' using 1:2 notitle with points, f(x) title slope with lines]=]..'\n',fnames[2]))
+
+    table.insert(bigstring,string.format('\n'..[=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',round(len*2+70,0),accd.shx+80,fnames[3]:sub(0,-5)))
+    table.insert(bigstring,string.format([=[set title 'Plot of T vs Y'; unset x2label]=]..'\n'))
+    table.insert(bigstring,string.format([=[unset x2tics; unset mx2tics; set xtics out mirror; set mxtics 5; set xlabel 'Time (centiseconds)'; set xrange [0:%d]]=]..'\n',round(len,0)))
+    table.insert(bigstring,string.format([=[set ytics out; set mytics 5; set ylabel 'Y Position (Pixels)'; set yrange [0:%d] reverse]=]..'\n',accd.shy))
+    table.insert(bigstring,string.format([=[set grid xtics mxtics ytics mytics; stats '%s' using 1:2 name 'TvYstat']=]..'\n',fnames[3]))
+    table.insert(bigstring,string.format([=[f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b]=]..'\n',fnames[3]))
+    table.insert(bigstring,string.format([=[if (b >= 0) slope = sprintf('Equation: y(t) = %%.3ft + %%.3f : R^2: %%.3f',m,b,TvYstat_correlation**2); else slope = sprintf('Equation: y(t) = %%.3ft - %%.3f : R^2: %%.3f',m,0-b,TvYstat_correlation**2)]=]..'\n'))
+    table.insert(bigstring,string.format([=[plot '%s' using 1:2 notitle with points, f(x) title slope with lines]=]..'\n',fnames[3]))
+  end
+  if opts.scl then
+    table.insert(bigstring,string.format('\n'..[=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',round(len*2+70,0),600,fnames[4]:sub(0,-5)))
+    table.insert(bigstring,string.format([=[set title 'Plot of T vs sclX'; unset x2label]=]..'\n'))
+    table.insert(bigstring,string.format([=[unset x2tics; unset mx2tics; set xtics out mirror; set mxtics 5; set xlabel 'Time (centiseconds)'; set xrange [0:%d]]=]..'\n',round(len,0)))
+    table.insert(bigstring,string.format([=[set ytics out; set mytics 5; set ylabel 'X Scale (Percent)'; set yrange [0:*] reverse]=]..'\n'))
+    table.insert(bigstring,string.format([=[set grid xtics mxtics ytics mytics; stats '%s' using 1:2 name 'TvSXstat']=]..'\n',fnames[4]))
+    table.insert(bigstring,string.format([=[f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b]=]..'\n',fnames[4]))
+    table.insert(bigstring,string.format([=[if (b >= 0) slope = sprintf('Equation: sclx(t) = %%.3ft + %%.3f : R^2: %%.3f',m,b,TvSXstat_correlation**2); else slope = sprintf('Equation: sclx(t) = %%.3ft - %%.3f : R^2: %%.3f',m,0-b,TvSXstat_correlation**2)]=]..'\n'))
+    table.insert(bigstring,string.format([=[plot '%s' using 1:2 notitle with points, f(x) title slope with lines]=]..'\n',fnames[4]))
+
+    table.insert(bigstring,string.format('\n'..[=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',round(len*2+70,0),600,fnames[5]:sub(0,-5)))
+    table.insert(bigstring,string.format([=[set title 'Plot of T vs sclY'; unset x2label]=]..'\n'))
+    table.insert(bigstring,string.format([=[unset x2tics; unset mx2tics; set xtics out mirror; set mxtics 5; set xlabel 'Time (centiseconds)'; set xrange [0:%d]]=]..'\n',round(len,0)))
+    table.insert(bigstring,string.format([=[set ytics out; set mytics 5; set ylabel 'Y Scale (Percent)'; set yrange [0:*] reverse]=]..'\n'))
+    table.insert(bigstring,string.format([=[set grid xtics mxtics ytics mytics; stats '%s' using 1:2 name 'TvSYstat']=]..'\n',fnames[5]))
+    table.insert(bigstring,string.format([=[f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b]=]..'\n',fnames[5]))
+    table.insert(bigstring,string.format([=[if (b >= 0) slope = sprintf('Equation: scly(t) = %%.3ft + %%.3f : R^2: %%.3f',m,b,TvSYstat_correlation**2); else slope = sprintf('Equation: scly(t) = %%.3ft - %%.3f : R^2: %%.3f',m,0-b,TvSYstat_correlation**2)]=]..'\n'))
+    table.insert(bigstring,string.format([=[plot '%s' using 1:2 notitle with points, f(x) title slope with lines]=]..'\n',fnames[5]))
+  end
+  if opts.rot then
+    table.insert(bigstring,string.format('\n'..[=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',round(len*2+70,0),600,fnames[6]:sub(0,-5)))
+    table.insert(bigstring,string.format([=[set title 'Plot of T vs rot'; unset x2label]=]..'\n'))
+    table.insert(bigstring,string.format([=[unset x2tics; unset mx2tics; set xtics out mirror; set mxtics 5; set xlabel 'Time (centiseconds)'; set xrange [0:%d]]=]..'\n',round(len,0)))
+    table.insert(bigstring,string.format([=[set ytics out; set mytics 5; set ylabel 'Z Rotation (Degrees)'; set yrange [%d:%d] reverse]=]..'\n',round(mocha.rmin-1,0),round(mocha.rmax+1,0)))
+    table.insert(bigstring,string.format([=[set grid xtics mxtics ytics mytics; stats '%s' using 1:2 name 'TvRstat']=]..'\n',fnames[6]))
+    table.insert(bigstring,string.format([=[f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b]=]..'\n',fnames[6]))
+    table.insert(bigstring,string.format([=[if (b >= 0) slope = sprintf('Equation: sclx(t) = %%.3ft + %%.3f : R^2: %%.3f',m,b,TvRstat_correlation**2); else slope = sprintf('Equation: sclx(t) = %%.3ft - %%.3f : R^2: %%.3f',m,0-b,TvRstat_correlation**2)]=]..'\n'))
+    table.insert(bigstring,string.format([=[plot '%s' using 1:2 notitle with points, f(x) title slope with lines]=]..'\n',fnames[6]))
+  end
+  for k,v in pairs(fnames) do
+    aegisub.log(5,"Export: opening %s for writing.\n",v)
+    fhandle[k] = io.open(v,'w')
+  end
+  for x = 1, #mocha.xpos do
+    if aegisub.progress.is_cancelled() then error("User cancelled") end
+    local cs = (aegisub.ms_from_frame(accd.startframe+x-1) - aegisub.ms_from_frame(accd.startframe))/10 -- (normalized to start time)
+    if opts.pos then
+      fhandle[1]:write(string.format("%g %g\n",mocha.xpos[x],mocha.ypos[x]))
+      fhandle[2]:write(string.format("%g %g\n",cs,mocha.xpos[x]))
+      fhandle[3]:write(string.format("%g %g\n",cs,mocha.ypos[x]))
+    end
+    if opts.scl then
+      fhandle[4]:write(string.format("%g %g\n",cs,mocha.xscl[x]))
+      fhandle[5]:write(string.format("%g %g\n",cs,mocha.yscl[x]))
+    end
+    if opts.rot then
+      fhandle[6]:write(string.format("%g %g\n",cs,mocha.zrot[x]))
+    end
+  end
+  for i,v in ipairs(bigstring) do
+    fhandle[7]:write(v)
+  end
+  for i,v in ipairs(fhandle) do v:close() end
+end
 
 function confmaker()
   local newgui = table.copy_deep(gui.main) -- OH JESUS CHRIST WHAT HAVE I DONE
@@ -1193,25 +1239,27 @@ function collecttrim(sub,sel)
   return sf,ef-1
 end
 
+function getvideoname(sub)
+  for x = 1,#sub do
+    if sub[x].class == "info" then
+      if sub[x].key == "Video File" then
+        local video = sub[x].value:sub(2)
+        return video
+      end
+    end
+  end
+end
+
 function trimnthings(sub,sel)
   if not readconf() then aegisub.log(0,"Failed to read config!\n") end
   local video = ""
   local vp
   local vn
   local sf,ef = collecttrim(sub,sel)
-  for x = 1,#sub do
-    if sub[x].class == "info" then
-      if sub[x].key == "Video File" then
-        video = sub[x].value:sub(2)
-        assert(not video:match("?dummy"), "No dummy videos allowed. Sorry.")
-        break
-      end
-    end
-  end
   if dpath then
-    video = video:gsub("[A-Z]:\\","")
-    video = video:gsub(".-[^\\]\\","")
-    --video = video:gsub("%.%.[\\/]","") -- the name of the video from the header
+    video = getvideoname(sub)
+    assert(not video:match("?dummy"), "No dummy videos allowed. Sorry.")
+    video = video:gsub("[A-Z]:\\",""):gsub(".-[^\\]\\","")
     vp = aegisub.decode_path("?video")..video -- the name of the video appended to the video path from aegisub.
     vn = video:match("(.+)%.[^%.]+$") -- the name of the video, with its extension removed. This expression is sketchy.
   end
