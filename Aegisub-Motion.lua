@@ -1,6 +1,6 @@
 ﻿  --[=[ Please set the full path to the config file. ]=]--
   --[=[ Note: with trunk, defaults to /path/to/aegisub.exe/aegisub-motion.conf if set to an empty string ]=]--
-config_file = "C:\\aegisub-motion.config" -- e.g. C:\\path\\to the\\a-mo.conf or /home/path to/the/aegi-moti.conf
+config_file = "" -- e.g. C:\\path\\to the\\a-mo.conf or /home/path to/the/aegi-moti.conf
   --[=[ YOU ARE LEGALLY BOUND AND GAGGED BY THE TERMS AND CONDITIONS OF THE LICENSE,
         EVEN IF YOU HAVEN'T READ THEM. ]=]--
       
@@ -70,7 +70,7 @@ script_version = "μοε" -- no, I have no idea how this versioning system works
 include("karaskel.lua")
 
 gui = {} -- I'm really beginning to think this shouldn't be a global variable
-gui.main = {
+gui.main = { -- todo: change these to be more descriptive.
   [1] = { class = "textbox"; -- 1 - because it is best if it starts out highlighted.
       x = 0; y = 1; height = 4; width = 10;
     name = "mocpat"; hint = "Paste data or the path to a file containing it. No quotes or escapes."},
@@ -157,13 +157,13 @@ for k,v in pairs(aegisub) do
   end
 end
 
-if config == "" and dpath then config = aegisub.decode_path("?data/aegisub-motion.conf") end
+if config_file == "" and dpath then config_file = aegisub.decode_path("?data/aegisub-motion.conf") end
 
 global = {
   windows  = true,
   prefix   = "",
   x264     = "",
-  x264op   = "",
+  x264op   = "--crf 16 --tune fastdecode -i 250 --fps 23.976",
   gui_trim = true,
   gui_expo = true,
 }
@@ -226,8 +226,9 @@ guiconf = {
   [12] = "shad",
   [15] = "rot",
   [16] = "org",
-  [22] = "ovr",
+  [20] = "conf",
   [21] = "xmult",
+  [22] = "ovr",
   [23] = "vsfilter",
   [24] = "linear",
   [25] = "reverse",
@@ -238,8 +239,9 @@ guiconf = {
   [19] = "rround",
 }
 
-function readconf()
+function readconf() -- todo: MAKE THIS WORK WITHOUT CODE DUPLICATION HOLY FUCK I THINK I'M RETARDED
   local valtab = {}
+  aegisub.log(5,"Opening config file: %s\n",config_file)
   local cf = io.open(config_file,'r')
   if cf then
     aegisub.log(5,"Reading config file...\n")
@@ -259,16 +261,45 @@ end
 
 function convertfromconf(valtab)
   for i,v in pairs(guiconf) do
-    aegisub.log(5,"Set: %s <- %s\n", v, tostring(valtab[v]))
-    gui.main[i].value = valtab[v]
+    if valtab[v] ~= nil then
+      aegisub.log(5,"Set: %s <- %s\n", v, tostring(valtab[v]))
+      gui.main[i].value = valtab[v]
+    else
+      aegisub.log(5,"%s unset (nil value)\n", v)
+    end
   end
 end
 
 function globalvars(valtab)
   for k,v in pairs(global) do
-    aegisub.log(5,"Set: %s <- %s\n",k,tostring(valtab[k]))
-    global[k] = valtab[k]
+    if valtab[k] ~= nil then
+      aegisub.log(5,"Set: %s <- %s\n",k,tostring(valtab[k]))
+      global[k] = valtab[k]
+    else
+      aegisub.log(5,"%s unset (nil value)\n", k)
+    end
   end
+end
+
+function writeconf(options)
+  local cf = io.open(config_file,'w+')
+  if not cf then 
+    aegisub.log(0,'Config write failed! Check that %s exists and has write permission.\n',config_file)
+    return nil
+  end
+  for k,v in pairs(global) do
+    if v ~= nil then
+      aegisub.log(5,"Conf <- %s:%s\n",k,tostring(v))
+      cf:write(string.format("%s:%s\n",k,tostring(v)))
+    end
+  end
+  for i,v in pairs(guiconf) do
+    if options[v] ~= nil then
+      aegisub.log(5,"Conf <- %s:%s\n",v,tostring(options[v]))
+      cf:write(string.format("%s:%s\n",v,tostring(options[v])))
+    end
+  end
+  cf:close()
 end
 
 function string:splitconf()
@@ -280,23 +311,6 @@ function string:tobool()
   if self == "true" then return true
   elseif self == "false" then return false
   else return self end
-end
-
-function writeconf(options)
-  local cf = io.open(config_file,'w+')
-  if not cf then 
-    aegisub.log(0,'Config write failed! Check that %s exists and has write permission.\n',config_file)
-    return nil
-  end
-  for k,v in pairs(global) do
-    aegisub.log(5,"Conf <- %s:%s\n",k,tostring(v))
-    cf:write(string.format("%s:%s\n",k,tostring(v)))
-  end
-  for i,v in pairs(guiconf) do
-    aegisub.log(5,"Conf <- %s:%s\n",v,tostring(options[v]))
-    cf:write(string.format("%s:%s\n",v,tostring(options[v])))
-  end
-  cf:close()
 end
 
 function preprocessing(sub, sel)
@@ -443,14 +457,13 @@ function init_input(sub,accd) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
     else
       aegisub.progress.title("Mincing Gerbils")
     end
+    if config.conf then
+      writeconf(config)
+    end
     printmem("Go")
     local newsel = frame_by_frame(sub,accd,config)
     aegisub.progress.title("Reformatting Gerbils")
     cleanup(sub,newsel,config)
-  elseif button == "Export" then
-    aegisub.progress.title("Exporting Gerbils")
-    --local mocha = parse_input(config.mocpat,accd.shx,accd.shy)
-    writeconf(config)
   else
     aegisub.progress.task("ABORT")
   end
@@ -1062,6 +1075,80 @@ end
 
 aegisub.register_macro("Apply motion data", "Applies properly formatted motion tracking data to selected subtitles.", preprocessing, isvideo)
 
+function confmaker()
+  local newgui = table.copy_deep(gui.main) -- OH JESUS CHRIST WHAT HAVE I DONE
+  newgui[5].label = "         Enter the path to your prefix here (include trailing slash)."
+  newgui[4].label = "              First box: path to x264; second box: x264 options."
+  newgui["windows"] = {  class = "checkbox"; -- there's probably a reason for this.
+      x = 0; y = 21; height = 1; width = 3;
+    value = global.windows; name = "windows"; label = "I'm on Windows"}
+  newgui["gui_trim"] = {  class = "checkbox";
+      x = 3; y = 21; height = 1; width = 4;
+    value = global.gui_trim; name = "gui_trim"; label = "Enable trim GUI"}
+  newgui["gui_expo"] = {  class = "checkbox";
+      x = 7; y = 21; height = 1; width = 3;
+    value = global.gui_expo; name = "gui_expo"; label = "Enable export GUI"}
+  newgui["prefix"] = table.copy_deep(newgui[1])
+  newgui["x264"] = table.copy_deep(newgui[3])
+  newgui["x264op"] = table.copy_deep(newgui[2])
+  newgui[1], newgui[2], newgui[3] = nil, nil, nil
+  newgui.prefix.name = "prefix"
+  newgui["prefix"].value = global.prefix
+  newgui.x264.name = "x264"
+  newgui["x264"].value = global.x264
+  newgui.x264op.name = "x264op"
+  newgui["x264op"].value = global.x264op
+  local valtab = {}
+  local cf = io.open(config_file,'r')
+  if cf then
+    aegisub.log(5,"Reading config file...\n")
+    for line in cf:lines() do
+      local key, val = line:splitconf()
+      aegisub.log(5,"Read: %s -> %s\n", key, tostring(val:tobool()))
+      valtab[key] = val:tobool()
+    end
+    for i,v in pairs(guiconf) do
+      if valtab[v] ~= nil then
+        aegisub.log(5,"Set: %s <- %s\n", v, tostring(valtab[v]))
+        newgui[i].value = valtab[v]
+      end
+    end
+    for k,v in pairs(global) do
+      if valtab[k] ~= nil then
+        aegisub.log(5,"Set: %s <- %s\n", k, tostring(valtab[k]))
+        newgui[k].value = valtab[k]
+      end
+    end
+  else
+    aegsib.log(0,"Config read failed!")
+  end
+  local button, config = aegisub.dialog.display(newgui)
+  if button then writeconf2(config) end
+end
+
+function writeconf2(options)
+  local cf = io.open(config_file,'w+')
+  if not cf then 
+    aegisub.log(0,'Config write failed! Check that %s exists and has write permission.\n',config_file)
+    return nil
+  end
+  for k,v in pairs(global) do
+    if options[k] ~= nil then
+      aegisub.log(5,"Write: %s:%s -> conf\n",k,tostring(options[k]))
+      cf:write(string.format("%s:%s\n",k,tostring(options[k])))
+    end
+  end
+  for i,v in pairs(guiconf) do
+    if options[v] ~= nil then
+      aegisub.log(5,"Write: %s:%s -> conf\n",v,tostring(options[v]))
+      cf:write(string.format("%s:%s\n",v,tostring(options[v])))
+    end
+  end
+  cf:close()
+end
+
+aegisub.register_macro("Edit Config", "Macro for full config editing.", confmaker, isvideo)
+
 gui.t = {
     [1] = { class = "textbox";
       x = 0; y = 1; height = 1; width = 30;
@@ -1107,6 +1194,7 @@ function collecttrim(sub,sel)
 end
 
 function trimnthings(sub,sel)
+  if not readconf() then aegisub.log(0,"Failed to read config!\n") end
   local video = ""
   local vp
   local vn
@@ -1158,7 +1246,8 @@ function writeandencode(opts)
     if f then io.close(f); f = false else f = true; out = n end
   until f == true -- crappypasta
   if global.windows then
-    local sh = io.open(global.prefix.."encode.bat","w+") -- to solve the 250 char limit, we write to a self-deleting batch file on windows.
+    local sh = io.open(global.prefix.."encode.bat","w+")
+    if not sh then error("Encoding command could not be written. Check your prefix.") end -- to solve the 250 char limit, we write to a self-deleting batch file on windows.
     sh:write(global.x264..' '..global.x264op..' --index "'..opts.ind..'" --seek '..opts.sf..' --frames '..(opts.ef-opts.sf+1)..' -o "'..out..'" "'..opts.vid..'"\ndel %0')
     sh:close()
     os.execute(global.prefix.."encode.bat")
