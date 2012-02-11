@@ -8,7 +8,6 @@ I am (normally) available as torque @ rizon.
 
 Unfinished plans:
 *Exporting your data for graphing with gnuplot (need to test with non-720p resolutions and finish writing the gnuplot command)
-*Writing config file to disk (removing the annoying global variables that currently need to be set in the header)
 *The "cut scene for mocha" macro involves a lot of filepath operations, and is completely untested on linux/OS X. Use at your own risk (or give me feedback if it doesn't work right~).
 *Rewriting the documentation.
 
@@ -17,7 +16,7 @@ Unfinished plans:
 *Linear output! For when you don't see a good reason to make a sign span 400 lines in your script when the same effect can be achieved in one line!
 *Cleaner output, probably! Removal of redundant tags and finished transforms from tracked lines. (planning to expand on this a bit)
 *Reads configuration from file.
-*Writes configuration to file!
+*Writes configuration to file! (See included sample config file)
 *Effects field no longer destroyed by cleanup function.
 *Output can now be sorted by time (and other fields should be easy to add (thanks, tophf and Plorkyeran))
 *No more mutilation of \clip!
