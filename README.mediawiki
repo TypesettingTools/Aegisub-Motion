@@ -31,6 +31,7 @@ Awesome Features:
 *Separation of \frz and \org handling
 *Spits out “memory usage” (which seems to be somewhat arbitrary) if your log level is high enough (Still haven't figured out the cause of the “out of memory” runtime error).
 *No longer comments lines out when canceled.
+*Already commented lines ''stay'' commented!
 
 Caveat Emptor:
 *The "cut scene for mocha" macro involves a lot of filepath operations, and is completely untested on linux/OS X. Use at your own risk (or give me feedback if it doesn't work right~).

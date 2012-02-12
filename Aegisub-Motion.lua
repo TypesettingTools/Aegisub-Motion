@@ -176,6 +176,7 @@ header = {
   ['bord'] = "outline",
   ['shad'] = "shadow"
 }
+
 patterns = {
   ['xscl']    = "\\fscx([%d%.]+)",
   ['yscl']    = "\\fscy([%d%.]+)",
@@ -188,6 +189,7 @@ patterns = {
   ['xshad']   = "\\xshad([%-%d%.]+)",
   ['yshad']   = "\\yshad([%-%d%.]+)"
 }
+
 alltags = { -- http://lua-users.org/wiki/SwitchStatement yuuup.
   ['xscl']    = "\\fscx([%d%.]+)",
   ['yscl']    = "\\fscy([%d%.]+)",
@@ -406,10 +408,12 @@ function information(sub, sel)
     local opline = table.copy(sub[v]) -- I have no idea if a shallow copy is even an intelligent thing to do here
     opline.num = v -- for inserting lines later
     karaskel.preproc_line(sub, accd.meta, accd.styles, opline) -- get that extra position data...hurr durr this also returns the line's duration
+    if not opline.effect then opline.effect = "" end
     opline.xpos, opline.ypos = opline.x, opline.y -- cuz like stuff and things man
     opline.xorg, opline.yorg = opline.x, opline.y
     opline = getinfo(sub, opline, accd.styles, v-strt)
     opline.startframe, opline.endframe = aegisub.frame_from_ms(opline.start_time), aegisub.frame_from_ms(opline.end_time)
+    if opline.comment then opline.is_comment = true else opline.is_comment = false end
     if opline.ali ~= 5 then
       table.insert(accd.alignerrs,{i,v})
       accd.errmsg = accd.errmsg..string.format("Line %d does not seem aligned \\an5.\n", v-strt)
@@ -549,16 +553,17 @@ function parse_input(input,shx,shy)
 end
 
 function frame_by_frame(sub,accd,opts)
-  for k,v in ipairs(accd.lines) do -- comment lines that were commented in the thingy
-    local derp = sub[v.num]
-    derp.comment = true
-    sub[v.num] = derp
-    v.comment = false
-  end
   printmem("Start of main loop")
   local mocha = parse_input(opts.mocpat,accd.shx,accd.shy) -- global variables have no automatic gc
   assert(accd.totframes==mocha.flength,"Number of frames from selected lines differs from number of frames tracked.")
   if opts.exp then export(accd,mocha,opts) end
+  for k,v in ipairs(accd.lines) do -- comment lines that were commented in the thingy
+    local derp = sub[v.num]
+    derp.comment = true
+    derp.effect = "aa-mou"..derp.effect
+    sub[v.num] = derp
+    if not v.is_comment then v.comment = false end
+  end
   local _ = nil
   local newlines = {} -- table to stick indicies of tracked lines into for cleanup... haven't really decided what the cleanup function is going to be. I might expose it to automation as a standalone depending on if it turns out to be garbage or not.
   if not opts.scl then
@@ -616,6 +621,7 @@ function frame_by_frame(sub,accd,opts)
     local rstartf = v.startframe - accd.startframe + 1 -- start frame of line relative to start frame of tracked data
     local rendf = v.endframe - accd.startframe -- end frame of line relative to start frame of tracked data
     local maths, mathsanswer = nil, nil -- create references without allocation? idk how this works.
+    v.effect = "aa-mou"..v.effect
     if opts.linear then
       local one = aegisub.ms_from_frame(aegisub.frame_from_ms(v.start_time))
       local two = aegisub.ms_from_frame(aegisub.frame_from_ms(v.start_time)+1)
@@ -642,28 +648,27 @@ function frame_by_frame(sub,accd,opts)
     for ie, ei in pairs(eraser) do -- have to do it before inserting our new values :s (also before setting the orgline >___>)
       v.text = v.text:gsub(ei,"")
     end
-    if not v.effect then v.effect = "" end
-    local orgeff = v.effect
     local orgtext = v.text -- tables are passed as references.
     if opts.pos and not v.xpos then -- I don't think I need this any more
       aegisub.log(1,"Line %d is being skipped because it is missing a \\pos() tag and you said to track position. Moron.",v.num) -- yeah that should do it.
     else
       if opts.reverse then -- reverse order
         if opts.linear then
-          v.ratx, v.raty = mocha.xscl[rendf]/mocha.xscl[rstartf],mocha.yscl[rendf]/mocha.yscl[rstartf]
-          local tag = "{"
-          local trans = string.format("\\t(%d,%d,",maths,mathsanswer)
-          if opts.pos then
-            tag = tag..string.format("\\move(%g,%g,%g,%g,%d,%d)",mocha.xpos[rendf]-v.xdiff*v.ratx,mocha.ypos[rendf]-v.ydiff*v.raty,v.xpos,v.ypos,maths,mathsanswer)
+          if not v.is_comment then
+            v.ratx, v.raty = mocha.xscl[rendf]/mocha.xscl[rstartf],mocha.yscl[rendf]/mocha.yscl[rstartf]
+            local tag = "{"
+            local trans = string.format("\\t(%d,%d,",maths,mathsanswer)
+            if opts.pos then
+              tag = tag..string.format("\\move(%g,%g,%g,%g,%d,%d)",mocha.xpos[rendf]-v.xdiff*v.ratx,mocha.ypos[rendf]-v.ydiff*v.raty,v.xpos,v.ypos,maths,mathsanswer)
+            end
+            local pre, rtrans = linearize(v,mocha,opts,rstartf,rendf)
+            if pre ~= "" then
+              tag = tag..pre..trans..rtrans..")}"..string.char(6)
+            else
+              tag = tag.."}"..string.char(6)
+            end
+            v.text = tag..v.text
           end
-          local pre, rtrans = linearize(v,mocha,opts,rstartf,rendf)
-          if pre ~= "" then
-            tag = tag..pre..trans..rtrans..")}"..string.char(6)
-          else
-            tag = tag.."}"..string.char(6)
-          end
-          v.text = tag..v.text
-          v.effect = "aa-mou"..v.effect
           sub[v.num] = v -- yep
         else
           rstartf, rendf = rendf, rstartf -- un-reverse them
@@ -672,46 +677,47 @@ function frame_by_frame(sub,accd,opts)
             aegisub.progress.title(string.format("Processing frame %g/%g",x-rstartf+1,rendf-rstartf+1))
             aegisub.progress.set((x-rstartf)/(rendf-rstartf)*100)
             if aegisub.progress.is_cancelled() then error("User cancelled") end
-            local tag = "{"
-            local iter = rendf-x+1 -- hm
-            v.ratx = mocha.xscl[iter]/mocha.xscl[rendf] -- DIVISION IS SLOW
-            v.raty = mocha.yscl[iter]/mocha.yscl[rendf]
             v.start_time = aegisub.ms_from_frame(accd.startframe+iter-1)
             v.end_time = aegisub.ms_from_frame(accd.startframe+iter)
-            v.time_delta = aegisub.ms_from_frame(accd.startframe+iter-1) - aegisub.ms_from_frame(accd.startframe)
-            for vk,kv in ipairs(v.trans) do
-              if aegisub.progress.is_cancelled() then error("User cancelled") end
-              v.text = transformate(v,kv)
+            if not v.is_comment then -- don't touch commented lines.
+              local tag = "{"
+              local iter = rendf-x+1 -- hm
+              v.ratx = mocha.xscl[iter]/mocha.xscl[rendf] -- DIVISION IS SLOW
+              v.raty = mocha.yscl[iter]/mocha.yscl[rendf]
+              v.time_delta = aegisub.ms_from_frame(accd.startframe+iter-1) - aegisub.ms_from_frame(accd.startframe)
+              for vk,kv in ipairs(v.trans) do
+                if aegisub.progress.is_cancelled() then error("User cancelled") end
+                v.text = transformate(v,kv)
+              end
+              for vk,kv in ipairs(operations) do -- iterate through the necessary operations
+                if aegisub.progress.is_cancelled() then error("User cancelled") end
+                tag = tag..kv(v,mocha,opts,iter)
+              end
+              tag = tag.."}"..string.char(6)
+              v.text = v.text:gsub(string.char(1),"")
+              v.text = tag..v.text
             end
-            for vk,kv in ipairs(operations) do -- iterate through the necessary operations
-              if aegisub.progress.is_cancelled() then error("User cancelled") end
-              tag = tag..kv(v,mocha,opts,iter)
-            end
-            tag = tag.."}"..string.char(6)
-            v.text = v.text:gsub(string.char(1),"")
-            v.text = tag..v.text
-            v.effect = "aa-mou"..v.effect
             sub.insert(v.num+1,v)
-            v.effect = orgeff
             v.text = orgtext
           end
         end
       else -- normal order
         if opts.linear then
-          v.ratx, v.raty = mocha.xscl[rendf]/mocha.xscl[rstartf],mocha.yscl[rendf]/mocha.yscl[rstartf]
-          local tag = "{"
-          local trans = string.format("\\t(%d,%d,",maths,mathsanswer)
-          if opts.pos then
-            tag = tag..string.format("\\move(%g,%g,%g,%g,%d,%d)",v.xpos,v.ypos,mocha.xpos[rendf]-v.xdiff*v.ratx,mocha.ypos[rendf]-v.ydiff*v.raty,maths,mathsanswer)
+          if not v.is_comment then
+            v.ratx, v.raty = mocha.xscl[rendf]/mocha.xscl[rstartf],mocha.yscl[rendf]/mocha.yscl[rstartf]
+            local tag = "{"
+            local trans = string.format("\\t(%d,%d,",maths,mathsanswer)
+            if opts.pos then
+              tag = tag..string.format("\\move(%g,%g,%g,%g,%d,%d)",v.xpos,v.ypos,mocha.xpos[rendf]-v.xdiff*v.ratx,mocha.ypos[rendf]-v.ydiff*v.raty,maths,mathsanswer)
+            end
+            local pre, rtrans = linearize(v,mocha,opts,rstartf,rendf)
+            if pre ~= "" then
+              tag = tag..pre..trans..rtrans..")}"..string.char(6)
+            else
+              tag = tag.."}"..string.char(6)
+            end
+            v.text = tag..v.text
           end
-          local pre, rtrans = linearize(v,mocha,opts,rstartf,rendf)
-          if pre ~= "" then
-            tag = tag..pre..trans..rtrans..")}"..string.char(6)
-          else
-            tag = tag.."}"..string.char(6)
-          end
-          v.text = tag..v.text
-          v.effect = "aa-mou"..v.effect
           sub[v.num] = v -- yep
         else
           for x = rstartf,rendf do
@@ -719,26 +725,26 @@ function frame_by_frame(sub,accd,opts)
             aegisub.progress.title(string.format("Processing frame %g/%g",x-rstartf+1,rendf-rstartf+1))
             aegisub.progress.set((x-rstartf)/(rendf-rstartf)*100)
             if aegisub.progress.is_cancelled() then error("User cancelled") end -- probably should have put this in here a long time ago
-            local tag = "{"
-            v.ratx = mocha.xscl[x]/mocha.xscl[rstartf] -- DIVISION IS SLOW
-            v.raty = mocha.yscl[x]/mocha.yscl[rstartf]
             v.start_time = aegisub.ms_from_frame(accd.startframe+x-1)
             v.end_time = aegisub.ms_from_frame(accd.startframe+x)
-            v.time_delta = aegisub.ms_from_frame(accd.startframe+x-1) - aegisub.ms_from_frame(accd.startframe)
-            for vk,kv in ipairs(v.trans) do
-              if aegisub.progress.is_cancelled() then error("User cancelled") end
-              v.text = transformate(v,kv)
+            if not v.is_comment then
+              local tag = "{"
+              v.ratx = mocha.xscl[x]/mocha.xscl[rstartf] -- DIVISION IS SLOW
+              v.raty = mocha.yscl[x]/mocha.yscl[rstartf]
+              v.time_delta = aegisub.ms_from_frame(accd.startframe+x-1) - aegisub.ms_from_frame(accd.startframe)
+              for vk,kv in ipairs(v.trans) do
+                if aegisub.progress.is_cancelled() then error("User cancelled") end
+                v.text = transformate(v,kv)
+              end
+              for vk,kv in ipairs(operations) do -- iterate through the necessary operations
+                if aegisub.progress.is_cancelled() then error("User cancelled") end
+                tag = tag..kv(v,mocha,opts,x)
+              end
+              tag = tag.."}"..string.char(6)
+              v.text = v.text:gsub(string.char(1),"")
+              v.text = tag..v.text
             end
-            for vk,kv in ipairs(operations) do -- iterate through the necessary operations
-              if aegisub.progress.is_cancelled() then error("User cancelled") end
-              tag = tag..kv(v,mocha,opts,x)
-            end
-            tag = tag.."}"..string.char(6)
-            v.text = v.text:gsub(string.char(1),"")
-            v.text = tag..v.text
-            v.effect = "aa-mou"..v.effect -- make it nondestructive.
             sub.insert(v.num+x-rstartf+1,v)
-            v.effect = orgeff
             v.text = orgtext
           end
         end
@@ -1025,7 +1031,9 @@ function export(accd,mocha,opts)
   end
   fnames[7] = "%s gnuplot-command %d-%d.txt"
   -- open files
-  local name = accd.lines[1].effect or accd.lines[1].actor or accd.vn or "Untitled"
+  local eff = accd.lines[1].effect:gsub("^aa-mou","",1)
+  if eff == "" then eff = nil end
+  local name = eff or accd.lines[1].actor or accd.vn or "Untitled"
   for k,v in pairs(fnames) do
     local it = 0
     repeat
@@ -1120,7 +1128,7 @@ function export(accd,mocha,opts)
     fhandle[7]:write(v)
   end
   for i,v in pairs(fhandle) do v:close() end
-  if global.gnupauto then os.execute('cd "'..global.prefix..'" && cmd /k gnuplot "'..fnames[7]..'"') end
+  if global.gnupauto then os.execute('cd "'..global.prefix..'" && gnuplot "'..fnames[7]..'"') end
 end
 
 function confmaker()
@@ -1269,16 +1277,16 @@ function trimnthings(sub,sel)
     local tabae = { ['vid'] = vp, ['sf'] = sf, ['ef'] = ef, ['ind'] = global.prefix..vn..".index", ['op'] = global.prefix..vn.."-"..sf.."-%d.mp4"}
     writeandencode(tabae)
   else
-    someguiorsmth(sf,ef,vp,vn)
+    someguiorsmth(sf,ef,vp,vn,sub[sel[1]])
   end
 end
 
-function someguiorsmth(sf,ef,vp,vn)
-  gui.t[1].text = vp
-  gui.t[2].text = global.prefix..vn..".index"
+function someguiorsmth(sf,ef,vp,vn,line)
+  gui.t[1].value = vp
+  gui.t[2].value = global.prefix..vn..".index"
   gui.t[3].value = sf
   gui.t[4].value = ef
-  gui.t[5].text = global.prefix..vn.."-"..sf.."-%d.mp4"
+  gui.t[5].value = global.prefix..(line.effect or vn).."-"..sf.."-%d.mp4"
   local button, opts = aegisub.dialog.display(gui.t)
   if button then 
     writeandencode(opts)
