@@ -66,7 +66,7 @@ INALIABLE RIGHTS:
 script_name = "Aegisub-Motion"
 script_description = "A set of tools for simplifying the process of creating and applying motion tracking data with Aegisub." -- and it might have memory issues. I think.
 script_author = "torque"
-script_version = "μοε" -- no, I have no idea how this versioning system works either.
+script_version = "μοε-RC1" -- no, I have no idea how this versioning system works either.
 include("karaskel.lua")
 
 gui = {} -- I'm really beginning to think this shouldn't be a global variable
@@ -165,6 +165,7 @@ global = {
   x264     = "",
   x264op   = "--crf 16 --tune fastdecode -i 250 --fps 23.976",
   gui_trim = true,
+  gnupauto = false,
 }
 
 header = {
@@ -448,8 +449,8 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   aegisub.progress.title("Selecting Gerbils")
   local accd = preprocessing(sub,sel)
   if not readconf() then accd.errmsg = "FAILED TO READ CONFIG\n"..accd.errmsg end
-  gui.main[2].text = accd.errmsg -- so close to being obsolete
-  gui.main[3].text = global.prefix
+  gui.main[2].value = accd.errmsg -- so close to being obsolete
+  gui.main[3].value = global.prefix
   printmem("GUI startup")
   local button, config = aegisub.dialog.display(gui.main, {"Go","Abort","Export"})
   if button == "Go" then
@@ -1030,8 +1031,8 @@ function export(accd,mocha,opts)
     repeat
       if aegisub.progress.is_cancelled() then error("User cancelled") end
       it = it + 1
-      local n = string.format(global.prefix..v,name,accd.startframe,it)
-      local f = io.open(n,'r')
+      local n = string.format(v,name,accd.startframe,it)
+      local f = io.open(global.prefix..n,'r')
       if f then f:close(); f = false else f = true; fnames[k] = n end -- uhhhhhhh...
     until f == true -- this is probably the worst possible way of doing this imaginable
   end
@@ -1039,65 +1040,65 @@ function export(accd,mocha,opts)
   local len = (aegisub.ms_from_frame(accd.endframe) - aegisub.ms_from_frame(accd.startframe))/10
   local bigstring = {}
   if opts.pos then
-    table.insert(bigstring,string.format([=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',accd.shx+70,accd.shy+80,fnames[1]:sub(0,-5)))
+    table.insert(bigstring,string.format([=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',accd.shx+70,accd.shy+80,global.prefix..fnames[1]:sub(0,-5)))
     table.insert(bigstring,string.format([=[set title 'Plot of X vs Y']=]..'\n'))
     table.insert(bigstring,string.format([=[unset xtics; set x2tics out mirror; set mx2tics 5; set x2label 'X Position (Pixels)'; set xrange [0:%d]]=]..'\n',accd.shx))
     table.insert(bigstring,string.format([=[set ytics out; set mytics 5; set ylabel 'Y Position (Pixels)'; set yrange [0:%d] reverse]=]..'\n',accd.shy))
-    table.insert(bigstring,string.format([=[set grid x2tics mx2tics mytics ytics; stats '%s' using 1:2 name 'XvYstat']=]..'\n',fnames[1]))
-    table.insert(bigstring,string.format([=[f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b]=]..'\n',fnames[1]))
+    table.insert(bigstring,string.format([=[set grid x2tics mx2tics mytics ytics; stats '%s' using 1:2 name 'XvYstat']=]..'\n',global.prefix..fnames[1]))
+    table.insert(bigstring,string.format([=[f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b]=]..'\n',global.prefix..fnames[1]))
     table.insert(bigstring,string.format([=[if (b >= 0) slope = sprintf('y(x) = %%.3fx + %%.3f : R^2: %%.3f',m,b,XvYstat_correlation**2); else slope = sprintf('y(x) = %%.3fx - %%.3f : R^2: %%.3f',m,0-b,XvYstat_correlation**2)]=]..'\n'))
-    table.insert(bigstring,string.format([=[plot '%s' using 1:2 notitle with points, f(x) title slope with lines]=]..'\n',fnames[1]))
+    table.insert(bigstring,string.format([=[plot '%s' using 1:2 notitle with points, f(x) title slope with lines]=]..'\n',global.prefix..fnames[1]))
 
-    table.insert(bigstring,string.format('\n'..[=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',round(len*2+70,0),accd.shx+80,fnames[2]:sub(0,-5)))
+    table.insert(bigstring,string.format('\n'..[=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',round(len*2+70,0),accd.shx+80,global.prefix..fnames[2]:sub(0,-5)))
     table.insert(bigstring,string.format([=[set title 'Plot of T vs X'; unset x2label]=]..'\n'))
     table.insert(bigstring,string.format([=[unset x2tics; unset mx2tics; set xtics out mirror; set mxtics 5; set xlabel 'Time (centiseconds)'; set xrange [0:%d]]=]..'\n',round(len,0)))
     table.insert(bigstring,string.format([=[set ytics out; set mytics 5; set ylabel 'X Position (Pixels)'; set yrange [0:%d] reverse]=]..'\n',accd.shx))
-    table.insert(bigstring,string.format([=[set grid xtics mxtics ytics mytics; stats '%s' using 1:2 name 'TvXstat']=]..'\n',fnames[2]))
-    table.insert(bigstring,string.format([=[f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b]=]..'\n',fnames[2]))
+    table.insert(bigstring,string.format([=[set grid xtics mxtics ytics mytics; stats '%s' using 1:2 name 'TvXstat']=]..'\n',global.prefix..fnames[2]))
+    table.insert(bigstring,string.format([=[f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b]=]..'\n',global.prefix..fnames[2]))
     table.insert(bigstring,string.format([=[if (b >= 0) slope = sprintf('Equation: x(t) = %%.3ft + %%.3f : R^2: %%.3f',m,b,TvXstat_correlation**2); else slope = sprintf('Equation: x(t) = %%.3ft - %%.3f : R^2: %%.3f',m,0-b,TvXstat_correlation**2)]=]..'\n'))
-    table.insert(bigstring,string.format([=[plot '%s' using 1:2 notitle with points, f(x) title slope with lines]=]..'\n',fnames[2]))
+    table.insert(bigstring,string.format([=[plot '%s' using 1:2 notitle with points, f(x) title slope with lines]=]..'\n',global.prefix..fnames[2]))
 
-    table.insert(bigstring,string.format('\n'..[=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',round(len*2+70,0),accd.shx+80,fnames[3]:sub(0,-5)))
+    table.insert(bigstring,string.format('\n'..[=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',round(len*2+70,0),accd.shx+80,global.prefix..fnames[3]:sub(0,-5)))
     table.insert(bigstring,string.format([=[set title 'Plot of T vs Y'; unset x2label]=]..'\n'))
     table.insert(bigstring,string.format([=[unset x2tics; unset mx2tics; set xtics out mirror; set mxtics 5; set xlabel 'Time (centiseconds)'; set xrange [0:%d]]=]..'\n',round(len,0)))
     table.insert(bigstring,string.format([=[set ytics out; set mytics 5; set ylabel 'Y Position (Pixels)'; set yrange [0:%d] reverse]=]..'\n',accd.shy))
-    table.insert(bigstring,string.format([=[set grid xtics mxtics ytics mytics; stats '%s' using 1:2 name 'TvYstat']=]..'\n',fnames[3]))
-    table.insert(bigstring,string.format([=[f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b]=]..'\n',fnames[3]))
+    table.insert(bigstring,string.format([=[set grid xtics mxtics ytics mytics; stats '%s' using 1:2 name 'TvYstat']=]..'\n',global.prefix..fnames[3]))
+    table.insert(bigstring,string.format([=[f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b]=]..'\n',global.prefix..fnames[3]))
     table.insert(bigstring,string.format([=[if (b >= 0) slope = sprintf('Equation: y(t) = %%.3ft + %%.3f : R^2: %%.3f',m,b,TvYstat_correlation**2); else slope = sprintf('Equation: y(t) = %%.3ft - %%.3f : R^2: %%.3f',m,0-b,TvYstat_correlation**2)]=]..'\n'))
-    table.insert(bigstring,string.format([=[plot '%s' using 1:2 notitle with points, f(x) title slope with lines]=]..'\n',fnames[3]))
+    table.insert(bigstring,string.format([=[plot '%s' using 1:2 notitle with points, f(x) title slope with lines]=]..'\n',global.prefix..fnames[3]))
   end
   if opts.scl then
-    table.insert(bigstring,string.format('\n'..[=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',round(len*2+70,0),600,fnames[4]:sub(0,-5)))
+    table.insert(bigstring,string.format('\n'..[=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',round(len*2+70,0),600,global.prefix..fnames[4]:sub(0,-5)))
     table.insert(bigstring,string.format([=[set title 'Plot of T vs sclX'; unset x2label]=]..'\n'))
     table.insert(bigstring,string.format([=[unset x2tics; unset mx2tics; set xtics out mirror; set mxtics 5; set xlabel 'Time (centiseconds)'; set xrange [0:%d]]=]..'\n',round(len,0)))
     table.insert(bigstring,string.format([=[set ytics out; set mytics 5; set ylabel 'X Scale (Percent)'; set yrange [0:*] reverse]=]..'\n'))
-    table.insert(bigstring,string.format([=[set grid xtics mxtics ytics mytics; stats '%s' using 1:2 name 'TvSXstat']=]..'\n',fnames[4]))
-    table.insert(bigstring,string.format([=[f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b]=]..'\n',fnames[4]))
+    table.insert(bigstring,string.format([=[set grid xtics mxtics ytics mytics; stats '%s' using 1:2 name 'TvSXstat']=]..'\n',global.prefix..fnames[4]))
+    table.insert(bigstring,string.format([=[f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b]=]..'\n',global.prefix..fnames[4]))
     table.insert(bigstring,string.format([=[if (b >= 0) slope = sprintf('Equation: sclx(t) = %%.3ft + %%.3f : R^2: %%.3f',m,b,TvSXstat_correlation**2); else slope = sprintf('Equation: sclx(t) = %%.3ft - %%.3f : R^2: %%.3f',m,0-b,TvSXstat_correlation**2)]=]..'\n'))
-    table.insert(bigstring,string.format([=[plot '%s' using 1:2 notitle with points, f(x) title slope with lines]=]..'\n',fnames[4]))
+    table.insert(bigstring,string.format([=[plot '%s' using 1:2 notitle with points, f(x) title slope with lines]=]..'\n',global.prefix..fnames[4]))
 
-    table.insert(bigstring,string.format('\n'..[=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',round(len*2+70,0),600,fnames[5]:sub(0,-5)))
+    table.insert(bigstring,string.format('\n'..[=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',round(len*2+70,0),600,global.prefix..fnames[5]:sub(0,-5)))
     table.insert(bigstring,string.format([=[set title 'Plot of T vs sclY'; unset x2label]=]..'\n'))
     table.insert(bigstring,string.format([=[unset x2tics; unset mx2tics; set xtics out mirror; set mxtics 5; set xlabel 'Time (centiseconds)'; set xrange [0:%d]]=]..'\n',round(len,0)))
     table.insert(bigstring,string.format([=[set ytics out; set mytics 5; set ylabel 'Y Scale (Percent)'; set yrange [0:*] reverse]=]..'\n'))
-    table.insert(bigstring,string.format([=[set grid xtics mxtics ytics mytics; stats '%s' using 1:2 name 'TvSYstat']=]..'\n',fnames[5]))
-    table.insert(bigstring,string.format([=[f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b]=]..'\n',fnames[5]))
+    table.insert(bigstring,string.format([=[set grid xtics mxtics ytics mytics; stats '%s' using 1:2 name 'TvSYstat']=]..'\n',global.prefix..fnames[5]))
+    table.insert(bigstring,string.format([=[f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b]=]..'\n',global.prefix..fnames[5]))
     table.insert(bigstring,string.format([=[if (b >= 0) slope = sprintf('Equation: scly(t) = %%.3ft + %%.3f : R^2: %%.3f',m,b,TvSYstat_correlation**2); else slope = sprintf('Equation: scly(t) = %%.3ft - %%.3f : R^2: %%.3f',m,0-b,TvSYstat_correlation**2)]=]..'\n'))
-    table.insert(bigstring,string.format([=[plot '%s' using 1:2 notitle with points, f(x) title slope with lines]=]..'\n',fnames[5]))
+    table.insert(bigstring,string.format([=[plot '%s' using 1:2 notitle with points, f(x) title slope with lines]=]..'\n',global.prefix..fnames[5]))
   end
   if opts.rot then
-    table.insert(bigstring,string.format('\n'..[=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',round(len*2+70,0),600,fnames[6]:sub(0,-5)))
+    table.insert(bigstring,string.format('\n'..[=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',round(len*2+70,0),600,global.prefix..fnames[6]:sub(0,-5)))
     table.insert(bigstring,string.format([=[set title 'Plot of T vs rot'; unset x2label]=]..'\n'))
     table.insert(bigstring,string.format([=[unset x2tics; unset mx2tics; set xtics out mirror; set mxtics 5; set xlabel 'Time (centiseconds)'; set xrange [0:%d]]=]..'\n',round(len,0)))
     table.insert(bigstring,string.format([=[set ytics out; set mytics 5; set ylabel 'Z Rotation (Degrees)'; set yrange [%d:%d] reverse]=]..'\n',round(mocha.rmin-1,0),round(mocha.rmax+1,0)))
-    table.insert(bigstring,string.format([=[set grid xtics mxtics ytics mytics; stats '%s' using 1:2 name 'TvRstat']=]..'\n',fnames[6]))
-    table.insert(bigstring,string.format([=[f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b]=]..'\n',fnames[6]))
+    table.insert(bigstring,string.format([=[set grid xtics mxtics ytics mytics; stats '%s' using 1:2 name 'TvRstat']=]..'\n',global.prefix..fnames[6]))
+    table.insert(bigstring,string.format([=[f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b]=]..'\n',global.prefix..fnames[6]))
     table.insert(bigstring,string.format([=[if (b >= 0) slope = sprintf('Equation: sclx(t) = %%.3ft + %%.3f : R^2: %%.3f',m,b,TvRstat_correlation**2); else slope = sprintf('Equation: sclx(t) = %%.3ft - %%.3f : R^2: %%.3f',m,0-b,TvRstat_correlation**2)]=]..'\n'))
-    table.insert(bigstring,string.format([=[plot '%s' using 1:2 notitle with points, f(x) title slope with lines]=]..'\n',fnames[6]))
+    table.insert(bigstring,string.format([=[plot '%s' using 1:2 notitle with points, f(x) title slope with lines]=]..'\n',global.prefix..fnames[6]))
   end
   for k,v in pairs(fnames) do
     aegisub.log(5,"Export: opening %s for writing.\n",v)
-    fhandle[k] = io.open(v,'w')
+    fhandle[k] = io.open(global.prefix..v,'w')
   end
   for x = 1, #mocha.xpos do
     if aegisub.progress.is_cancelled() then error("User cancelled") end
@@ -1118,7 +1119,8 @@ function export(accd,mocha,opts)
   for i,v in ipairs(bigstring) do
     fhandle[7]:write(v)
   end
-  for i,v in ipairs(fhandle) do v:close() end
+  for i,v in pairs(fhandle) do v:close() end
+  if global.gnupauto then os.execute('cd "'..global.prefix..'" && cmd /k gnuplot "'..fnames[7]..'"') end
 end
 
 function confmaker()
@@ -1131,9 +1133,9 @@ function confmaker()
   newgui["gui_trim"] = {  class = "checkbox";
       x = 3; y = 21; height = 1; width = 4;
     value = global.gui_trim; name = "gui_trim"; label = "Enable trim GUI"}
-  newgui["gui_expo"] = {  class = "checkbox";
+  newgui["gnupauto"] = {  class = "checkbox";
       x = 7; y = 21; height = 1; width = 3;
-    value = global.gui_expo; name = "gui_expo"; label = "Enable export GUI"}
+    value = global.gui_expo; name = "gnupauto"; label = "Autoplot exports"}
   newgui["prefix"] = table.copy_deep(newgui[1])
   newgui["x264"] = table.copy_deep(newgui[3])
   newgui["x264op"] = table.copy_deep(newgui[2])
@@ -1166,7 +1168,7 @@ function confmaker()
       end
     end
   else
-    aegsib.log(0,"Config read failed!")
+    aegisub.log(0,"Config read failed!")
   end
   local button, config = aegisub.dialog.display(newgui)
   if button then writeconf2(config) end
