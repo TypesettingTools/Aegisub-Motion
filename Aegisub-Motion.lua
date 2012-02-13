@@ -677,11 +677,11 @@ function frame_by_frame(sub,accd,opts)
             aegisub.progress.title(string.format("Processing frame %g/%g",x-rstartf+1,rendf-rstartf+1))
             aegisub.progress.set((x-rstartf)/(rendf-rstartf)*100)
             if aegisub.progress.is_cancelled() then error("User cancelled") end
+            local iter = rendf-x+1 -- hm
             v.start_time = aegisub.ms_from_frame(accd.startframe+iter-1)
             v.end_time = aegisub.ms_from_frame(accd.startframe+iter)
             if not v.is_comment then -- don't touch commented lines.
               local tag = "{"
-              local iter = rendf-x+1 -- hm
               v.ratx = mocha.xscl[iter]/mocha.xscl[rendf] -- DIVISION IS SLOW
               v.raty = mocha.yscl[iter]/mocha.yscl[rendf]
               v.time_delta = aegisub.ms_from_frame(accd.startframe+iter-1) - aegisub.ms_from_frame(accd.startframe)
@@ -840,7 +840,7 @@ function clippinate(line,mocha,opts,iter) -- vsfilter can do subpixel clips thro
       newclip = newclip:gsub(string.char(1),tostring(newvals[i]),1)
       i = i+1
     end
-    return string.format("\\%s(%s)",line.clips,newclip)
+    return string.format("\\%s%s)",line.clips,newclip)
   else return "" end
 end
 
