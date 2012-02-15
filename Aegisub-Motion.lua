@@ -229,7 +229,6 @@ guiconf = {
   [12] = "shad",
   [15] = "rot",
   [16] = "org",
-  --[20] = "conf", -- no, this is dumb
   [21] = "xmult",
   [22] = "ovr",
   [23] = "vsfilter",
@@ -244,7 +243,7 @@ guiconf = {
 
 function readconf(confpat) -- todo: MAKE THIS WORK WITHOUT CODE DUPLICATION HOLY FUCK I THINK I'M RETARDED
   local valtab = {}
-  aegisub.log(5,"Opening config file: %s\n",config_file)
+  aegisub.log(5,"Opening config file: %s\n",confpat)
   local cf = io.open(confpat,'r')
   if cf then
     aegisub.log(5,"Reading config file...\n")
@@ -453,15 +452,8 @@ end
 function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   aegisub.progress.title("Selecting Gerbils")
   local accd = preprocessing(sub,sel)
-  if windows and not config_file:match(":") and dpath then
-    local cf = io.open(aegisub.decode_path("?script/"..config_file))
-    if not cf then
-      if not readconf(aegisub.decode_path("?data/"..config_file)) then accd.errmsg = "FAILED TO READ CONFIG\n"..accd.errmsg end
-    else
-      cf:close()
-      readconf(aegisub.decode_path("?script/"..config_file))
-    end
-  elseif not windows and not config_file:match("^/") and dpath then
+  if not (config_file:match("^[A-Z]:\\") or config_file:match("^/")) and dpath then
+    aegisub.log(5,"herp\n")
     local cf = io.open(aegisub.decode_path("?script/"..config_file))
     if not cf then
       if not readconf(aegisub.decode_path("?data/"..config_file)) then accd.errmsg = "FAILED TO READ CONFIG\n"..accd.errmsg end
@@ -470,9 +462,8 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
       readconf(aegisub.decode_path("?script/"..config_file))
     end
   else
-    if not readconf(aegisub.decode_path("?data/"..config_file)) then accd.errmsg = "FAILED TO READ CONFIG\n"..accd.errmsg
+    if not readconf(config_file) then accd.errmsg = "FAILED TO READ CONFIG\n"..accd.errmsg end
   end
-  if not readconf() then accd.errmsg = "FAILED TO READ CONFIG\n"..accd.errmsg end
   gui.main[2].value = accd.errmsg -- so close to being obsolete
   gui.main[3].value = global.prefix
   printmem("GUI startup")
@@ -1290,10 +1281,10 @@ function trimnthings(sub,sel)
     video = getvideoname(sub)
     assert(not video:match("?dummy"), "No dummy videos allowed. Sorry.")
     video = video:gsub("[A-Z]:\\",""):gsub(".-[^\\]\\","")
-    vp = aegisub.decode_path("?video")..video -- the name of the video appended to the video path from aegisub.
+    if dpath then vp = aegisub.decode_path("?video")..video else vp = video end-- the name of the video appended to the video path from aegisub.
     vn = video:match("(.+)%.[^%.]+$") -- the name of the video, with its extension removed. This expression is sketchy.
   end
-  if not global.gui_trim then 
+  if dpath and not global.gui_trim then 
     local tabae = { ['vid'] = vp, ['sf'] = sf, ['ef'] = ef, ['ind'] = global.prefix..vn..".index", ['op'] = global.prefix..vn.."-"..sf.."-%d.mp4"}
     writeandencode(tabae)
   else
@@ -1334,4 +1325,4 @@ function writeandencode(opts)
   end
  end
 
-if dpath then aegisub.register_macro("Cut scene for mocha","Cuts and encodes the current scene for use with motion tracking software.", trimnthings, isvideo) end
+aegisub.register_macro("Cut scene for mocha","Cuts and encodes the current scene for use with motion tracking software.", trimnthings, isvideo)
