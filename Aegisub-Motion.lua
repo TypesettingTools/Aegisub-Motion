@@ -1,6 +1,7 @@
-﻿  --[=[ Please set the full path to the config file. ]=]--
-  --[=[ Note: with trunk, defaults to /path/to/aegisub.exe/aegisub-motion.conf if set to an empty string ]=]--
-config_file = "" -- e.g. C:\\path\\to the\\a-mo.conf or /home/path to/the/aegi-moti.conf
+﻿  --[=[ If a full path is provided, that config file will always be used. If a filename is provided,
+        then we attempt to open that file in the script directory, and if that fails, then we open
+        it in the aegisub userdata directory. This allows different settings per-project if you desire.]=]--
+config_file = "aegisub-motion.conf" -- e.g. C:\\path\\to the\\a-mo.conf or /home/path to/the/aegi-moti.conf
   --[=[ YOU ARE LEGALLY BOUND AND GAGGED BY THE TERMS AND CONDITIONS OF THE LICENSE,
         EVEN IF YOU HAVEN'T READ THEM. ]=]--
       
@@ -241,10 +242,10 @@ guiconf = {
   [19] = "rround",
 }
 
-function readconf() -- todo: MAKE THIS WORK WITHOUT CODE DUPLICATION HOLY FUCK I THINK I'M RETARDED
+function readconf(confpat) -- todo: MAKE THIS WORK WITHOUT CODE DUPLICATION HOLY FUCK I THINK I'M RETARDED
   local valtab = {}
   aegisub.log(5,"Opening config file: %s\n",config_file)
-  local cf = io.open(config_file,'r')
+  local cf = io.open(confpat,'r')
   if cf then
     aegisub.log(5,"Reading config file...\n")
     for line in cf:lines() do
@@ -452,6 +453,25 @@ end
 function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   aegisub.progress.title("Selecting Gerbils")
   local accd = preprocessing(sub,sel)
+  if windows and not config_file:match(":") and dpath then
+    local cf = io.open(aegisub.decode_path("?script/"..config_file))
+    if not cf then
+      if not readconf(aegisub.decode_path("?data/"..config_file)) then accd.errmsg = "FAILED TO READ CONFIG\n"..accd.errmsg end
+    else
+      cf:close()
+      readconf(aegisub.decode_path("?script/"..config_file))
+    end
+  elseif not windows and not config_file:match("^/") and dpath then
+    local cf = io.open(aegisub.decode_path("?script/"..config_file))
+    if not cf then
+      if not readconf(aegisub.decode_path("?data/"..config_file)) then accd.errmsg = "FAILED TO READ CONFIG\n"..accd.errmsg end
+    else
+      cf:close()
+      readconf(aegisub.decode_path("?script/"..config_file))
+    end
+  else
+    if not readconf(aegisub.decode_path("?data/"..config_file)) then accd.errmsg = "FAILED TO READ CONFIG\n"..accd.errmsg
+  end
   if not readconf() then accd.errmsg = "FAILED TO READ CONFIG\n"..accd.errmsg end
   gui.main[2].value = accd.errmsg -- so close to being obsolete
   gui.main[3].value = global.prefix
@@ -1314,4 +1334,4 @@ function writeandencode(opts)
   end
  end
 
-if dpath then aegisub.register_macro("Cut scene for mocha","Creates an avisynth file with trim set to the length of the selected lineset (for use with motion tracking software)", trimnthings, isvideo) end
+if dpath then aegisub.register_macro("Cut scene for mocha","Cuts and encodes the current scene for use with motion tracking software.", trimnthings, isvideo) end
