@@ -241,6 +241,39 @@ guiconf = {
   [19] = "rround",
 }
 
+pi = 3.14159265
+
+function dcos(a) return math.cos(a*pi/180) end
+function dsin(a) return math.sin(a*pi/180) end
+function dtan(a) return math.tan(a*pi/180) end
+function datan(a) return 180*math.atan(a)/pi end
+
+fix = {}
+
+fix.ali = {
+  function(x,y,w,h,a) local r = w/2 return x+r*dcos(a)-h/2*dsin(a), y-r*dsin(a)-h/2*dcos(a) end;
+  function(x,y,w,h,a) local r = h/2 return x-r*dsin(a), y-r*dcos(a) end;
+  function(x,y,w,h,a) local r = w/2 return x-r*dcos(a)-h/2*dsin(a), y+r*dsin(a)-h/2*dcos(a) end;
+  function(x,y,w,h,a) local r = w/2 return x+r*dcos(a), y-r*dsin(a) end;
+  function(x,y,w,h,a) return x, y end;
+  function(x,y,w,h,a) local r = w/2 return x-r*dcos(a), y+r*dsin(a) end;
+  function(x,y,w,h,a) local r = w/2 return x+r*dcos(a)+h/2*dsin(a), y-r*dsin(a)+h/2*dcos(a) end;
+  function(x,y,w,h,a) local r = h/2 return x+r*dsin(a), y+r*dcos(a) end;
+  function(x,y,w,h,a) local r = w/2 return x-r*dcos(a)+h/2*dsin(a), y+r*dsin(a)+h/2*dcos(a) end;
+}
+
+fix.xpos = {
+  function(sx,l,r) return sx-r end;
+  function(sx,l,r) return l    end;
+  function(sx,l,r) return sx/2 end;
+}
+
+fix.ypos = {
+  function(sy,v) return sy-v end;
+  function(sy,v) return sy/2 end;
+  function(sy,v) return v    end;
+}
+
 function readconf(confpat) -- todo: MAKE THIS WORK WITHOUT CODE DUPLICATION HOLY FUCK I THINK I'M RETARDED
   local valtab = {}
   aegisub.log(5,"Opening config file: %s\n",confpat)
@@ -403,20 +436,42 @@ function information(sub, sel)
   accd.startframe = aegisub.frame_from_ms(sub[sel[1]].start_time) -- get the start frame of the first selected line
   accd.poserrs, accd.alignerrs = {}, {}
   accd.errmsg = ""
+  accd.shx, accd.shy = accd.meta.res_x, accd.meta.res_y
   local numlines = #sel
   for i, v in pairs(sel) do -- burning cpu cycles like they were no thing
     local opline = table.copy(sub[v]) -- I have no idea if a shallow copy is even an intelligent thing to do here
     opline.num = v -- for inserting lines later
-    karaskel.preproc_line(sub, accd.meta, accd.styles, opline) -- get that extra position data...hurr durr this also returns the line's duration
+    karaskel.preproc_line(sub, accd.meta, accd.styles, opline) -- get linewidth/height and margins
     if not opline.effect then opline.effect = "" end
-    opline.xpos, opline.ypos = opline.x, opline.y -- cuz like stuff and things man
-    opline.xorg, opline.yorg = opline.x, opline.y
     opline = getinfo(sub, opline, accd.styles, v-strt)
     opline.startframe, opline.endframe = aegisub.frame_from_ms(opline.start_time), aegisub.frame_from_ms(opline.end_time)
     if opline.comment then opline.is_comment = true else opline.is_comment = false end
-    if opline.ali ~= 5 then
-      table.insert(accd.alignerrs,{i,v})
-      accd.errmsg = accd.errmsg..string.format("Line %d does not seem aligned \\an5.\n", v-strt)
+    if not opline.xpos then
+      opline.xpos = fix.xpos[opline.ali%3+1](accd.shx,opline.margin_l,opline.margin_r)
+      opline.ypos = fix.ypos[math.ceil(opline.ali/3)](accd.shy,opline.margin_v)
+      if opline.ali ~= 5 then
+        if opline.xorg then
+          local xd = opline.xpos - opline.xorg
+          local yd = opline.ypos - opline.yorg
+          local r = math.sqrt(xd^2+yd^2)
+          local alpha = datan(yd/xd)
+          opline.xpos = opline.xorg + r*dcos(alpha-opline.zrot)
+          opline.ypos = opline.yorg + r*dsin(alpha-opline.zrot)
+          opline.text = opline.text:gsub("\\org%(([%-%d%.]+),([%-%d%.]+)%)","")
+        end
+        opline.xpos,opline.ypos = fix.ali[opline.ali](opline.xpos,opline.ypos,opline.width*opline.xscl/100,opline.height*opline.yscl/100,opline.zrot)
+        if v.ali ~= 5 then
+          if v.text:match("\\an[1-9]") then
+            v.text = v.text:gsub("\\an[1-9]","\\an5")
+          else
+            v.text = "{\\an5}"..string.char(6)..v.text
+          end
+        end
+      end
+    end
+    if not opline.xorg then
+      opline.xorg = opline.xpos
+      opline.yorg = opline.ypos
     end
     if opline.startframe < accd.startframe then -- make timings flexible. Number of frames total has to match the tracked data but
       aegisub.log(5,"Line %d: startframe changed from %d to %d\n",v-strt,accd.startframe,opline.startframe)
@@ -436,7 +491,6 @@ function information(sub, sel)
     copy[length-i+1] = v
   end
   accd.lines = copy
-  accd.shx, accd.shy = accd.meta.res_x, accd.meta.res_y
   accd.totframes = accd.endframe - accd.startframe
   accd.toterrs = #accd.alignerrs + #accd.poserrs
   if accd.toterrs > 0 then
