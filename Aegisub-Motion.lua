@@ -1,6 +1,7 @@
 ﻿  --[=[ If a full path is provided, that config file will always be used. If a filename is provided,
         then we attempt to open that file in the script directory, and if that fails, then we open
-        it in the aegisub userdata directory. This allows different settings per-project if you desire.]=]--
+        it in the aegisub userdata directory (%APPDATA%/Aegisub or ~/.aegisub). This allows different
+        settings (prefix, etc) per-project if you desire.]=]--
 config_file = "aegisub-motion.conf" -- e.g. C:\\path\\to the\\a-mo.conf or /home/path to/the/aegi-moti.conf
   --[=[ YOU ARE LEGALLY BOUND AND GAGGED BY THE TERMS AND CONDITIONS OF THE LICENSE,
         EVEN IF YOU HAVEN'T READ THEM. ]=]--
@@ -158,7 +159,7 @@ for k,v in pairs(aegisub) do
   end
 end
 
-if config_file == "" and dpath then config_file = aegisub.decode_path("?data/aegisub-motion.conf") end
+if config_file == "" and dpath then config_file = aegisub.decode_path("?user/aegisub-motion.conf") end
 
 global = {
   windows  = true,
@@ -510,7 +511,7 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
     aegisub.log(5,"herp\n")
     local cf = io.open(aegisub.decode_path("?script/"..config_file))
     if not cf then
-      if not readconf(aegisub.decode_path("?data/"..config_file)) then accd.errmsg = "FAILED TO READ CONFIG\n"..accd.errmsg end
+      if not readconf(aegisub.decode_path("?user/"..config_file)) then accd.errmsg = "FAILED TO READ CONFIG\n"..accd.errmsg end
     else
       cf:close()
       readconf(aegisub.decode_path("?script/"..config_file))
@@ -1220,10 +1221,21 @@ function confmaker()
   newgui.x264op.name = "x264op"
   newgui["x264op"].value = global.x264op
   local valtab = {}
-  local cf = io.open(config_file,'r')
-  if cf then
+  local cf = config_file
+  if not (cf:match("^[A-Z]:\\") or cf:match("^/")) and dpath then
+    aegisub.log(5,"herp\n")
+    cf = io.open(aegisub.decode_path("?script/"..config_file))
+    if not cf then
+      cf = aegisub.decode_path("?user/"..config_file)
+    else
+      cf:close()
+      cf = aegisub.decode_path("?script/"..config_file)
+    end
+  end
+  local conf = io.open(cf) -- there is probably a less terrible way to do this.
+  if conf then
     aegisub.log(5,"Reading config file...\n")
-    for line in cf:lines() do
+    for line in conf:lines() do
       local key, val = line:splitconf()
       aegisub.log(5,"Read: %s -> %s\n", key, tostring(val:tobool()))
       valtab[key] = val:tobool()
@@ -1244,11 +1256,11 @@ function confmaker()
     aegisub.log(0,"Config read failed!")
   end
   local button, config = aegisub.dialog.display(newgui)
-  if button then writeconf2(config) end
+  if button then writeconf2(cf,config) end
 end
 
-function writeconf2(options)
-  local cf = io.open(config_file,'w+')
+function writeconf2(config,options)
+  local cf = io.open(config,'w+')
   if not cf then 
     aegisub.log(0,'Config write failed! Check that %s exists and has write permission.\n',config_file)
     return nil
