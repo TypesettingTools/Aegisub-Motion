@@ -21,10 +21,11 @@ Awesome Features:
 *Information gathering made into a more distributed clusterfuck!
 *A slightly larger memory footprint!
 *Progress bars! Bitches love progress bars, right? (Even better, they're actually worthless and typically move too fast to be noticed (unless you have logging on)).
-*Move \i?clip() with position—does ''not'' scale (subject to change) (suggested by tophf)
+*Move \i?clip() with position (subject to change) (suggested by tophf)
+*\i?clip scales with line.
 *Possibly fixed rotation handling maybe! (Actually I did a few more tests and the rotation seems okay? I'd need proof otherwise, at least.)
 *Gathers default position via karaskel so \pos is no longer necessary (does not work properly if you are overriding the alignment in the line!)
-*Automagically trim and encode video clip for mocha (THIS MACRO WILL NOT RUN ON NON-TRUNK VERSIONS OF AEGISUB (suggested by tp7))
+*Automagically trim and encode video clip for mocha (THIS MACRO MAKES NO EFFORT TO WORK PROPERLY ON NON-TRUNK VERSIONS OF AEGISUB (suggested by tp7))
 *Along with that, an option to turn off the gui for the clip encoding, to make it go faster (only works with trunk).
 *Exports data for plotting with GNUPlot (and will also automatically plot it for you, if GNUPlot is in your PATH)
 *Automagic “Upscaling” or “downscaling” of the tracking data to match the script header resolution (no more warnings about this; assumes a PAR of 1)
