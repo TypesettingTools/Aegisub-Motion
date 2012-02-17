@@ -132,7 +132,7 @@ gui.main = { -- todo: change these to be more descriptive.
     value = 1; name = "ovr"},
   [23] = { class = "checkbox";
       x = 0; y = 12; height = 1; width = 3;
-    value = false; name = "vsfilter"; label = "VSfilter mode"},
+    value = false; name = "vsfilter"; label = "VSfilter scaling"},
   [24] = { class = "checkbox";
       x = 4; y = 12; height = 1; width = 2;
     value = false; name = "linear"; label = "Linear"},
@@ -242,7 +242,7 @@ guiconf = {
   [19] = "rround",
 }
 
-pi = 3.14159265
+pi = 3.141592653589793238462643383279502884197169399375105821 -- so accurate~
 
 function dcos(a) return math.cos(a*pi/180) end
 function dsin(a) return math.sin(a*pi/180) end
@@ -673,9 +673,7 @@ function frame_by_frame(sub,accd,opts)
     end
   end
   if opts.vsfilter then
-    opts.pround = 2 -- make it look better with libass?
     opts.sround = 2
-    opts.rround = 2
   end
   if opts.rot then
     if opts.org then 
@@ -892,30 +890,23 @@ function clippinate(line,mocha,opts,iter)
     local switch = 0
     local newvals = {}
     local newclip = line.clip
-    for a in newclip:gmatch("[%.%d%-]+") do
-      if switch == 0 then
-        local delta = (tonumber(a) - line.xpos)*line.xscl*line.ratx/100 -- (delta)
-        local new = xpos + delta
-        aegisub.log(5,"Clip: x: %s -> %s\n",a,new)
-        if line.sclip then new = new*1024/(2^(line.sclip-1)) end
-        table.insert(newvals,round(new))
-        newclip = newclip:gsub("[%.%d%-]+",string.char(1),1) -- argh, I'm getting tired of this technique, but I don't know any other way of doing this.
-        switch = 1
-      else
-        local delta = (tonumber(a) - line.ypos)*line.yscl*line.raty/100
-        local new = ypos + delta
-        aegisub.log(5,"Clip: y: %s -> %s\n",a,new)
-        if line.sclip then new = new*1024/(2^(line.sclip-1)) end
-        table.insert(newvals,round(new))
-        newclip = newclip:gsub("[%.%d%-]+",string.char(1),1)
-        switch = 0
-      end
+    local function xy(x,y)
+      local xo,yo = x,y
+      x = xpos + (tonumber(x) - line.xpos)*line.xscl*line.ratx/100
+      y = ypos + (tonumber(y) - line.ypos)*line.yscl*line.raty/100
+      aegisub.log(5,"Clip: %d %d -> %d %d",xo,yo,x,y)
+      if line.sclip then x = x*1024/(2^(line.sclip-1)) end
+      if line.sclip then y = y*1024/(2^(line.sclip-1)) end
+      table.insert(newvals,round(x).." "..round(y))
+      return string.char(1)
     end
-    local i = 1
-    for a in newclip:gmatch(string.char(1)) do
-      newclip = newclip:gsub(string.char(1),tostring(newvals[i]),1)
+    newclip = newclip:gsub("([%.%d%-]+) ([%.%d%-]+)",xy)
+    local i = 0
+    local function ret(sub)
       i = i+1
+      return newvals[i]
     end
+    newclip = newclip:gsub(string.char(1),ret)
     if line.sclip then 
       return string.format("\\%s(11,%s)",line.clips,newclip)
     else
