@@ -934,11 +934,11 @@ function bordicate(line,mocha,opts)
   local xbord = line.xbord*round(line.ratx,opts.sround) -- round beforehand to minimize random float errors
   local ybord = line.ybord*round(line.raty,opts.sround) -- or maybe that's rly fucking dumb? idklol
   if xbord == ybord then
-    aegisub.log(5,"Border: %f -> %f",line.xbord,xbord)
+    aegisub.log(5,"Border: %f -> %f\n",line.xbord,xbord)
     return string.format("\\bord%g",round(xbord,opts.sround))
   else
-    aegisub.log(5,"XBorder: %f -> %f",line.xbord,xbord)
-    aegisub.log(5,"YBorder: %f -> %f",line.ybord,ybord)
+    aegisub.log(5,"XBorder: %f -> %f\n",line.xbord,xbord)
+    aegisub.log(5,"YBorder: %f -> %f\n",line.ybord,ybord)
     return string.format("\\xbord%g\\ybord%g",round(xbord,opts.sround),round(ybord,opts.sround))
   end
 end
@@ -947,11 +947,11 @@ function shadinate(line,mocha,opts)
   local xshad = line.xshad*round(line.ratx,opts.sround) -- scale shadow the same way as everything else
   local yshad = line.yshad*round(line.raty,opts.sround) -- hope it turns out as desired
   if xshad == yshad then
-    aegisub.log(5,"Shadow: %f -> %f",line.xshad,xshad)
+    aegisub.log(5,"Shadow: %f -> %f\n",line.xshad,xshad)
     return string.format("\\shad%g",round(xshad,opts.sround))
   else
-    aegisub.log(5,"XShadow: %f -> %f",line.xshad,xshad)
-    aegisub.log(5,"YShadow: %f -> %f",line.yshad,yshad)
+    aegisub.log(5,"XShadow: %f -> %f\n",line.xshad,xshad)
+    aegisub.log(5,"YShadow: %f -> %f\n",line.yshad,yshad)
     return string.format("\\xshad%g\\yshad%g",round(xshad,opts.sround),round(yshad,opts.sround))
   end
 end
@@ -963,19 +963,21 @@ function VScalify(line,mocha,opts)
   local xstart, xend = -xdecimal, 100-xdecimal
   local ylowend, yhighend, ydecimal = math.floor(yscl),math.ceil(yscl),yscl%1*100
   local ystart, yend = -ydecimal, 100-ydecimal
+  aegisub.log(5,"X Scale: %f -> %f\n",line.xscl,xscl)
+  aegisub.log(5,"X Scale: %f -> %f\n",line.xscl,xscl)
   return string.format("\\fscx%d\\t(%d,%d,\\fscx%d)\\fscy%d\\t(%d,%d,\\fscy%d)",xlowend,xstart,xend,xhighend,ylowend,ystart,yend,yhighend)
 end
 
 function rotate(line,mocha,opts,iter)
   local zrot = mocha.zrot[iter]-line.zrotd
-  aegisub.log(5,"ZRotation: -> %f",zrot)
+  aegisub.log(5,"ZRotation: -> %f\n",zrot)
   return string.format("\\frz%g",round(zrot,opts.rround)) -- copypasta
 end
 
 function orgate(line,mocha,opts,iter)
   local xorg = mocha.xpos[iter]
   local yorg = mocha.ypos[iter]
-  aegisub.log(5,"Origin: -> (%f,%f)",xorg,yorg)
+  aegisub.log(5,"Origin: -> (%f,%f)\n",xorg,yorg)
   return string.format("\\org(%g,%g)",round(xorg,opts.rround),round(yorg,opts.rround)) -- copypasta
 end
 
