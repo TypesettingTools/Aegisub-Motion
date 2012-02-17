@@ -398,9 +398,13 @@ function getinfo(sub, line, styles, num)
     end
     line.clips, line.clip = a:match("\\(i?clip%()([%-%d]+,[%-%d]+,[%-%d]+,[%-%d]+)%)") -- hum
     if not line.clip then
-      line.clips, line.clip = a:match("\\(i?clip%([%d]*,?)(.-)%)")
+      line.clips, line.sclip, line.clip = a:match("\\(i?clip)%(([%d]*),?(.-)%)")
     end
-    if line.clip then aegisub.log(5,"Clip: %s%s)\n",line.clips,line.clip) end -- because otherwise it crashes!
+    if line.sclip == "" then line.sclip = false else line.sclip = tonumber(line.sclip) end
+    if line.clip then 
+      if line.sclip then aegisub.log(5,"Clip: \\%s(%s,%s)\n",line.clips,line.sclip,line.clip)
+      else aegisub.log(5,"Clip: \\%s(%s)\n",line.clips,line.clip) end
+    end -- because otherwise it crashes!
     for b in line.text:gmatch("%{(.-)%}") do
       for c in b:gmatch("\\t(%b())") do -- this will return an empty string for t_exp if no exponential factor is specified
         t_start,t_end,t_exp,t_eff = c:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
@@ -865,14 +869,15 @@ end
 function possify(line,mocha,opts,iter)
   local xpos = mocha.xpos[iter]-(line.xdiff*line.ratx) -- allocating memory like a bawss
   local ypos = mocha.ypos[iter]-(line.ydiff*line.raty)
-  return string.format("\\pos(%g,%g)",round(xpos,opts.pround),round(ypos,opts.pround)) 
+  aegisub.log(5,"Position: (%f,%f) -> (%f,%f)\n",line.xpos,line.ypos,xpos,ypos)
+  local nf = string.format("%%.%df",opts.pround) -- new method of number formatting!
+  return "\\pos("..string.format(nf,xpos)..","..string.format(nf,ypos)..")"
 end
 
-function clippinate(line,mocha,opts,iter) -- vsfilter can do subpixel clips through power of 2 scaling.
-  --[[ 
+--[[ 
    How it seems to work (based on 30 seconds of research):
     For \\clip(%d,%d,%d,%d), libass will round to the nearest integer (5-> up 4-> down).
-     Vsfilter will floor the value (ignore the decimal point) as it does with other tags
+     VSfilter will floor the value (ignore the decimal point) as it does with other tags
      that it only accepts integer values for.
     For a vector clip, libass will again round all decimal values to the nearest integer.
      VSfilter will break parsing as soon as it hits a decimal point, ignoring all numbers
@@ -880,23 +885,28 @@ function clippinate(line,mocha,opts,iter) -- vsfilter can do subpixel clips thro
      whole number (e.g. 350.5 -> 350). Come to think of it, this is probably how it handles
      all of the tags it can only read integer values from.
   ]]--
+function clippinate(line,mocha,opts,iter)
   if line.clip then
+    local xpos = mocha.xpos[iter]-(line.xdiff*line.ratx) -- allocating memory like a bawss
+    local ypos = mocha.ypos[iter]-(line.ydiff*line.raty)
     local switch = 0
     local newvals = {}
-    local xpos = mocha.xpos[iter] - line.xdiff*line.ratx
-    local ypos = mocha.ypos[iter] - line.ydiff*line.raty
     local newclip = line.clip
     for a in newclip:gmatch("[%.%d%-]+") do
       if switch == 0 then
-        local new = round((tonumber(a) - line.xpos + xpos),0) -- (delta?)
-        aegisub.log(5,"x: %s -> %s\n",a,new)
-        table.insert(newvals,new)
+        local delta = (tonumber(a) - line.xpos)*line.xscl*line.ratx/100 -- (delta)
+        local new = xpos + delta
+        aegisub.log(5,"Clip: x: %s -> %s\n",a,new)
+        if line.sclip then new = new*1024/(2^(line.sclip-1)) end
+        table.insert(newvals,round(new))
         newclip = newclip:gsub("[%.%d%-]+",string.char(1),1) -- argh, I'm getting tired of this technique, but I don't know any other way of doing this.
         switch = 1
       else
-        local new = round((tonumber(a) - line.ypos + ypos),0)
-        aegisub.log(5,"y: %s -> %s\n",a,new)
-        table.insert(newvals,new)
+        local delta = (tonumber(a) - line.ypos)*line.yscl*line.raty/100
+        local new = ypos + delta
+        aegisub.log(5,"Clip: y: %s -> %s\n",a,new)
+        if line.sclip then new = new*1024/(2^(line.sclip-1)) end
+        table.insert(newvals,round(new))
         newclip = newclip:gsub("[%.%d%-]+",string.char(1),1)
         switch = 0
       end
@@ -906,19 +916,26 @@ function clippinate(line,mocha,opts,iter) -- vsfilter can do subpixel clips thro
       newclip = newclip:gsub(string.char(1),tostring(newvals[i]),1)
       i = i+1
     end
-    return string.format("\\%s%s)",line.clips,newclip)
+    if line.sclip then 
+      return string.format("\\%s(11,%s)",line.clips,newclip)
+    else
+      return string.format("\\%s(%s)",line.clips,newclip)
+    end
   else return "" end
 end
 
 function transformate(line,trans)
   local t_s = trans[1] - line.time_delta -- well, that was easy
   local t_e = trans[2] - line.time_delta
+  aegisub.log(5,"Transform: %d,%d -> %d,%d\n",trans[1],trans[2],t_s,t_e)
   return line.text:gsub("\\t%b()","\\"..string.char(1)..string.format("t(%d,%d,%g,%s)",t_s,t_e,trans[3],trans[4]),1)
 end
 
 function scalify(line,mocha,opts)
   local xscl = line.xscl*line.ratx
+  aegisub.log(5,"X Scale: %f -> %f\n",line.xscl,xscl)
   local yscl = line.yscl*line.raty
+  aegisub.log(5,"Y Scale: %f -> %f\n",line.yscl,yscl)
   return string.format("\\fscx%g\\fscy%g",round(xscl,opts.sround),round(yscl,opts.sround))
 end
 
@@ -926,8 +943,11 @@ function bordicate(line,mocha,opts)
   local xbord = line.xbord*round(line.ratx,opts.sround) -- round beforehand to minimize random float errors
   local ybord = line.ybord*round(line.raty,opts.sround) -- or maybe that's rly fucking dumb? idklol
   if xbord == ybord then
+    aegisub.log(5,"Border: %f -> %f",line.xbord,xbord)
     return string.format("\\bord%g",round(xbord,opts.sround))
   else
+    aegisub.log(5,"XBorder: %f -> %f",line.xbord,xbord)
+    aegisub.log(5,"YBorder: %f -> %f",line.ybord,ybord)
     return string.format("\\xbord%g\\ybord%g",round(xbord,opts.sround),round(ybord,opts.sround))
   end
 end
@@ -936,8 +956,11 @@ function shadinate(line,mocha,opts)
   local xshad = line.xshad*round(line.ratx,opts.sround) -- scale shadow the same way as everything else
   local yshad = line.yshad*round(line.raty,opts.sround) -- hope it turns out as desired
   if xshad == yshad then
+    aegisub.log(5,"Shadow: %f -> %f",line.xshad,xshad)
     return string.format("\\shad%g",round(xshad,opts.sround))
   else
+    aegisub.log(5,"XShadow: %f -> %f",line.xshad,xshad)
+    aegisub.log(5,"YShadow: %f -> %f",line.yshad,yshad)
     return string.format("\\xshad%g\\yshad%g",round(xshad,opts.sround),round(yshad,opts.sround))
   end
 end
@@ -953,13 +976,16 @@ function VScalify(line,mocha,opts)
 end
 
 function rotate(line,mocha,opts,iter)
-  return string.format("\\frz%g",round(mocha.zrot[iter]-line.zrotd,opts.rround)) -- copypasta
+  local zrot = mocha.zrot[iter]-line.zrotd
+  aegisub.log(5,"ZRotation: -> %f",zrot)
+  return string.format("\\frz%g",round(zrot,opts.rround)) -- copypasta
 end
 
 function orgate(line,mocha,opts,iter)
-  local xorg = round(mocha.xpos[iter],opts.rround)
-  local yorg = round(mocha.ypos[iter],opts.rround)
-  return string.format("\\org(%g,%g)",xorg,yorg) -- copypasta
+  local xorg = mocha.xpos[iter]
+  local yorg = mocha.ypos[iter]
+  aegisub.log(5,"Origin: -> (%f,%f)",xorg,yorg)
+  return string.format("\\org(%g,%g)",round(xorg,opts.rround),round(yorg,opts.rround)) -- copypasta
 end
 
 function cleanup(sub, sel, opts) -- make into its own macro eventually.
@@ -994,7 +1020,7 @@ function cleanup(sub, sel, opts) -- make into its own macro eventually.
       until not low 
       for k,v in pairs(alltags) do
         local _, num = a:gsub(v,"")
-        aegisub.log(5,"v: %s, num: %s, a: %s\n",v,num,a)
+        --aegisub.log(5,"v: %s, num: %s, a: %s\n",v,num,a)
         a = a:gsub(v,"",num-1)
       end
       for i,v in ipairs(trans) do
