@@ -519,7 +519,6 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   aegisub.progress.title("Selecting Gerbils")
   local accd = preprocessing(sub,sel)
   if not (config_file:match("^[A-Z]:\\") or config_file:match("^/")) and dpath then
-    aegisub.log(5,"herp\n")
     local cf = io.open(aegisub.decode_path("?script/"..config_file))
     if not cf then
       if not readconf(aegisub.decode_path("?user/"..config_file)) then accd.errmsg = "FAILED TO READ CONFIG\n"..accd.errmsg end
@@ -1381,7 +1380,17 @@ function getvideoname(sub)
 end
 
 function trimnthings(sub,sel)
-  if not readconf() then aegisub.log(0,"Failed to read config!\n") end
+  if not (config_file:match("^[A-Z]:\\") or config_file:match("^/")) and dpath then
+    local cf = io.open(aegisub.decode_path("?script/"..config_file))
+    if not cf then
+      if not readconf(aegisub.decode_path("?user/"..config_file)) then aegisub.log(0,"Failed to read config!\n") end
+    else
+      cf:close()
+      readconf(aegisub.decode_path("?script/"..config_file))
+    end
+  else
+    if not readconf(config_file) then aegisub.log(0,"Failed to read config!\n") end
+  end
   local video = ""
   local vp
   local vn
