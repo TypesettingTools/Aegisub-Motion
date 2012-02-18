@@ -23,8 +23,8 @@ Awesome Features:
 *Progress bars! Bitches love progress bars, right? (Even better, they're actually worthless and typically move too fast to be noticed (unless you have logging on)).
 *Move \i?clip() with position (subject to change) (suggested by tophf)
 *\i?clip scales with line.
-*Possibly fixed rotation handling maybe! (Actually I did a few more tests and the rotation seems okay? I'd need proof otherwise, at least.)
-*Gathers default position via karaskel so \pos is no longer necessary (does not work properly if you are overriding the alignment in the line!)
+*ROTATION SHOULD FUCKING ACTUALLY WORK NOW PROBABLY GODDAMNIT
+*Gathers default position via my terrible code which should work in most situations.
 *Automagically trim and encode video clip for mocha (THIS MACRO MAKES NO EFFORT TO WORK PROPERLY ON NON-TRUNK VERSIONS OF AEGISUB (suggested by tp7))
 *Along with that, an option to turn off the gui for the clip encoding, to make it go faster (only works with trunk).
 *Exports data for plotting with GNUPlot (and will also automatically plot it for you, if GNUPlot is in your PATH)
