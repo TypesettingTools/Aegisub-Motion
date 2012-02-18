@@ -1121,7 +1121,7 @@ function isvideo() -- a very rudimentary (but hopefully efficient) check to see 
   end
 end
 
-aegisub.register_macro("Apply motion data", "Applies properly formatted motion tracking data to selected subtitles.", init_input, isvideo)
+aegisub.register_macro("Motion Data - Apply", "Applies properly formatted motion tracking data to selected subtitles.", init_input, isvideo)
 
 function export(accd,mocha,opts)
   local fnames = {}
@@ -1322,7 +1322,7 @@ function writeconf2(config,options)
   cf:close()
 end
 
-aegisub.register_macro("Edit Config", "Macro for full config editing.", confmaker, isvideo)
+aegisub.register_macro("Motion Data - Config", "Macro for full config editing.", confmaker, isvideo)
 
 gui.t = {
     [1] = { class = "textbox";
@@ -1443,4 +1443,4 @@ function writeandencode(opts)
   end
  end
 
-aegisub.register_macro("Cut scene for mocha","Cuts and encodes the current scene for use with motion tracking software.", trimnthings, isvideo)
+aegisub.register_macro("Motion Data - Trim","Cuts and encodes the current scene for use with motion tracking software.", trimnthings, isvideo)
