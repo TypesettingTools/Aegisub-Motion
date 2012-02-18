@@ -176,7 +176,10 @@ header = {
   ['ali']  = "align",
   ['zrot'] = "angle",
   ['bord'] = "outline",
-  ['shad'] = "shadow"
+  ['shad'] = "shadow",
+  ['_v']   = "margin_t",
+  ['_l']   = "margin_l",
+  ['_r']   = "margin_r",
 }
 
 patterns = {
@@ -242,12 +245,14 @@ guiconf = {
   [19] = "rround",
 }
 
-pi = 3.141592653589793238462643383279502884197169399375105821 -- so accurate~
+pi = 3.1415926535898
 
 function dcos(a) return math.cos(a*pi/180) end
+function dacos(a) return 180*math.acos(a)/pi end
 function dsin(a) return math.sin(a*pi/180) end
+function dasin(a) return 180*math.asin(a)/pi end
 function dtan(a) return math.tan(a*pi/180) end
-function datan(a) return 180*math.atan(a)/pi end
+function datan(x,y) return 180*math.atan2(x,y)/pi end
 
 fix = {}
 
@@ -371,19 +376,21 @@ function preprocessing(sub, sel)
   return information(sub,sel) -- selected line numbers are the same
 end
 
-function getinfo(sub, line, styles, num)
+function getinfo(sub, line, num)
   for k, v in pairs(header) do
-    line[k] = styles[line.style][v]
-    aegisub.log(5,"Line %d: %s set to %g (from header)\n", num, v, line[k])
+    line[k] = line.styleref[v]
+    aegisub.log(5,"Line %d: %s -> %g (from header)\n", num, v, line[k])
   end
   if line.bord then line.xbord = tonumber(line.bord); line.ybord = tonumber(line.bord); end
   if line.shad then line.xshad = tonumber(line.shad); line.yshad = tonumber(line.shad); end
   if line.text:match("\\pos%([%-%d%.]+,[%-%d%.]+%)") then -- have to check now since default pos is calculated/given by karaskel
     line.xpos, line.ypos = line.text:match("\\pos%(([%-%d%.]+),([%-%d%.]+)%)")
     line.xorg, line.yorg = line.xpos, line.ypos
+    aegisub.log(5,"Line %d: pos -> (%f,%f)\n", num, line.xpos, line.ypos)
   end
   if line.text:match("\\org%(([%-%d%.]+),([%-%d%.]+)%)") then -- this should be more correctly handled now
     line.xorg, line.yorg = line.text:match("\\org%(([%-%d%.]+),([%-%d%.]+)%)")
+    aegisub.log(5,"Line %d: org -> (%f,%f)\n", num, line.xorg, line.yorg)
   end
   line.trans = {}
   local a = line.text:match("%{(.-)}")
@@ -393,7 +400,7 @@ function getinfo(sub, line, styles, num)
       local _ = a:match(v)
       if _ then 
         line[k] = tonumber(_)
-        aegisub.log(5,"Line %d: %s set to %s\n",num,k,tostring(_))
+        aegisub.log(5,"Line %d: %s -> %s\n",num,k,tostring(_))
       end
     end
     line.clips, line.clip = a:match("\\(i?clip%()([%-%d]+,[%-%d]+,[%-%d]+,[%-%d]+)%)") -- hum
@@ -416,10 +423,12 @@ function getinfo(sub, line, styles, num)
     -- have to run it again because of :reasons: related to bad programming
     if line.bord then line.xbord = tonumber(line.bord); line.ybord = tonumber(line.bord); end
     if line.shad then line.xshad = tonumber(line.shad); line.yshad = tonumber(line.shad); end
+    if line.margin_v ~= 0 then line._v = line.margin_v end
+    if line.margin_l ~= 0 then line._l = line.margin_l end
+    if line.margin_r ~= 0 then line._r = line.margin_r end
   else
     aegisub.log(5,"No comment/override block found in line %d\n",num)
   end
-  return line
 end
 
 function information(sub, sel)
@@ -441,42 +450,40 @@ function information(sub, sel)
   accd.startframe = aegisub.frame_from_ms(sub[sel[1]].start_time) -- get the start frame of the first selected line
   accd.poserrs, accd.alignerrs = {}, {}
   accd.errmsg = ""
-  accd.shx, accd.shy = accd.meta.res_x, accd.meta.res_y
   local numlines = #sel
   for i, v in pairs(sel) do -- burning cpu cycles like they were no thing
     local opline = table.copy(sub[v]) -- I have no idea if a shallow copy is even an intelligent thing to do here
     opline.num = v -- for inserting lines later
     karaskel.preproc_line(sub, accd.meta, accd.styles, opline) -- get linewidth/height and margins
     if not opline.effect then opline.effect = "" end
-    opline = getinfo(sub, opline, accd.styles, v-strt)
+    getinfo(sub, opline, v-strt)
+    opline.styleref.scale_y = 100
+    opline.styleref.scale_x = 100
+    opline.width, opline.height, opline.descent, opline.extlead = aegisub.text_extents(opline.styleref,opline.text_stripped)
     opline.startframe, opline.endframe = aegisub.frame_from_ms(opline.start_time), aegisub.frame_from_ms(opline.end_time)
     if opline.comment then opline.is_comment = true else opline.is_comment = false end
     if not opline.xpos then
-      opline.xpos = fix.xpos[opline.ali%3+1](accd.shx,opline.margin_l,opline.margin_r)
-      opline.ypos = fix.ypos[math.ceil(opline.ali/3)](accd.shy,opline.margin_v)
-      if opline.ali ~= 5 then
-        if opline.xorg then
-          local xd = opline.xpos - opline.xorg
-          local yd = opline.ypos - opline.yorg
-          local r = math.sqrt(xd^2+yd^2)
-          local alpha = datan(yd/xd)
-          opline.xpos = opline.xorg + r*dcos(alpha-opline.zrot)
-          opline.ypos = opline.yorg + r*dsin(alpha-opline.zrot)
-          opline.text = opline.text:gsub("\\org%(([%-%d%.]+),([%-%d%.]+)%)","")
-        end
-        opline.xpos,opline.ypos = fix.ali[opline.ali](opline.xpos,opline.ypos,opline.width*opline.xscl/100,opline.height*opline.yscl/100,opline.zrot)
-        if v.ali ~= 5 then
-          if v.text:match("\\an[1-9]") then
-            v.text = v.text:gsub("\\an[1-9]","\\an5")
-          else
-            v.text = "{\\an5}"..string.char(6)..v.text
-          end
-        end
-      end
+      opline.xpos = fix.xpos[opline.ali%3+1](accd.meta.res_x,opline._l,opline._r)
+      opline.ypos = fix.ypos[math.ceil(opline.ali/3)](accd.meta.res_y,opline._v)
+      aegisub.log(5,"Line %d: pos -> (%f,%f)\n", opline.num, opline.xpos, opline.ypos)
     end
-    if not opline.xorg then
-      opline.xorg = opline.xpos
-      opline.yorg = opline.ypos
+    if opline.xorg then
+      local xd = opline.xpos - opline.xorg
+      local yd = opline.ypos - opline.yorg
+      local r = math.sqrt(xd^2+yd^2)
+      local alpha = datan(yd,xd)
+      opline.xpos = opline.xorg + r*dcos(alpha-opline.zrot)
+      opline.ypos = opline.yorg + r*dsin(alpha-opline.zrot)
+      opline.text = opline.text:gsub("\\org%(([%-%d%.]+),([%-%d%.]+)%)","")
+    end
+    if opline.ali ~= 5 then
+      opline.xpos,opline.ypos = fix.ali[opline.ali](opline.xpos,opline.ypos,opline.width*opline.xscl/100,opline.height*opline.yscl/100,opline.zrot)
+      aegisub.log(5,"Line %d: pos -> (%f,%f)\n", opline.num, opline.xpos, opline.ypos)
+      if opline.text:match("\\an[1-9]") then
+        opline.text = opline.text:gsub("\\an[1-9]","\\an5")
+      else
+        opline.text = "{\\an5}"..string.char(6)..opline.text
+      end
     end
     if opline.startframe < accd.startframe then -- make timings flexible. Number of frames total has to match the tracked data but
       aegisub.log(5,"Line %d: startframe changed from %d to %d\n",v-strt,accd.startframe,opline.startframe)
@@ -541,7 +548,7 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
     aegisub.progress.title("Reformatting Gerbils")
     cleanup(sub,newsel,config)
   elseif button == "Export" then
-    export(accd,parse_input(config.mocpat,accd.shx,accd.shy),config)
+    export(accd,parse_input(config.mocpat,accd.meta.res_x,accd.meta.res_y),config)
   else
     aegisub.progress.task("ABORT")
     if dpath then aegisub.cancel() end
@@ -595,7 +602,11 @@ function parse_input(input,shx,shy)
       if valu:match("%d") then
         val = valu:split("\t")
         table.insert(mocha.xpos,tonumber(val[2])*xmult)
+        if not mocha.xmax then mocha.xmax = tonumber(val[2]) elseif tonumber(val[2]) > mocha.xmax then mocha.xmax = tonumber(val[2]) end
+        if not mocha.xmin then mocha.xmin = tonumber(val[2]) elseif tonumber(val[2]) < mocha.xmin then mocha.xmin = tonumber(val[2]) end
         table.insert(mocha.ypos,tonumber(val[3])*ymult)
+        if not mocha.ymax then mocha.ymax = tonumber(val[3]) elseif tonumber(val[3]) > mocha.ymax then mocha.ymax = tonumber(val[3]) end
+        if not mocha.ymin then mocha.ymin = tonumber(val[3]) elseif tonumber(val[3]) < mocha.ymin then mocha.ymin = tonumber(val[3]) end
       end
     elseif sect <= 3 and sect >= 2 then
       if valu:match("%d") then
@@ -617,16 +628,18 @@ function parse_input(input,shx,shy)
     end
   end
   mocha.flength = #mocha.xpos
-  assert(mocha.flength == #mocha.ypos and mocha.flength == #mocha.xscl and mocha.flength == #mocha.yscl and mocha.flength == #mocha.zrot,"The mocha data is not internally equal length.") -- make sure all of the elements are the same length (because I don't trust my own code).
+  assert(mocha.flength == #mocha.ypos and mocha.flength == #mocha.xscl and mocha.flength == #mocha.yscl and mocha.flength == #mocha.zrot,"The data is not internally equal length.") -- make sure all of the elements are the same length (because I don't trust my own code).
   printmem("End of input parsing")
   return mocha -- hurr durr
 end
 
 function frame_by_frame(sub,accd,opts)
   printmem("Start of main loop")
-  local mocha = parse_input(opts.mocpat,accd.shx,accd.shy) -- global variables have no automatic gc
+  local mocha = parse_input(opts.mocpat,accd.meta.res_x,accd.meta.res_y) -- global variables have no automatic gc
   assert(accd.totframes==mocha.flength,"Number of frames from selected lines differs from number of frames tracked.")
   if opts.exp then export(accd,mocha,opts) end
+  mocha.s = 1
+  if opts.reverse then mocha.s = mocha.flength end
   for k,v in ipairs(accd.lines) do -- comment lines that were commented in the thingy
     local derp = sub[v.num]
     derp.comment = true
@@ -640,6 +653,11 @@ function frame_by_frame(sub,accd,opts)
     for k,d in ipairs(mocha.xscl) do
       mocha.xscl[k] = 100 -- old method was wrong and didn't work.
       mocha.yscl[k] = 100 -- so that yscl is changed too. 
+    end
+  end
+  if not opts.rot then
+    for k,d in ipairs(mocha.zrot) do
+      mocha.zrot[k] = 0
     end
   end
   local operations, eraser = {}, {} -- create a table and put the necessary functions into it, which will save a lot of if operations in the inner loop. This was the most elegant solution I came up with.
@@ -677,7 +695,7 @@ function frame_by_frame(sub,accd,opts)
   end
   if opts.rot then
     if opts.org then 
-      table.insert(operations,orgate)
+      --table.insert(operations,orgate)
       table.insert(eraser,"\\org%([%-%d%.]+,[%-%d%.]+%)")
     end
     table.insert(operations,rotate)
@@ -867,6 +885,12 @@ end
 function possify(line,mocha,opts,iter)
   local xpos = mocha.xpos[iter]-(line.xdiff*line.ratx) -- allocating memory like a bawss
   local ypos = mocha.ypos[iter]-(line.ydiff*line.raty)
+  local xd = xpos - mocha.xpos[iter]
+  local yd = ypos - mocha.ypos[iter]
+  local r = math.sqrt(xd^2+yd^2)
+  local alpha = datan(yd,xd) -- this should be a constant---move its calculation outside the inner loop, perhaps?
+  xpos = mocha.xpos[iter] + r*dcos(alpha-mocha.zrot[iter]+mocha.zrot[mocha.s])
+  ypos = mocha.ypos[iter] + r*dsin(alpha-mocha.zrot[iter]+mocha.zrot[mocha.s])
   aegisub.log(5,"Position: (%f,%f) -> (%f,%f)\n",line.xpos,line.ypos,xpos,ypos)
   local nf = string.format("%%.%df",opts.pround) -- new method of number formatting!
   return "\\pos("..string.format(nf,xpos)..","..string.format(nf,ypos)..")"
@@ -1133,28 +1157,28 @@ function export(accd,mocha,opts)
   local len = (aegisub.ms_from_frame(accd.endframe) - aegisub.ms_from_frame(accd.startframe))/10
   local bigstring = {}
   if opts.pos then
-    table.insert(bigstring,string.format([=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',accd.shx+70,accd.shy+80,global.prefix..fnames[1]:sub(0,-5)))
+    table.insert(bigstring,string.format([=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',accd.meta.res_x+70,accd.meta.res_y+80,global.prefix..fnames[1]:sub(0,-5)))
     table.insert(bigstring,string.format([=[set title 'Plot of X vs Y']=]..'\n'))
-    table.insert(bigstring,string.format([=[unset xtics; set x2tics out mirror; set mx2tics 5; set x2label 'X Position (Pixels)'; set xrange [0:%d]]=]..'\n',accd.shx))
-    table.insert(bigstring,string.format([=[set ytics out; set mytics 5; set ylabel 'Y Position (Pixels)'; set yrange [0:%d] reverse]=]..'\n',accd.shy))
+    table.insert(bigstring,string.format([=[unset xtics; set x2tics out mirror; set mx2tics 5; set x2label 'X Position (Pixels)'; set xrange [0:%d]]=]..'\n',accd.meta.res_x))
+    table.insert(bigstring,string.format([=[set ytics out; set mytics 5; set ylabel 'Y Position (Pixels)'; set yrange [0:%d] reverse]=]..'\n',accd.meta.res_y))
     table.insert(bigstring,string.format([=[set grid x2tics mx2tics mytics ytics; stats '%s' using 1:2 name 'XvYstat']=]..'\n',global.prefix..fnames[1]))
     table.insert(bigstring,string.format([=[f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b]=]..'\n',global.prefix..fnames[1]))
     table.insert(bigstring,string.format([=[if (b >= 0) slope = sprintf('y(x) = %%.3fx + %%.3f : R^2: %%.3f',m,b,XvYstat_correlation**2); else slope = sprintf('y(x) = %%.3fx - %%.3f : R^2: %%.3f',m,0-b,XvYstat_correlation**2)]=]..'\n'))
     table.insert(bigstring,string.format([=[plot '%s' using 1:2 notitle with points, f(x) title slope with lines]=]..'\n',global.prefix..fnames[1]))
 
-    table.insert(bigstring,string.format('\n'..[=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',round(len*2+70,0),accd.shx+80,global.prefix..fnames[2]:sub(0,-5)))
+    table.insert(bigstring,string.format('\n'..[=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',round(len*2+70,0),accd.meta.res_x+80,global.prefix..fnames[2]:sub(0,-5)))
     table.insert(bigstring,string.format([=[set title 'Plot of T vs X'; unset x2label]=]..'\n'))
     table.insert(bigstring,string.format([=[unset x2tics; unset mx2tics; set xtics out mirror; set mxtics 5; set xlabel 'Time (centiseconds)'; set xrange [0:%d]]=]..'\n',round(len,0)))
-    table.insert(bigstring,string.format([=[set ytics out; set mytics 5; set ylabel 'X Position (Pixels)'; set yrange [0:%d] reverse]=]..'\n',accd.shx))
+    table.insert(bigstring,string.format([=[set ytics out; set mytics 5; set ylabel 'X Position (Pixels)'; set yrange [0:%d] reverse]=]..'\n',accd.meta.res_x))
     table.insert(bigstring,string.format([=[set grid xtics mxtics ytics mytics; stats '%s' using 1:2 name 'TvXstat']=]..'\n',global.prefix..fnames[2]))
     table.insert(bigstring,string.format([=[f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b]=]..'\n',global.prefix..fnames[2]))
     table.insert(bigstring,string.format([=[if (b >= 0) slope = sprintf('Equation: x(t) = %%.3ft + %%.3f : R^2: %%.3f',m,b,TvXstat_correlation**2); else slope = sprintf('Equation: x(t) = %%.3ft - %%.3f : R^2: %%.3f',m,0-b,TvXstat_correlation**2)]=]..'\n'))
     table.insert(bigstring,string.format([=[plot '%s' using 1:2 notitle with points, f(x) title slope with lines]=]..'\n',global.prefix..fnames[2]))
 
-    table.insert(bigstring,string.format('\n'..[=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',round(len*2+70,0),accd.shx+80,global.prefix..fnames[3]:sub(0,-5)))
+    table.insert(bigstring,string.format('\n'..[=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',round(len*2+70,0),accd.meta.res_x+80,global.prefix..fnames[3]:sub(0,-5)))
     table.insert(bigstring,string.format([=[set title 'Plot of T vs Y'; unset x2label]=]..'\n'))
     table.insert(bigstring,string.format([=[unset x2tics; unset mx2tics; set xtics out mirror; set mxtics 5; set xlabel 'Time (centiseconds)'; set xrange [0:%d]]=]..'\n',round(len,0)))
-    table.insert(bigstring,string.format([=[set ytics out; set mytics 5; set ylabel 'Y Position (Pixels)'; set yrange [0:%d] reverse]=]..'\n',accd.shy))
+    table.insert(bigstring,string.format([=[set ytics out; set mytics 5; set ylabel 'Y Position (Pixels)'; set yrange [0:%d] reverse]=]..'\n',accd.meta.res_y))
     table.insert(bigstring,string.format([=[set grid xtics mxtics ytics mytics; stats '%s' using 1:2 name 'TvYstat']=]..'\n',global.prefix..fnames[3]))
     table.insert(bigstring,string.format([=[f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b]=]..'\n',global.prefix..fnames[3]))
     table.insert(bigstring,string.format([=[if (b >= 0) slope = sprintf('Equation: y(t) = %%.3ft + %%.3f : R^2: %%.3f',m,b,TvYstat_correlation**2); else slope = sprintf('Equation: y(t) = %%.3ft - %%.3f : R^2: %%.3f',m,0-b,TvYstat_correlation**2)]=]..'\n'))
