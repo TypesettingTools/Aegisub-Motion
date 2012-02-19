@@ -180,6 +180,8 @@ header = {
   ['_v']   = "margin_t",
   ['_l']   = "margin_l",
   ['_r']   = "margin_r",
+  ['fs']   = "fontsize",
+  ['fn']   = "fontname",
 }
 
 patterns = {
@@ -192,7 +194,8 @@ patterns = {
   ['ybord']   = "\\ybord([%d%.]+)",
   ['shad']    = "\\shad([%-%d%.])",
   ['xshad']   = "\\xshad([%-%d%.]+)",
-  ['yshad']   = "\\yshad([%-%d%.]+)"
+  ['yshad']   = "\\yshad([%-%d%.]+)",
+  ['fs']      = "\\fs([%d%.]+)",  
 }
 
 alltags = { -- http://lua-users.org/wiki/SwitchStatement yuuup.
@@ -403,7 +406,12 @@ function getinfo(sub, line, num)
         aegisub.log(5,"Line %d: %s -> %s\n",num,k,tostring(_))
       end
     end
-    line.clips, line.clip = a:match("\\(i?clip%()([%-%d]+,[%-%d]+,[%-%d]+,[%-%d]+)%)") -- hum
+    if a:match("\\fn([^\\}]+)") then line.fn = a:match("\\fn([^\\}]+)") end
+    local function cconv(a,b,c,d,e)
+      line.clips = a
+      line.clip = string.format("m %d %d l %d %d %d %d %d %d",b,c,d,c,d,e,b,e)
+    end
+    a:gsub("\\(i?clip)%(([%-%d]+),([%-%d]+),([%-%d]+),([%-%d]+)%)",cconv) -- hum
     if not line.clip then
       line.clips, line.sclip, line.clip = a:match("\\(i?clip)%(([%d]*),?(.-)%)")
     end
@@ -457,12 +465,18 @@ function information(sub, sel)
     karaskel.preproc_line(sub, accd.meta, accd.styles, opline) -- get linewidth/height and margins
     if not opline.effect then opline.effect = "" end
     getinfo(sub, opline, v-strt)
+    opline.styleref.fontname = opline.fn
+    opline.styleref.fontsize = opline.fs
     opline.styleref.scale_y = 100
     opline.styleref.scale_x = 100
     opline.width, opline.height, opline.descent, opline.extlead = aegisub.text_extents(opline.styleref,opline.text_stripped)
+    if opline.margin_v ~= 0 then opline._v = opline.margin_v end
+    if opline.margin_l ~= 0 then opline._l = opline.margin_l end
+    if opline.margin_r ~= 0 then opline._r = opline.margin_r end
     opline.startframe, opline.endframe = aegisub.frame_from_ms(opline.start_time), aegisub.frame_from_ms(opline.end_time)
     if opline.comment then opline.is_comment = true else opline.is_comment = false end
     if not opline.xpos then
+      aegisub.log(5,"Touching little boys\n")
       opline.xpos = fix.xpos[opline.ali%3+1](accd.meta.res_x,opline._l,opline._r)
       opline.ypos = fix.ypos[math.ceil(opline.ali/3)](accd.meta.res_y,opline._v)
       aegisub.log(5,"Line %d: pos -> (%f,%f)\n", opline.num, opline.xpos, opline.ypos)
@@ -475,15 +489,6 @@ function information(sub, sel)
       opline.xpos = opline.xorg + r*dcos(alpha-opline.zrot)
       opline.ypos = opline.yorg + r*dsin(alpha-opline.zrot)
       opline.text = opline.text:gsub("\\org%(([%-%d%.]+),([%-%d%.]+)%)","")
-    end
-    if opline.ali ~= 5 then
-      opline.xpos,opline.ypos = fix.ali[opline.ali](opline.xpos,opline.ypos,opline.width*opline.xscl/100,opline.height*opline.yscl/100,opline.zrot)
-      aegisub.log(5,"Line %d: pos -> (%f,%f)\n", opline.num, opline.xpos, opline.ypos)
-      if opline.text:match("\\an[1-9]") then
-        opline.text = opline.text:gsub("\\an[1-9]","\\an5")
-      else
-        opline.text = "{\\an5}"..string.char(6)..opline.text
-      end
     end
     if opline.startframe < accd.startframe then -- make timings flexible. Number of frames total has to match the tracked data but
       aegisub.log(5,"Line %d: startframe changed from %d to %d\n",v-strt,accd.startframe,opline.startframe)
@@ -707,6 +712,15 @@ function frame_by_frame(sub,accd,opts)
     local rendf = v.endframe - accd.startframe -- end frame of line relative to start frame of tracked data
     local maths, mathsanswer = nil, nil -- create references without allocation? idk how this works.
     v.effect = "aa-mou"..v.effect
+    if v.ali ~= 5 and (opts.scl or opts.rot) then
+      v.xpos,v.ypos = fix.ali[v.ali](v.xpos,v.ypos,v.width*v.xscl/100,v.height*v.yscl/100,v.zrot)
+      aegisub.log(5,"Line %d: pos -> (%f,%f)\n", v.num, v.xpos, v.ypos)
+      if v.text:match("\\an[1-9]") then
+        v.text = v.text:gsub("\\an[1-9]","\\an5")
+      else
+        v.text = "{\\an5}"..string.char(6)..v.text
+      end
+    end
     if opts.linear then
       local one = aegisub.ms_from_frame(aegisub.frame_from_ms(v.start_time))
       local two = aegisub.ms_from_frame(aegisub.frame_from_ms(v.start_time)+1)
@@ -1063,11 +1077,12 @@ function dialog_sort(sub, sel, sor)
     end
   end -- local because why not?
   local sortF = ({
-    ['Time'] = function(l,n) return { key = l.start_time, num = n, data = l } end;
+    ['Time']   = function(l,n) return { key = l.start_time, num = n, data = l } end;
     --[[ These are pretty pointless since they should all end up in the same order as "Default"
-    ['Actor'] = function(l,n) return { key = l.actor, num = n, data = l } end;
+    ['Actor']  = function(l,n) return { key = l.actor,  num = n, data = l } end;
     ['Effect'] = function(l,n) return { key = l.effect, num = n, data = l } end;
-    ['Style'] = function(l,n) return { key = l.style, num = n, data = l } end;
+    ['Style']  = function(l,n) return { key = l.style,  num = n, data = l } end;
+    ['Layer']  = function(l,n) return { key = l.layer,  num = n, data = l } end; 
     --]]
   })[sor] -- thanks, tophf
   local lines = {}
