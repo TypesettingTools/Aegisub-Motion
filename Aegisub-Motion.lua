@@ -259,18 +259,6 @@ function datan(x,y) return 180*math.atan2(x,y)/pi end
 
 fix = {}
 
-fix.ali = {
-  function(x,y,w,h,a) local r = w/2 return x+r*dcos(a)-h/2*dsin(a), y-r*dsin(a)-h/2*dcos(a) end;
-  function(x,y,w,h,a) local r = h/2 return x-r*dsin(a), y-r*dcos(a) end;
-  function(x,y,w,h,a) local r = w/2 return x-r*dcos(a)-h/2*dsin(a), y+r*dsin(a)-h/2*dcos(a) end;
-  function(x,y,w,h,a) local r = w/2 return x+r*dcos(a), y-r*dsin(a) end;
-  function(x,y,w,h,a) return x, y end;
-  function(x,y,w,h,a) local r = w/2 return x-r*dcos(a), y+r*dsin(a) end;
-  function(x,y,w,h,a) local r = w/2 return x+r*dcos(a)+h/2*dsin(a), y-r*dsin(a)+h/2*dcos(a) end;
-  function(x,y,w,h,a) local r = h/2 return x+r*dsin(a), y+r*dcos(a) end;
-  function(x,y,w,h,a) local r = w/2 return x-r*dcos(a)+h/2*dsin(a), y+r*dsin(a)+h/2*dcos(a) end;
-}
-
 fix.xpos = {
   function(sx,l,r) return sx-r end;
   function(sx,l,r) return l    end;
@@ -411,7 +399,7 @@ function getinfo(sub, line, num)
       line.clips = a
       line.clip = string.format("m %d %d l %d %d %d %d %d %d",b,c,d,c,d,e,b,e)
     end
-    a:gsub("\\(i?clip)%(([%-%d]+),([%-%d]+),([%-%d]+),([%-%d]+)%)",cconv) -- hum
+    a:gsub("\\(i?clip)%(([%-%d]+),([%-%d]+),([%-%d]+),([%-%d]+)%)",cconv,1) -- hum
     if not line.clip then
       line.clips, line.sclip, line.clip = a:match("\\(i?clip)%(([%d]*),?(.-)%)")
     end
@@ -712,15 +700,6 @@ function frame_by_frame(sub,accd,opts)
     local rendf = v.endframe - accd.startframe -- end frame of line relative to start frame of tracked data
     local maths, mathsanswer = nil, nil -- create references without allocation? idk how this works.
     v.effect = "aa-mou"..v.effect
-    if v.ali ~= 5 and (opts.scl or opts.rot) then
-      v.xpos,v.ypos = fix.ali[v.ali](v.xpos,v.ypos,v.width*v.xscl/100,v.height*v.yscl/100,v.zrot)
-      aegisub.log(5,"Line %d: pos -> (%f,%f)\n", v.num, v.xpos, v.ypos)
-      if v.text:match("\\an[1-9]") then
-        v.text = v.text:gsub("\\an[1-9]","\\an5")
-      else
-        v.text = "{\\an5}"..string.char(6)..v.text
-      end
-    end
     if opts.linear then
       local one = aegisub.ms_from_frame(aegisub.frame_from_ms(v.start_time))
       local two = aegisub.ms_from_frame(aegisub.frame_from_ms(v.start_time)+1)
