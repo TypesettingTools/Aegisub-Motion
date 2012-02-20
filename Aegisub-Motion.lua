@@ -109,9 +109,10 @@ gui.main = { -- todo: change these to be more descriptive.
   [15] = { class = "checkbox";
       x = 0; y = 9; height = 1; width = 3;
     value = false; name = "rot"; label = "Rotation"},
+  --[[
   [16] = { class = "checkbox";
       x = 4; y = 9; height = 1; width = 2;
-    value = true; name = "org"; label = "Origin"},
+    value = true; name = "org"; label = "Origin"},--]]
   [17] = { class = "intedit"; -- these are both retardedly wide and retardedly tall. They are downright frustrating to position in the interface.
       x = 7; y = 7; height = 1; width = 3;
     value = 2; name = "pround"; min = 0; max = 5;},
@@ -235,7 +236,7 @@ guiconf = {
   [11] = "bord",
   [12] = "shad",
   [15] = "rot",
-  [16] = "org",
+  --[16] = "org",
   [21] = "xmult",
   [22] = "ovr",
   [23] = "vsfilter",
@@ -537,6 +538,14 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
     end
     printmem("Go")
     local newsel = frame_by_frame(sub,accd,config)
+    if munch(sub,newsel) then
+      newsel = {}
+      for x = 1,#sub do
+        if tostring(sub[x].effect):match("^aa%-mou") then
+          table.insert(newlines,x)
+        end
+      end
+    end
     aegisub.progress.title("Reformatting Gerbils")
     cleanup(sub,newsel,config)
   elseif button == "Export" then
@@ -635,12 +644,13 @@ function frame_by_frame(sub,accd,opts)
   for k,v in ipairs(accd.lines) do -- comment lines that were commented in the thingy
     local derp = sub[v.num]
     derp.comment = true
-    derp.effect = "aa-mou"..derp.effect
+    --derp.effect = "aa-mo2"..derp.effect
     sub[v.num] = derp
     if not v.is_comment then v.comment = false end
   end
   local _ = nil
-  local newlines = {} -- table to stick indicies of tracked lines into for cleanup... haven't really decided what the cleanup function is going to be. I might expose it to automation as a standalone depending on if it turns out to be garbage or not.
+  local newlines = {} -- table to stick indicies of tracked lines into for cleanup.
+  local srclines = {}
   if not opts.scl then
     for k,d in ipairs(mocha.xscl) do
       mocha.xscl[k] = 100 -- old method was wrong and didn't work.
@@ -686,10 +696,7 @@ function frame_by_frame(sub,accd,opts)
     opts.sround = 2
   end
   if opts.rot then
-    if opts.org then 
-      --table.insert(operations,orgate)
-      table.insert(eraser,"\\org%([%-%d%.]+,[%-%d%.]+%)")
-    end
+    table.insert(eraser,"\\org%([%-%d%.]+,[%-%d%.]+%)")
     table.insert(operations,rotate)
     table.insert(eraser,"\\frz[%-%d%.]+")
   end
@@ -830,13 +837,14 @@ function frame_by_frame(sub,accd,opts)
     end
   end
   for x = 1,#sub do
-    --aegisub.log(5,"%s\n",tostring(sub[x].effect))
-    if tostring(sub[x].effect):match("^aa%-mou") then -- I wonder if a second if 
+    if tostring(sub[x].effect):match("^aa%-mou") then
       aegisub.log(5,"I choose you, %d!\n",x)
       table.insert(newlines,x) -- seems to work as intended.
+    --elseif tostring(sub[x].effect):match("^aa%-mo2") then
+    --  table.insert(srclines,x)
     end
   end
-  return newlines -- yeah mang
+  return newlines,srclines -- yeah mang
 end
 
 function linearize(line,mocha,opts,rstartf,rendf)
@@ -875,7 +883,7 @@ function linearize(line,mocha,opts,rstartf,rendf)
 end
 
 function possify(line,mocha,opts,iter)
-  local xpos = mocha.xpos[iter]-(line.xdiff*line.ratx) -- allocating memory like a bawss
+  local xpos = mocha.xpos[iter]-(line.xdiff*line.ratx)
   local ypos = mocha.ypos[iter]-(line.ydiff*line.raty)
   local xd = xpos - mocha.xpos[iter]
   local yd = ypos - mocha.ypos[iter]
@@ -885,7 +893,35 @@ function possify(line,mocha,opts,iter)
   ypos = mocha.ypos[iter] + r*dsin(alpha-mocha.zrot[iter]+mocha.zrot[mocha.s])
   aegisub.log(5,"Position: (%f,%f) -> (%f,%f)\n",line.xpos,line.ypos,xpos,ypos)
   local nf = string.format("%%.%df",opts.pround) -- new method of number formatting!
-  return "\\pos("..string.format(nf,xpos)..","..string.format(nf,ypos)..")"
+  local clip = ""
+  if line.clip then
+    local switch = 0
+    local newvals = {}
+    local newclip = line.clip
+    local function xy(x,y)
+      local xo,yo = x,y
+      x = xpos + (tonumber(x) - line.xpos)*line.xscl*line.ratx/100
+      y = ypos + (tonumber(y) - line.ypos)*line.yscl*line.raty/100
+      aegisub.log(5,"Clip: %d %d -> %d %d",xo,yo,x,y)
+      if line.sclip then x = x*1024/(2^(line.sclip-1)) end
+      if line.sclip then y = y*1024/(2^(line.sclip-1)) end
+      table.insert(newvals,round(x).." "..round(y))
+      return string.char(1)
+    end
+    newclip = newclip:gsub("([%.%d%-]+) ([%.%d%-]+)",xy)
+    local i = 0
+    local function ret(sub)
+      i = i+1
+      return newvals[i]
+    end
+    newclip = newclip:gsub(string.char(1),ret)
+    if line.sclip then 
+      clip = string.format("\\%s(11,%s)",line.clips,newclip)
+    else
+      clip = string.format("\\%s(%s)",line.clips,newclip)
+    end
+  end
+  return "\\pos("..string.format(nf,xpos)..","..string.format(nf,ypos)..")"..clip
 end
 
 --[[ 
@@ -901,7 +937,7 @@ end
   ]]--
 function clippinate(line,mocha,opts,iter)
   if line.clip then
-    local xpos = mocha.xpos[iter]-(line.xdiff*line.ratx) -- allocating memory like a bawss
+    local xpos = mocha.xpos[iter]-(line.xdiff*line.ratx)
     local ypos = mocha.ypos[iter]-(line.ydiff*line.raty)
     local switch = 0
     local newvals = {}
@@ -990,14 +1026,24 @@ function rotate(line,mocha,opts,iter)
   return string.format("\\frz%g",round(zrot,opts.rround)) -- copypasta
 end
 
-function orgate(line,mocha,opts,iter)
-  local xorg = mocha.xpos[iter]
-  local yorg = mocha.ypos[iter]
-  aegisub.log(5,"Origin: -> (%f,%f)\n",xorg,yorg)
-  return string.format("\\org(%g,%g)",round(xorg,opts.rround),round(yorg,opts.rround)) -- copypasta
+function munch(sub,sel)
+  local changed = false
+  for i,v in ipairs(sel) do 
+    local num = sel[#sel-i+1]
+    local l1 = sub[num-1]
+    local l2 = sub[num]
+    if l1.text == l2.text then
+      l1.end_time = l2.end_time
+      sub[num-1]=l1
+      sub.delete(num)
+      changed = true
+    end
+  end
+  return changed
 end
 
-function cleanup(sub, sel, opts) -- make into its own macro eventually.
+function cleanup(sub, sel, opts, src) -- make into its own macro eventually.
+  src = src or {}
   local linediff
   function cleantrans(cont) -- internal function because that's the only way to pass the line difference to it
     local t_s, t_e, ex, eff = cont:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
@@ -1006,6 +1052,7 @@ function cleanup(sub, sel, opts) -- make into its own macro eventually.
     if tonumber(ex) == 1 or ex == "" then return string.format("\\t(%s,%s,%s)",t_s,t_e,eff) end -- if the exponential factor is equal to 1 or isn't there, remove it (just makes it look cleaner)
     return string.format("\\t(%s,%s,%s,%s)",t_s,t_e,ex,eff) -- otherwise, return an untouched transform.
   end
+  local ns = {}
   for i, v in ipairs(sel) do
     aegisub.progress.title(string.format("Castrating gerbils: %d/%d",i,#sel))
     local lnum = sel[#sel-i+1]
@@ -1043,7 +1090,10 @@ function cleanup(sub, sel, opts) -- make into its own macro eventually.
     sub[lnum] = line
   end
   if opts.sort ~= "Default" then
-    dialog_sort(sub, sel, opts.sort)
+    sel = dialog_sort(sub, sel, opts.sort)
+  end
+  for i,v in ipairs(sel) do
+    
   end
 end
 
@@ -1076,14 +1126,16 @@ function dialog_sort(sub, sel, sor)
     if aegisub.progress.is_cancelled() then error("User cancelled") end
     sub.delete(sel[#sel-i+1]) -- BALEET (in reverse because they are not necessarily contiguous)
   end
+  sel = {}
   for i, v in ipairs(lines) do
     if aegisub.progress.is_cancelled() then error("User cancelled") end
     aegisub.progress.title(string.format("Sorting gerbils: %d/%d",i,#lines))
     aegisub.progress.set(i/#lines*100) 
     aegisub.log(5,"Key: "..v.key..'\n')
-    aegisub.progress.set(i/#lines*100)
+    table.insert(sel,strt+i-1)
     sub.insert(strt+i-1,v.data) -- not sure this is the best place to do this but owell
   end
+  return sel
 end
 
 function printmem(a)
