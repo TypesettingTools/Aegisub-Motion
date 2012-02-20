@@ -667,7 +667,7 @@ function frame_by_frame(sub,accd,opts)
     table.insert(operations,possify)
     table.insert(eraser,"\\\pos%([%-%d%.]+,[%-%d%.]+%)") -- \\\ because I DON'T FUCKING KNOW OKAY THAT'S JUST THE WAY IT WORKS
     if opts.clip then
-      table.insert(operations,clippinate)
+      --table.insert(operations,clippinate)
       table.insert(eraser,"\\i?clip%b()")
     end
   end
@@ -894,77 +894,36 @@ function possify(line,mocha,opts,iter)
   aegisub.log(5,"Position: (%f,%f) -> (%f,%f)\n",line.xpos,line.ypos,xpos,ypos)
   local nf = string.format("%%.%df",opts.pround) -- new method of number formatting!
   local clip = ""
-  if line.clip then
-    local switch = 0
-    local newvals = {}
-    local newclip = line.clip
-    local function xy(x,y)
-      local xo,yo = x,y
-      x = xpos + (tonumber(x) - line.xpos)*line.xscl*line.ratx/100
-      y = ypos + (tonumber(y) - line.ypos)*line.yscl*line.raty/100
-      aegisub.log(5,"Clip: %d %d -> %d %d",xo,yo,x,y)
-      if line.sclip then x = x*1024/(2^(line.sclip-1)) end
-      if line.sclip then y = y*1024/(2^(line.sclip-1)) end
-      table.insert(newvals,round(x).." "..round(y))
-      return string.char(1)
-    end
-    newclip = newclip:gsub("([%.%d%-]+) ([%.%d%-]+)",xy)
-    local i = 0
-    local function ret(sub)
-      i = i+1
-      return newvals[i]
-    end
-    newclip = newclip:gsub(string.char(1),ret)
-    if line.sclip then 
-      clip = string.format("\\%s(11,%s)",line.clips,newclip)
-    else
-      clip = string.format("\\%s(%s)",line.clips,newclip)
+  if opts.clip then
+    if line.clip then
+      local switch = 0
+      local newvals = {}
+      local newclip = line.clip
+      local function xy(x,y)
+        local xo,yo = x,y
+        x = xpos + (tonumber(x) - line.xpos)*line.xscl*line.ratx/100
+        y = ypos + (tonumber(y) - line.ypos)*line.yscl*line.raty/100
+        aegisub.log(5,"Clip: %d %d -> %d %d",xo,yo,x,y)
+        if line.sclip then x = x*1024/(2^(line.sclip-1)) end
+        if line.sclip then y = y*1024/(2^(line.sclip-1)) end
+        table.insert(newvals,round(x).." "..round(y))
+        return string.char(1)
+      end
+      newclip = newclip:gsub("([%.%d%-]+) ([%.%d%-]+)",xy)
+      local i = 0
+      local function ret(sub)
+        i = i+1
+        return newvals[i]
+      end
+      newclip = newclip:gsub(string.char(1),ret)
+      if line.sclip then 
+        clip = string.format("\\%s(11,%s)",line.clips,newclip)
+      else
+        clip = string.format("\\%s(%s)",line.clips,newclip)
+      end
     end
   end
   return "\\pos("..string.format(nf,xpos)..","..string.format(nf,ypos)..")"..clip
-end
-
---[[ 
-   How it seems to work (based on 30 seconds of research):
-    For \\clip(%d,%d,%d,%d), libass will round to the nearest integer (5-> up 4-> down).
-     VSfilter will floor the value (ignore the decimal point) as it does with other tags
-     that it only accepts integer values for.
-    For a vector clip, libass will again round all decimal values to the nearest integer.
-     VSfilter will break parsing as soon as it hits a decimal point, ignoring all numbers
-     that come after the decimal point, and treating any digits that lead up to it as the
-     whole number (e.g. 350.5 -> 350). Come to think of it, this is probably how it handles
-     all of the tags it can only read integer values from.
-  ]]--
-function clippinate(line,mocha,opts,iter)
-  if line.clip then
-    local xpos = mocha.xpos[iter]-(line.xdiff*line.ratx)
-    local ypos = mocha.ypos[iter]-(line.ydiff*line.raty)
-    local switch = 0
-    local newvals = {}
-    local newclip = line.clip
-    local function xy(x,y)
-      local xo,yo = x,y
-      x = xpos + (tonumber(x) - line.xpos)*line.xscl*line.ratx/100
-      y = ypos + (tonumber(y) - line.ypos)*line.yscl*line.raty/100
-      aegisub.log(5,"Clip: %d %d -> %d %d",xo,yo,x,y)
-      if line.sclip then x = x*1024/(2^(line.sclip-1)) end
-      if line.sclip then y = y*1024/(2^(line.sclip-1)) end
-      table.insert(newvals,round(x).." "..round(y))
-      return string.char(1)
-    end
-    newclip = newclip:gsub("([%.%d%-]+) ([%.%d%-]+)",xy)
-    local i = 0
-    local function ret(sub)
-      i = i+1
-      return newvals[i]
-    end
-    newclip = newclip:gsub(string.char(1),ret)
-    if line.sclip then 
-      return string.format("\\%s(11,%s)",line.clips,newclip)
-    else
-      return string.format("\\%s(%s)",line.clips,newclip)
-    end
-  else return "" end
 end
 
 function transformate(line,trans)
