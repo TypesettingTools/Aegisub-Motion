@@ -249,14 +249,12 @@ guiconf = {
   [19] = "rround",
 }
 
-pi = 3.1415926535898
-
-function dcos(a) return math.cos(a*pi/180) end
-function dacos(a) return 180*math.acos(a)/pi end
-function dsin(a) return math.sin(a*pi/180) end
-function dasin(a) return 180*math.asin(a)/pi end
-function dtan(a) return math.tan(a*pi/180) end
-function datan(x,y) return 180*math.atan2(x,y)/pi end
+function dcos(a) return math.cos(a*math.pi/180) end
+function dacos(a) return 180*math.acos(a)/math.pi end
+function dsin(a) return math.sin(a*math.pi/180) end
+function dasin(a) return 180*math.asin(a)/math.pi end
+function dtan(a) return math.tan(a*math.pi/180) end
+function datan(x,y) return 180*math.atan2(x,y)/math.pi end
 
 fix = {}
 
@@ -904,8 +902,10 @@ function possify(line,mocha,opts,iter)
         x = xpos + (tonumber(x) - line.xpos)*line.xscl*line.ratx/100
         y = ypos + (tonumber(y) - line.ypos)*line.yscl*line.raty/100
         aegisub.log(5,"Clip: %d %d -> %d %d",xo,yo,x,y)
-        if line.sclip then x = x*1024/(2^(line.sclip-1)) end
-        if line.sclip then y = y*1024/(2^(line.sclip-1)) end
+        if line.sclip then 
+          x = x*1024/(2^(line.sclip-1))
+          y = y*1024/(2^(line.sclip-1))
+        end
         table.insert(newvals,round(x).." "..round(y))
         return string.char(1)
       end
