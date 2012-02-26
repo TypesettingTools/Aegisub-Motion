@@ -662,11 +662,13 @@ function frame_by_frame(sub,accd,opts)
   end
   local operations, eraser = {}, {} -- create a table and put the necessary functions into it, which will save a lot of if operations in the inner loop. This was the most elegant solution I came up with.
   if opts.pos then
-    table.insert(operations,possify)
-    table.insert(eraser,"\\\pos%([%-%d%.]+,[%-%d%.]+%)") -- \\\ because I DON'T FUCKING KNOW OKAY THAT'S JUST THE WAY IT WORKS
     if opts.clip then
-      --table.insert(operations,clippinate)
+      table.insert(operations,posiclip)
       table.insert(eraser,"\\i?clip%b()")
+    else
+      table.insert(operations,possify)
+    end
+    table.insert(eraser,"\\\pos%([%-%d%.]+,[%-%d%.]+%)") -- \\\ because I DON'T FUCKING KNOW OKAY THAT'S JUST THE WAY IT WORKS
     end
   end
   if opts.scl then
@@ -891,36 +893,48 @@ function possify(line,mocha,opts,iter)
   ypos = mocha.ypos[iter] + r*dsin(alpha-mocha.zrot[iter]+mocha.zrot[mocha.s])
   aegisub.log(5,"Position: (%f,%f) -> (%f,%f)\n",line.xpos,line.ypos,xpos,ypos)
   local nf = string.format("%%.%df",opts.pround) -- new method of number formatting!
+  return "\\pos("..string.format(nf,xpos)..","..string.format(nf,ypos)..")"
+end
+
+function posiclip(line,mocha,opts,iter)
+  local xpos = mocha.xpos[iter]-(line.xdiff*line.ratx)
+  local ypos = mocha.ypos[iter]-(line.ydiff*line.raty)
+  local xd = xpos - mocha.xpos[iter]
+  local yd = ypos - mocha.ypos[iter]
+  local r = math.sqrt(xd^2+yd^2)
+  local alpha = datan(yd,xd)
+  xpos = mocha.xpos[iter] + r*dcos(alpha-mocha.zrot[iter]+mocha.zrot[mocha.s])
+  ypos = mocha.ypos[iter] + r*dsin(alpha-mocha.zrot[iter]+mocha.zrot[mocha.s])
+  aegisub.log(5,"Position: (%f,%f) -> (%f,%f)\n",line.xpos,line.ypos,xpos,ypos)
+  local nf = string.format("%%.%df",opts.pround) -- new method of number formatting!
   local clip = ""
-  if opts.clip then
-    if line.clip then
-      local switch = 0
-      local newvals = {}
-      local newclip = line.clip
-      local function xy(x,y)
-        local xo,yo = x,y
-        x = xpos + (tonumber(x) - line.xpos)*line.xscl*line.ratx/100
-        y = ypos + (tonumber(y) - line.ypos)*line.yscl*line.raty/100
-        aegisub.log(5,"Clip: %d %d -> %d %d",xo,yo,x,y)
-        if line.sclip then 
-          x = x*1024/(2^(line.sclip-1))
-          y = y*1024/(2^(line.sclip-1))
-        end
-        table.insert(newvals,round(x).." "..round(y))
-        return string.char(1)
-      end
-      newclip = newclip:gsub("([%.%d%-]+) ([%.%d%-]+)",xy)
-      local i = 0
-      local function ret(sub)
-        i = i+1
-        return newvals[i]
-      end
-      newclip = newclip:gsub(string.char(1),ret)
+  if line.clip then
+    local switch = 0
+    local newvals = {}
+    local newclip = line.clip
+    local function xy(x,y)
+      local xo,yo = x,y
+      x = xpos + (tonumber(x) - line.xpos)*line.xscl*line.ratx/100
+      y = ypos + (tonumber(y) - line.ypos)*line.yscl*line.raty/100
+      aegisub.log(5,"Clip: %d %d -> %d %d",xo,yo,x,y)
       if line.sclip then 
-        clip = string.format("\\%s(11,%s)",line.clips,newclip)
-      else
-        clip = string.format("\\%s(%s)",line.clips,newclip)
+        x = x*1024/(2^(line.sclip-1))
+        y = y*1024/(2^(line.sclip-1))
       end
+      table.insert(newvals,round(x).." "..round(y))
+      return string.char(1)
+    end
+    newclip = newclip:gsub("([%.%d%-]+) ([%.%d%-]+)",xy)
+    local i = 0
+    local function ret(sub)
+      i = i+1
+      return newvals[i]
+    end
+    newclip = newclip:gsub(string.char(1),ret)
+    if line.sclip then 
+      clip = string.format("\\%s(11,%s)",line.clips,newclip)
+    else
+      clip = string.format("\\%s(%s)",line.clips,newclip)
     end
   end
   return "\\pos("..string.format(nf,xpos)..","..string.format(nf,ypos)..")"..clip
