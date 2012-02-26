@@ -669,7 +669,6 @@ function frame_by_frame(sub,accd,opts)
       table.insert(operations,possify)
     end
     table.insert(eraser,"\\\pos%([%-%d%.]+,[%-%d%.]+%)") -- \\\ because I DON'T FUCKING KNOW OKAY THAT'S JUST THE WAY IT WORKS
-    end
   end
   if opts.scl then
     if opts.vsfilter then
@@ -723,14 +722,11 @@ function frame_by_frame(sub,accd,opts)
     end
     if opts.rot then
       v.zrotd = mocha.zrot[rstartf] - v.zrot -- idr there was something silly about this
-      if v.xorg then
-        v.xorgd, v.yorgd = mocha.xpos[rstartf] - v.xorg, mocha.ypos[rstartf] - v.yorg -- not going to actually use this until I test it more.
-      end
     end
     if v.xpos and opts.pos then
       v.xdiff, v.ydiff = mocha.xpos[rstartf] - v.xpos, mocha.ypos[rstartf] - v.ypos
     end
-    for ie, ei in pairs(eraser) do -- have to do it before inserting our new values :s (also before setting the orgline >___>)
+    for ie, ei in pairs(eraser) do -- have to do it before inserting our new values (also before setting the orgline)
       v.text = v.text:gsub(ei,"")
     end
     local orgtext = v.text -- tables are passed as references.
@@ -909,19 +905,24 @@ function posiclip(line,mocha,opts,iter)
   local nf = string.format("%%.%df",opts.pround) -- new method of number formatting!
   local clip = ""
   if line.clip then
-    local switch = 0
     local newvals = {}
     local newclip = line.clip
+    local it = 0
     local function xy(x,y)
       local xo,yo = x,y
-      x = xpos + (tonumber(x) - line.xpos)*line.xscl*line.ratx/100
-      y = ypos + (tonumber(y) - line.ypos)*line.yscl*line.raty/100
-      aegisub.log(5,"Clip: %d %d -> %d %d",xo,yo,x,y)
+      x = (tonumber(x) - line.xpos)*line.xscl*line.ratx/100
+      y = (tonumber(y) - line.ypos)*line.yscl*line.raty/100
+      local pr = math.sqrt(x^2+y^2)
+      local theta = datan(y,x)
+      x = xpos + pr*dcos(theta-mocha.zrot[iter]+mocha.zrot[mocha.s])
+      y = ypos + pr*dsin(theta-mocha.zrot[iter]+mocha.zrot[mocha.s])
+      aegisub.log(5,"Clip: %d %d -> %d %d\n",xo,yo,x,y)
       if line.sclip then 
         x = x*1024/(2^(line.sclip-1))
         y = y*1024/(2^(line.sclip-1))
       end
       table.insert(newvals,round(x).." "..round(y))
+      it = it+1
       return string.char(1)
     end
     newclip = newclip:gsub("([%.%d%-]+) ([%.%d%-]+)",xy)
