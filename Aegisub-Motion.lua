@@ -540,7 +540,7 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
       newsel = {}
       for x = 1,#sub do
         if tostring(sub[x].effect):match("^aa%-mou") then
-          table.insert(newlines,x)
+          table.insert(newsel,x)
         end
       end
     end
@@ -835,12 +835,10 @@ function frame_by_frame(sub,accd,opts)
   for x = 1,#sub do
     if tostring(sub[x].effect):match("^aa%-mou") then
       aegisub.log(5,"I choose you, %d!\n",x)
-      table.insert(newlines,x) -- seems to work as intended.
-    --elseif tostring(sub[x].effect):match("^aa%-mo2") then
-    --  table.insert(srclines,x)
+      table.insert(newlines,x) -- seems to work as intended
     end
   end
-  return newlines,srclines -- yeah mang
+  return newlines -- yeah mang
 end
 
 function linearize(line,mocha,opts,rstartf,rendf)
