@@ -69,16 +69,13 @@ script_name = "Aegisub-Motion"
 script_description = "A set of tools for simplifying the process of creating and applying motion tracking data with Aegisub." -- and it might have memory issues. I think.
 script_author = "torque"
 script_version = "μοε-RC1" -- no, I have no idea how this versioning system works either.
-include("karaskel.lua")
+require "karaskel"
 
 gui = {} -- I'm really beginning to think this shouldn't be a global variable
 gui.main = { -- todo: change these to be more descriptive.
   [1] = { class = "textbox"; -- 1 - because it is best if it starts out highlighted.
       x = 0; y = 1; height = 4; width = 10;
     name = "linespath"; hint = "Paste data or the path to a file containing it. No quotes or escapes."},
-  [2] = { class = "textbox";
-      x = 0; y = 17; height = 4; width = 10;
-    name = "preerr"; hint = "Any lines that might have problems are listed here."},
   [3] = { class = "textbox";
       x = 0; y = 14; height = 3; width = 10;
     name = "mocper"; hint = "The prefix"},
@@ -150,8 +147,9 @@ gui.main = { -- todo: change these to be more descriptive.
 
 for k,v in pairs(aegisub) do
   dpath = false
-  if k == "decode_path" then
+  if k == "file_name" then
     dpath = true
+    require "clipboard"
     break
   end
 end
@@ -440,7 +438,6 @@ function information(sub, sel)
   accd.endframe = aegisub.frame_from_ms(sub[sel[1]].end_time) -- get the end frame of the first selected line
   accd.startframe = aegisub.frame_from_ms(sub[sel[1]].start_time) -- get the start frame of the first selected line
   accd.poserrs, accd.alignerrs = {}, {}
-  accd.errmsg = ""
   local numlines = #sel
   for i, v in pairs(sel) do -- burning cpu cycles like they were no thing
     local opline = table.copy(sub[v]) -- I have no idea if a shallow copy is even an intelligent thing to do here
@@ -494,12 +491,6 @@ function information(sub, sel)
   end
   accd.lines = copy
   accd.totframes = accd.endframe - accd.startframe
-  accd.toterrs = #accd.alignerrs + #accd.poserrs
-  if accd.toterrs > 0 then
-    accd.errmsg = "The lines noted below need to be checked.\n"..accd.errmsg
-  else
-    accd.errmsg = "None of the selected lines seem to be problematic.\n"..accd.errmsg 
-  end
   assert(#accd.lines>0,"You have to select at least one line that is longer than one frame long.") -- pro error checking
   printmem("End of preproc loop")
   return accd
@@ -511,15 +502,14 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   if not (config_file:match("^[A-Z]:\\") or config_file:match("^/")) and dpath then
     local cf = io.open(aegisub.decode_path("?script/"..config_file))
     if not cf then
-      if not readconf(aegisub.decode_path("?user/"..config_file)) then accd.errmsg = "FAILED TO READ CONFIG\n"..accd.errmsg end
+      if not readconf(aegisub.decode_path("?user/"..config_file)) then --[[ todo: insert a popup window or smth here ]] end
     else
       cf:close()
       readconf(aegisub.decode_path("?script/"..config_file))
     end
   else
-    if not readconf(config_file) then accd.errmsg = "FAILED TO READ CONFIG\n"..accd.errmsg end
+    if not readconf(config_file) then --[[ todo: insert a popup window or smth here ]] end
   end
-  gui.main[2].value = accd.errmsg -- so close to being obsolete
   gui.main[3].value = global.prefix
   printmem("GUI startup")
   local button, config = aegisub.dialog.display(gui.main, {"Go","Abort","Export"})
