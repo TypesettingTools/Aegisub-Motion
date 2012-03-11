@@ -75,7 +75,7 @@ gui = {} -- I'm really beginning to think this shouldn't be a global variable
 gui.main = { -- todo: change these to be more descriptive.
   [1] = { class = "textbox"; -- 1 - because it is best if it starts out highlighted.
       x = 0; y = 1; height = 4; width = 10;
-    name = "mocpat"; hint = "Paste data or the path to a file containing it. No quotes or escapes."},
+    name = "linespath"; hint = "Paste data or the path to a file containing it. No quotes or escapes."},
   [2] = { class = "textbox";
       x = 0; y = 17; height = 4; width = 10;
     name = "preerr"; hint = "Any lines that might have problems are listed here."},
@@ -109,10 +109,6 @@ gui.main = { -- todo: change these to be more descriptive.
   [15] = { class = "checkbox";
       x = 0; y = 9; height = 1; width = 3;
     value = false; name = "rot"; label = "Rotation"},
-  --[[
-  [16] = { class = "checkbox";
-      x = 4; y = 9; height = 1; width = 2;
-    value = true; name = "org"; label = "Origin"},--]]
   [17] = { class = "intedit"; -- these are both retardedly wide and retardedly tall. They are downright frustrating to position in the interface.
       x = 7; y = 7; height = 1; width = 3;
     value = 2; name = "pround"; min = 0; max = 5;},
@@ -249,12 +245,12 @@ guiconf = {
   [19] = "rround",
 }
 
-function dcos(a) return math.cos(a*math.pi/180) end
-function dacos(a) return 180*math.acos(a)/math.pi end
-function dsin(a) return math.sin(a*math.pi/180) end
-function dasin(a) return 180*math.asin(a)/math.pi end
-function dtan(a) return math.tan(a*math.pi/180) end
-function datan(x,y) return 180*math.atan2(x,y)/math.pi end
+function dcos(a) return math.cos(math.rad(a)) end
+function dacos(a) return math.deg(math.acos(a)) end
+function dsin(a) return math.sin(math.rad(a)) end
+function dasin(a) return math.deg(math.asin(a)) end
+function dtan(a) return math.tan(math.rad(a)) end
+function datan(x,y) return math.deg(math.atan2(x,y)) end
 
 fix = {}
 
@@ -369,7 +365,7 @@ end
 function getinfo(sub, line, num)
   for k, v in pairs(header) do
     line[k] = line.styleref[v]
-    aegisub.log(5,"Line %d: %s -> %g (from header)\n", num, v, line[k])
+    aegisub.log(5,"Line %d: %s -> %s (from header)\n", num, v, tostring(line[k]))
   end
   if line.bord then line.xbord = tonumber(line.bord); line.ybord = tonumber(line.bord); end
   if line.shad then line.xshad = tonumber(line.shad); line.yshad = tonumber(line.shad); end
@@ -454,9 +450,11 @@ function information(sub, sel)
     getinfo(sub, opline, v-strt)
     opline.styleref.fontname = opline.fn
     opline.styleref.fontsize = opline.fs
+    local ofsx,ofsy = opline.styleref.scale_x,opline.styleref.scale_y
     opline.styleref.scale_y = 100
     opline.styleref.scale_x = 100
     opline.width, opline.height, opline.descent, opline.extlead = aegisub.text_extents(opline.styleref,opline.text_stripped)
+    opline.styleref.scale_x,opline.styleref.scale_y = ofsx,ofsy
     if opline.margin_v ~= 0 then opline._v = opline.margin_v end
     if opline.margin_l ~= 0 then opline._l = opline.margin_l end
     if opline.margin_r ~= 0 then opline._r = opline.margin_r end
@@ -547,7 +545,7 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
     aegisub.progress.title("Reformatting Gerbils")
     cleanup(sub,newsel,config)
   elseif button == "Export" then
-    export(accd,parse_input(config.mocpat,accd.meta.res_x,accd.meta.res_y),config)
+    export(accd,parse_input(config.linespath,accd.meta.res_x,accd.meta.res_y),config)
   else
     aegisub.progress.task("ABORT")
     if dpath then aegisub.cancel() end
@@ -634,7 +632,7 @@ end
 
 function frame_by_frame(sub,accd,opts)
   printmem("Start of main loop")
-  local mocha = parse_input(opts.mocpat,accd.meta.res_x,accd.meta.res_y) -- global variables have no automatic gc
+  local mocha = parse_input(opts.linespath,accd.meta.res_x,accd.meta.res_y) -- global variables have no automatic gc
   assert(accd.totframes==mocha.flength,"Number of frames from selected lines differs from number of frames tracked.")
   if opts.exp then export(accd,mocha,opts) end
   mocha.s = 1
@@ -1455,7 +1453,7 @@ function writeandencode(opts)
     if not sh then error("Encoding command could not be written. Check your prefix.") end -- to solve the 250 char limit, we write to a self-deleting batch file on windows.
     sh:write(global.x264..' '..global.x264op..' --index "'..opts.ind..'" --seek '..opts.sf..' --frames '..(opts.ef-opts.sf+1)..' -o "'..out..'" "'..opts.vid..'"\ndel %0')
     sh:close()
-    os.execute(global.prefix.."encode.bat")
+    os.execute('cd "'..global.prefix..'" && encode.bat')
   else -- nfi what to do on lunix: dunno if it will allow execution of a shell script without explicitly setting the permissions. "x264 `cat x264opts.txt`" perhaps
     os.execute(global.x264..' '..global.x264op..' --index "'..opts.ind..'" --seek '..opts.sf..' --frames '..(opts.ef-opts.sf+1)..' -o "'..out..'" "'..opts.vid..'"')
   end
