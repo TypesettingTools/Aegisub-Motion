@@ -510,6 +510,7 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   else
     if not readconf(config_file) then --[[ todo: insert a popup window or smth here ]] end
   end
+  if dpath then gui.main[1].value = clipboard.get() end
   gui.main[3].value = global.prefix
   printmem("GUI startup")
   local button, config = aegisub.dialog.display(gui.main, {"Go","Abort","Export"})
