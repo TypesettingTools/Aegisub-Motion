@@ -73,76 +73,54 @@ require "karaskel"
 
 gui = {} -- I'm really beginning to think this shouldn't be a global variable
 gui.main = { -- todo: change these to be more descriptive.
-  [1] = { class = "textbox"; -- 1 - because it is best if it starts out highlighted.
-      x = 0; y = 1; height = 4; width = 10;
-    name = "linespath"; hint = "Paste data or the path to a file containing it. No quotes or escapes."},
-  [3] = { class = "textbox";
-      x = 0; y = 14; height = 3; width = 10;
-    name = "mocper"; hint = "The prefix"},
-  [4] = { class = "label";
-      x = 0; y = 13; height = 1; width = 10;
-    label = "                     Files will be written to this directory."},
-  [5] = { class = "label";
-      x = 0; y = 0; height = 1; width = 10;
-    label = "                            Paste data or enter a filepath."},
-  [6] = { class = "label";
-      x = 0; y = 6; height = 1; width = 10;
-    label = "What tracking data should be applied?         Rounding"}, -- allows more accurate positioning >_>
-  [8] = { class = "checkbox";
-      x = 0; y = 7; height = 1; width = 3;
-    value = true; name = "pos"; label = "Position"},
-  [9] = { class = "checkbox";
-      x = 4; y = 7; height = 1; width = 2;
-    value = false; name = "clip"; label = "Clip"},
-  [10] = { class = "checkbox";
-      x = 0; y = 8; height = 1; width = 2;
-    value = true; name = "scl"; label = "Scale"},
-  [11] = { class = "checkbox";
-      x = 2; y = 8; height = 1; width = 2;
-    value = true; name = "bord"; label = "Border"},
-  [12] = { class = "checkbox";
-      x = 4; y = 8; height = 1; width = 2;
-    value = true; name = "shad"; label = "Shadow"},
-  [15] = { class = "checkbox";
-      x = 0; y = 9; height = 1; width = 3;
-    value = false; name = "rot"; label = "Rotation"},
-  [17] = { class = "intedit"; -- these are both retardedly wide and retardedly tall. They are downright frustrating to position in the interface.
-      x = 7; y = 7; height = 1; width = 3;
-    value = 2; name = "pround"; min = 0; max = 5;},
-  [18] = { class = "intedit";
-      x = 7; y = 8; height = 1; width = 3;
-    value = 2; name = "sround"; min = 0; max = 5;},
-  [19] = { class = "intedit";
-      x = 7; y = 9; height = 1; width = 3;
-    value = 2; name = "rround"; min = 0; max = 5;},
-  [20] = { class = "checkbox";
-      x = 0; y = 11; height = 1; width = 4;
-    value = false; name = "conf"; label = "Write config"},
-  [21] = { class = "floatedit";
-      x = 7; y = 11; height = 1; width = 3;
-    value = 1; name = "xmult"},
-  [22] = { class = "checkbox";
-      x = 6; y = 11; height = 1; width = 1;
-    value = 1; name = "ovr"},
-  [23] = { class = "checkbox";
-      x = 0; y = 12; height = 1; width = 3;
-    value = false; name = "vsfilter"; label = "VSfilter scaling"},
-  [24] = { class = "checkbox";
-      x = 4; y = 12; height = 1; width = 2;
-    value = false; name = "linear"; label = "Linear"},
-  [25] = { class = "checkbox";
-      x = 6; y = 12; height = 1; width = 2;
-    value = false; name = "reverse"; label = "Reverse"},
-  [26] = { class = "checkbox";
-      x = 8; y = 12; height = 1; width = 2;
-    value = false; name = "exp"; label = "Export"},
-  [27] = { class = "dropdown"; 
-      x = 5; y = 5; width = 4; height = 1;
-      name = "sort"; hint = "Sort lines by"; 
-     value = "Default"; items = {"Default", "Time"}}, 
-  [28] = { class = "label";
-      x = 1; y = 5; width = 4; height = 1;
-    label = "      Sort Method:"},
+  linespath = { class = "textbox"; name = "linespath"; hint = "Paste data or the path to a file containing it. No quotes or escapes.";
+                x = 0; y = 1; height = 4; width = 6;},
+  clippath  = { class = "textbox"; name = "clippath"; hint = "Paste data or the path to a file containing it. No quotes or escapes.";
+                x = 6; y = 1; height = 4; width = 5;},
+  prefix    = { class = "textbox"; name = "prefix"; hint = "The prefix";
+                x = 0; y = 14; height = 3; width = 10;},
+  preflabel = { class = "label"; label = "                     Files will be written to this directory.";
+                x = 0; y = 13; height = 1; width = 10;},
+  datalabel = { class = "label"; label = "                            Paste data or enter a filepath.";
+                x = 0; y = 0; height = 1; width = 10;},
+  optlabel  = { class = "label"; label = "What tracking data should be applied?         Rounding";
+                x = 0; y = 6; height = 1; width = 10;},
+  position  = { class = "checkbox"; name = "position"; value = true; label = "Position";
+                x = 0; y = 7; height = 1; width = 3;},
+  clip      = { class = "checkbox"; name = "clip"; value = false; label = "Clip";
+                x = 4; y = 7; height = 1; width = 2;},
+  scale     = { class = "checkbox"; name = "scale"; value = true; label = "Scale";
+                x = 0; y = 8; height = 1; width = 2;},
+  border    = { class = "checkbox"; name = "border"; value = true; label = "Border";
+                x = 2; y = 8; height = 1; width = 2;},
+  shadow    = { class = "checkbox"; name = "shadow"; value = true; label = "Shadow";
+                x = 4; y = 8; height = 1; width = 2;},
+  rotation  = { class = "checkbox"; name = "rotation"; value = false; label = "Rotation";
+                x = 0; y = 9; height = 1; width = 3;},
+  posround  = { class = "intedit"; name = "posround"; value = 2; min = 0; max = 5;
+                x = 7; y = 7; height = 1; width = 3;},
+  sclround  = { class = "intedit"; name = "sclround"; value = 2; min = 0; max = 5;
+                x = 7; y = 8; height = 1; width = 3;},
+  rotround  = { class = "intedit"; name = "rotround"; value = 2; min = 0; max = 5;
+                x = 7; y = 9; height = 1; width = 3;},
+  wconfig   = { class = "checkbox"; name = "wconfig"; value = false; label = "Write config";
+                x = 0; y = 11; height = 1; width = 4;},
+  sizeratio = { class = "floatedit"; name = "sizeratio"; value = 1;
+                x = 7; y = 11; height = 1; width = 3;},
+  override  = { class = "checkbox"; name = "override"; value = 1;
+                x = 6; y = 11; height = 1; width = 1;},
+  vsfscale  = { class = "checkbox"; name = "vsfscale"; value = false; label = "VSfilter scaling";
+                x = 0; y = 12; height = 1; width = 3;},
+  linear    = { class = "checkbox"; name = "linear"; value = false; label = "Linear";
+                x = 4; y = 12; height = 1; width = 2;},
+  reverse   = { class = "checkbox"; name = "reverse"; value = false; label = "Reverse";
+                x = 6; y = 12; height = 1; width = 2;},
+  export    = { class = "checkbox"; name = "export"; value = false; label = "Export";
+                x = 8; y = 12; height = 1; width = 2;},
+  sortd     = { class = "dropdown"; name = "sortd"; hint = "Sort lines by"; value = "Default"; items = {"Default", "Time"};
+                x = 5; y = 5; width = 4; height = 1;}, 
+  sortlabel = { class = "label"; name = "sortlabel"; label = "      Sort Method:";
+                x = 1; y = 5; width = 4; height = 1;},
 }
 
 for k,v in pairs(aegisub) do
@@ -224,23 +202,12 @@ alltags = { -- http://lua-users.org/wiki/SwitchStatement yuuup.
 }
 
 guiconf = {
-  [8]  = "pos",
-  [9]  = "clip",
-  [10] = "scl",
-  [11] = "bord",
-  [12] = "shad",
-  [15] = "rot",
-  --[16] = "org",
-  [21] = "xmult",
-  [22] = "ovr",
-  [23] = "vsfilter",
-  [24] = "linear",
-  [25] = "reverse",
-  [26] = "exp",
-  [27] = "sort",
-  [17] = "pround",
-  [18] = "sround",
-  [19] = "rround",
+  "sortd",
+  "position", "clip", "posround",
+  "scale", "border", "shadow", "sclround",
+  "rotation", "rotround",
+  "sizeratio", "override",
+  "vsfscale", "linear", "reverse", "export",
 }
 
 function dcos(a) return math.cos(math.rad(a)) end
@@ -288,7 +255,7 @@ function convertfromconf(valtab)
   for i,v in pairs(guiconf) do
     if valtab[v] ~= nil then
       aegisub.log(5,"Set: %s <- %s\n", v, tostring(valtab[v]))
-      gui.main[i].value = valtab[v]
+      gui.main[v].value = valtab[v]
     else
       aegisub.log(5,"%s unset (nil value)\n", v)
     end
@@ -314,13 +281,13 @@ function writeconf(options)
   end
   for k,v in pairs(global) do
     if v ~= nil then
-      aegisub.log(5,"Conf <- %s:%s\n",k,tostring(v))
+      aegisub.log(5,"Write: %s:%s -> conf\n",k,tostring(v))
       cf:write(string.format("%s:%s\n",k,tostring(v)))
     end
   end
   for i,v in pairs(guiconf) do
     if options[v] ~= nil then
-      aegisub.log(5,"Conf <- %s:%s\n",v,tostring(options[v]))
+      aegisub.log(5,"Write: %s:%s -> conf\n",v,tostring(options[v]))
       cf:write(string.format("%s:%s\n",v,tostring(options[v])))
     end
   end
@@ -510,8 +477,8 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   else
     if not readconf(config_file) then --[[ todo: insert a popup window or smth here ]] end
   end
-  if dpath then gui.main[1].value = clipboard.get() end
-  gui.main[3].value = global.prefix
+  if dpath then gui.main.linespath.value = clipboard.get() end
+  gui.main.prefix.value = global.prefix
   printmem("GUI startup")
   local button, config = aegisub.dialog.display(gui.main, {"Go","Abort","Export"})
   if button == "Go" then
@@ -520,7 +487,7 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
     else
       aegisub.progress.title("Mincing Gerbils")
     end
-    if config.conf then
+    if config.wconfig then
       writeconf(config)
     end
     printmem("Go")
@@ -536,7 +503,7 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
     aegisub.progress.title("Reformatting Gerbils")
     cleanup(sub,newsel,config)
   elseif button == "Export" then
-    export(accd,parse_input(config.linespath,accd.meta.res_x,accd.meta.res_y),config)
+    export(accd,parse_input(config.linespath,accd.meta.res_x,accd.meta.res_y,config),config)
   else
     aegisub.progress.task("ABORT")
     if dpath then aegisub.cancel() end
@@ -545,7 +512,7 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   printmem("Closing")
 end
 
-function parse_input(input,shx,shy)
+function parse_input(input,shx,shy,opts)
   printmem("Start of input parsing")
   local ftab = {}
   local sect, care = 0, 0
@@ -562,20 +529,24 @@ function parse_input(input,shx,shy)
     input = input:gsub("[\r]*","") -- SERIOUSLY FUCK THIS SHIT
     ftab = input:split("\n")
   end
-  local sw, sh -- need to be declared outside for loop
-  for k,v in ipairs(ftab) do
-    if v:match("Source Width") then
-      sw = v:match("Source Width\t([0-9]+)")
+  if opts.override then
+    xmult, ymult = opts.sizeratio, opts.sizeratio
+  else
+    local sw, sh -- need to be declared outside for loop
+    for k,v in ipairs(ftab) do
+      if v:match("Source Width") then
+        sw = v:match("Source Width\t([0-9]+)")
+      end
+      if v:match("Source Height") then
+        sh = v:match("Source Height\t([0-9]+)")
+      end
+      if sw and sh then
+        break
+      end
     end
-    if v:match("Source Height") then
-      sh = v:match("Source Height\t([0-9]+)")
-    end
-    if sw and sh then
-      break
-    end
+    local xmult = shx/tonumber(sw)
+    local ymult = shy/tonumber(sh)
   end
-  local xmult = shx/tonumber(sw)
-  local ymult = shy/tonumber(sh)
   for keys, valu in ipairs(ftab) do -- idk it might be more flexible now or something
     if valu == "Position" then
     sect = sect + 1
@@ -623,9 +594,9 @@ end
 
 function frame_by_frame(sub,accd,opts)
   printmem("Start of main loop")
-  local mocha = parse_input(opts.linespath,accd.meta.res_x,accd.meta.res_y) -- global variables have no automatic gc
+  local mocha = parse_input(opts.linespath,accd.meta.res_x,accd.meta.res_y,opts) -- global variables have no automatic gc
   assert(accd.totframes==mocha.flength,"Number of frames from selected lines differs from number of frames tracked.")
-  if opts.exp then export(accd,mocha,opts) end
+  if opts.export then export(accd,mocha,opts) end
   mocha.s = 1
   if opts.reverse then mocha.s = mocha.flength end
   for k,v in ipairs(accd.lines) do -- comment lines that were commented in the thingy
@@ -638,19 +609,19 @@ function frame_by_frame(sub,accd,opts)
   local _ = nil
   local newlines = {} -- table to stick indicies of tracked lines into for cleanup.
   local srclines = {}
-  if not opts.scl then
+  if not opts.scale then
     for k,d in ipairs(mocha.xscl) do
       mocha.xscl[k] = 100 -- old method was wrong and didn't work.
       mocha.yscl[k] = 100 -- so that yscl is changed too. 
     end
   end
-  if not opts.rot then
+  if not opts.rotation then
     for k,d in ipairs(mocha.zrot) do
       mocha.zrot[k] = 0
     end
   end
   local operations, eraser = {}, {} -- create a table and put the necessary functions into it, which will save a lot of if operations in the inner loop. This was the most elegant solution I came up with.
-  if opts.pos then
+  if opts.position then
     if opts.clip then
       table.insert(operations,posiclip)
       table.insert(eraser,"\\i?clip%b()")
@@ -659,29 +630,29 @@ function frame_by_frame(sub,accd,opts)
     end
     table.insert(eraser,"\\\pos%([%-%d%.]+,[%-%d%.]+%)") -- \\\ because I DON'T FUCKING KNOW OKAY THAT'S JUST THE WAY IT WORKS
   end
-  if opts.scl then
-    if opts.vsfilter then
+  if opts.scale then
+    if opts.vsfscale then
       table.insert(operations,VScalify)
     else
       table.insert(operations,scalify)
     end
     table.insert(eraser,"\\fscx[%d%.]+")
     table.insert(eraser,"\\fscy[%d%.]+")
-    if opts.bord then
+    if opts.border then
       table.insert(operations,bordicate)
       table.insert(eraser,"\\xbord[%d%.]+")
       table.insert(eraser,"\\ybord[%d%.]+")
       table.insert(eraser,"\\bord[%d%.]+")
     end
-    if opts.shad then
+    if opts.shadow then
       table.insert(operations,shadinate)
       table.insert(eraser,"\\xshad[%-%d%.]+")
       table.insert(eraser,"\\yshad[%-%d%.]+")
       table.insert(eraser,"\\shad[%-%d%.]+")
     end
   end
-  if opts.vsfilter then
-    opts.sround = 2
+  if opts.vsfscale then
+    opts.sclround = 2
   end
   if opts.rot then
     table.insert(eraser,"\\org%([%-%d%.]+,[%-%d%.]+%)")
@@ -712,14 +683,14 @@ function frame_by_frame(sub,accd,opts)
     if opts.rot then
       v.zrotd = mocha.zrot[rstartf] - v.zrot -- idr there was something silly about this
     end
-    if v.xpos and opts.pos then
+    if v.xpos and opts.position then
       v.xdiff, v.ydiff = mocha.xpos[rstartf] - v.xpos, mocha.ypos[rstartf] - v.ypos
     end
     for ie, ei in pairs(eraser) do -- have to do it before inserting our new values (also before setting the orgline)
       v.text = v.text:gsub(ei,"")
     end
     local orgtext = v.text -- tables are passed as references.
-    if opts.pos and not v.xpos then -- I don't think I need this any more
+    if opts.position and not v.xpos then -- I don't think I need this any more
       aegisub.log(1,"Line %d is being skipped because it is missing a \\pos() tag and you said to track position. Moron.",v.num) -- yeah that should do it.
     else
       if opts.reverse then -- reverse order
@@ -728,7 +699,7 @@ function frame_by_frame(sub,accd,opts)
             v.ratx, v.raty = mocha.xscl[rendf]/mocha.xscl[rstartf],mocha.yscl[rendf]/mocha.yscl[rstartf]
             local tag = "{"
             local trans = string.format("\\t(%d,%d,",maths,mathsanswer)
-            if opts.pos then
+            if opts.position then
               tag = tag..string.format("\\move(%g,%g,%g,%g,%d,%d)",mocha.xpos[rendf]-v.xdiff*v.ratx,mocha.ypos[rendf]-v.ydiff*v.raty,v.xpos,v.ypos,maths,mathsanswer)
             end
             local pre, rtrans = linearize(v,mocha,opts,rstartf,rendf)
@@ -777,7 +748,7 @@ function frame_by_frame(sub,accd,opts)
             v.ratx, v.raty = mocha.xscl[rendf]/mocha.xscl[rstartf],mocha.yscl[rendf]/mocha.yscl[rstartf]
             local tag = "{"
             local trans = string.format("\\t(%d,%d,",maths,mathsanswer)
-            if opts.pos then
+            if opts.position then
               tag = tag..string.format("\\move(%g,%g,%g,%g,%d,%d)",v.xpos,v.ypos,mocha.xpos[rendf]-v.xdiff*v.ratx,mocha.ypos[rendf]-v.ydiff*v.raty,maths,mathsanswer)
             end
             local pre, rtrans = linearize(v,mocha,opts,rstartf,rendf)
@@ -832,30 +803,30 @@ end
 
 function linearize(line,mocha,opts,rstartf,rendf)
   local pre,trans = "",""
-  if opts.scl then
-    pre = pre..string.format("\\fscx%g\\fscy%g",round(line.xscl*line.ratx,opts.sround),round(line.yscl*line.raty,opts.sround))
+  if opts.scale then
+    pre = pre..string.format("\\fscx%g\\fscy%g",round(line.xscl*line.ratx,opts.sclround),round(line.yscl*line.raty,opts.sclround))
     trans = trans..string.format("\\fscx%g\\fscy%g",line.xscl,line.yscl)
-    if opts.bord then
+    if opts.border then
       if line.xbord == line.ybord then
-        pre = pre..string.format("\\bord%g",round(line.xbord*line.ratx,opts.sround))
+        pre = pre..string.format("\\bord%g",round(line.xbord*line.ratx,opts.sclround))
         trans = trans..string.format("\\bord%g",line.xbord)
       else
-        pre = pre..string.format("\\xbord%g\\ybord%g",round(line.xbord*line.ratx,opts.sround),round(line.ybord*line.raty,opts.sround))
+        pre = pre..string.format("\\xbord%g\\ybord%g",round(line.xbord*line.ratx,opts.sclround),round(line.ybord*line.raty,opts.sclround))
         trans = trans..string.format("\\xbord%g\\ybord%g",line.xbord,line.ybord)
       end
     end
-    if opts.shad then
+    if opts.shadow then
       if line.xbord == line.ybord then
-        pre = pre..string.format("\\shad%g",round(line.xshad*line.ratx,opts.sround))
+        pre = pre..string.format("\\shad%g",round(line.xshad*line.ratx,opts.sclround))
         trans = trans..string.format("\\shad%g",line.xshad)
       else
-        pre = pre..string.format("\\xshad%g\\yshad%g",round(line.xshad*line.ratx,opts.sround),round(line.yshad*line.raty,opts.sround))
+        pre = pre..string.format("\\xshad%g\\yshad%g",round(line.xshad*line.ratx,opts.sclround),round(line.yshad*line.raty,opts.sclround))
         trans = trans..string.format("\\xshad%g\\yshad%g",line.xshad,line.yshad)
       end
     end
   end
   if opts.rot then
-    pre = pre..string.format("\\frz%g",round(mocha.zrot[rendf]-line.zrotd,opts.sround)) -- not being able to move org might be a large issue
+    pre = pre..string.format("\\frz%g",round(mocha.zrot[rendf]-line.zrotd,opts.sclround)) -- not being able to move org might be a large issue
     trans = trans..string.format("\\frz%g",mocha.zrot)
   end
   if opts.reverse then
@@ -875,7 +846,7 @@ function possify(line,mocha,opts,iter)
   xpos = mocha.xpos[iter] + r*dcos(alpha-mocha.zrot[iter]+mocha.zrot[mocha.s])
   ypos = mocha.ypos[iter] + r*dsin(alpha-mocha.zrot[iter]+mocha.zrot[mocha.s])
   aegisub.log(5,"Position: (%f,%f) -> (%f,%f)\n",line.xpos,line.ypos,xpos,ypos)
-  local nf = string.format("%%.%df",opts.pround) -- new method of number formatting!
+  local nf = string.format("%%.%df",opts.posround) -- new method of number formatting!
   return "\\pos("..string.format(nf,xpos)..","..string.format(nf,ypos)..")"
 end
 
@@ -889,7 +860,7 @@ function posiclip(line,mocha,opts,iter)
   xpos = mocha.xpos[iter] + r*dcos(alpha-mocha.zrot[iter]+mocha.zrot[mocha.s])
   ypos = mocha.ypos[iter] + r*dsin(alpha-mocha.zrot[iter]+mocha.zrot[mocha.s])
   aegisub.log(5,"Position: (%f,%f) -> (%f,%f)\n",line.xpos,line.ypos,xpos,ypos)
-  local nf = string.format("%%.%df",opts.pround) -- new method of number formatting!
+  local nf = string.format("%%.%df",opts.posround) -- new method of number formatting!
   local clip = ""
   if line.clip then
     local newvals = {}
@@ -940,32 +911,32 @@ function scalify(line,mocha,opts)
   aegisub.log(5,"X Scale: %f -> %f\n",line.xscl,xscl)
   local yscl = line.yscl*line.raty
   aegisub.log(5,"Y Scale: %f -> %f\n",line.yscl,yscl)
-  return string.format("\\fscx%g\\fscy%g",round(xscl,opts.sround),round(yscl,opts.sround))
+  return string.format("\\fscx%g\\fscy%g",round(xscl,opts.sclround),round(yscl,opts.sclround))
 end
 
 function bordicate(line,mocha,opts)
-  local xbord = line.xbord*round(line.ratx,opts.sround) -- round beforehand to minimize random float errors
-  local ybord = line.ybord*round(line.raty,opts.sround) -- or maybe that's rly fucking dumb? idklol
+  local xbord = line.xbord*round(line.ratx,opts.sclround) -- round beforehand to minimize random float errors
+  local ybord = line.ybord*round(line.raty,opts.sclround) -- or maybe that's rly fucking dumb? idklol
   if xbord == ybord then
     aegisub.log(5,"Border: %f -> %f\n",line.xbord,xbord)
-    return string.format("\\bord%g",round(xbord,opts.sround))
+    return string.format("\\bord%g",round(xbord,opts.sclround))
   else
     aegisub.log(5,"XBorder: %f -> %f\n",line.xbord,xbord)
     aegisub.log(5,"YBorder: %f -> %f\n",line.ybord,ybord)
-    return string.format("\\xbord%g\\ybord%g",round(xbord,opts.sround),round(ybord,opts.sround))
+    return string.format("\\xbord%g\\ybord%g",round(xbord,opts.sclround),round(ybord,opts.sclround))
   end
 end
 
 function shadinate(line,mocha,opts)
-  local xshad = line.xshad*round(line.ratx,opts.sround) -- scale shadow the same way as everything else
-  local yshad = line.yshad*round(line.raty,opts.sround) -- hope it turns out as desired
+  local xshad = line.xshad*round(line.ratx,opts.sclround) -- scale shadow the same way as everything else
+  local yshad = line.yshad*round(line.raty,opts.sclround) -- hope it turns out as desired
   if xshad == yshad then
     aegisub.log(5,"Shadow: %f -> %f\n",line.xshad,xshad)
-    return string.format("\\shad%g",round(xshad,opts.sround))
+    return string.format("\\shad%g",round(xshad,opts.sclround))
   else
     aegisub.log(5,"XShadow: %f -> %f\n",line.xshad,xshad)
     aegisub.log(5,"YShadow: %f -> %f\n",line.yshad,yshad)
-    return string.format("\\xshad%g\\yshad%g",round(xshad,opts.sround),round(yshad,opts.sround))
+    return string.format("\\xshad%g\\yshad%g",round(xshad,opts.sclround),round(yshad,opts.sclround))
   end
 end
 
@@ -984,7 +955,7 @@ end
 function rotate(line,mocha,opts,iter)
   local zrot = mocha.zrot[iter]-line.zrotd
   aegisub.log(5,"ZRotation: -> %f\n",zrot)
-  return string.format("\\frz%g",round(zrot,opts.rround)) -- copypasta
+  return string.format("\\frz%g",round(zrot,opts.rotround)) -- copypasta
 end
 
 function munch(sub,sel)
@@ -1050,8 +1021,8 @@ function cleanup(sub, sel, opts, src) -- make into its own macro eventually.
     line.effect = line.effect:gsub("aa%-mou","",1)
     sub[lnum] = line
   end
-  if opts.sort ~= "Default" then
-    sel = dialog_sort(sub, sel, opts.sort)
+  if opts.sortd ~= "Default" then
+    sel = dialog_sort(sub, sel, opts.sortd)
   end
   for i,v in ipairs(sel) do
     
@@ -1132,12 +1103,12 @@ aegisub.register_macro("Motion Data - Apply", "Applies properly formatted motion
 
 function export(accd,mocha,opts)
   local fnames = {}
-  if opts.pos then
+  if opts.position then
     fnames[1] = "%s X-Y %d-%d.txt"
     fnames[2] = "%s T-X %d-%d.txt"
     fnames[3] = "%s T-Y %d-%d.txt"
   end
-  if opts.scl then
+  if opts.scale then
     fnames[4] = "%s T-sclX %d-%d.txt"
     fnames[5] = "%s T-sclY %d-%d.txt"
   end
@@ -1162,7 +1133,7 @@ function export(accd,mocha,opts)
   local fhandle = {}
   local len = (aegisub.ms_from_frame(accd.endframe) - aegisub.ms_from_frame(accd.startframe))/10
   local bigstring = {}
-  if opts.pos then
+  if opts.position then
     table.insert(bigstring,string.format([=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',accd.meta.res_x+70,accd.meta.res_y+80,global.prefix..fnames[1]:sub(0,-5)))
     table.insert(bigstring,string.format([=[set title 'Plot of X vs Y']=]..'\n'))
     table.insert(bigstring,string.format([=[unset xtics; set x2tics out mirror; set mx2tics 5; set x2label 'X Position (Pixels)'; set xrange [0:%d]]=]..'\n',accd.meta.res_x))
@@ -1190,7 +1161,7 @@ function export(accd,mocha,opts)
     table.insert(bigstring,string.format([=[if (b >= 0) slope = sprintf('Equation: y(t) = %%.3ft + %%.3f : R^2: %%.3f',m,b,TvYstat_correlation**2); else slope = sprintf('Equation: y(t) = %%.3ft - %%.3f : R^2: %%.3f',m,0-b,TvYstat_correlation**2)]=]..'\n'))
     table.insert(bigstring,string.format([=[plot '%s' using 1:2 notitle with points, f(x) title slope with lines]=]..'\n',global.prefix..fnames[3]))
   end
-  if opts.scl then
+  if opts.scale then
     table.insert(bigstring,string.format('\n'..[=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',round(len*2+70,0),600,global.prefix..fnames[4]:sub(0,-5)))
     table.insert(bigstring,string.format([=[set title 'Plot of T vs sclX'; unset x2label]=]..'\n'))
     table.insert(bigstring,string.format([=[unset x2tics; unset mx2tics; set xtics out mirror; set mxtics 5; set xlabel 'Time (centiseconds)'; set xrange [0:%d]]=]..'\n',round(len,0)))
@@ -1226,12 +1197,12 @@ function export(accd,mocha,opts)
   for x = 1, #mocha.xpos do
     if aegisub.progress.is_cancelled() then error("User cancelled") end
     local cs = (aegisub.ms_from_frame(accd.startframe+x-1) - aegisub.ms_from_frame(accd.startframe))/10 -- (normalized to start time)
-    if opts.pos then
+    if opts.position then
       fhandle[1]:write(string.format("%g %g\n",mocha.xpos[x],mocha.ypos[x]))
       fhandle[2]:write(string.format("%g %g\n",cs,mocha.xpos[x]))
       fhandle[3]:write(string.format("%g %g\n",cs,mocha.ypos[x]))
     end
-    if opts.scl then
+    if opts.scale then
       fhandle[4]:write(string.format("%g %g\n",cs,mocha.xscl[x]))
       fhandle[5]:write(string.format("%g %g\n",cs,mocha.yscl[x]))
     end
@@ -1248,27 +1219,21 @@ end
 
 function confmaker()
   local newgui = table.copy_deep(gui.main) -- OH JESUS CHRIST WHAT HAVE I DONE
-  newgui[5].label = "         Enter the path to your prefix here (include trailing slash)."
-  newgui[4].label = "              First box: path to x264; second box: x264 options."
-  newgui["windows"] = {  class = "checkbox"; -- there's probably a reason for this.
-      x = 0; y = 21; height = 1; width = 3;
-    value = global.windows; name = "windows"; label = "I'm on Windows"}
-  newgui["gui_trim"] = {  class = "checkbox";
-      x = 3; y = 21; height = 1; width = 4;
-    value = global.gui_trim; name = "gui_trim"; label = "Enable trim GUI"}
-  newgui["gnupauto"] = {  class = "checkbox";
-      x = 7; y = 21; height = 1; width = 3;
-    value = global.gui_expo; name = "gnupauto"; label = "Autoplot exports"}
-  newgui["prefix"] = table.copy_deep(newgui[1])
-  newgui["x264"] = table.copy_deep(newgui[3])
-  newgui["x264op"] = table.copy_deep(newgui[2])
-  newgui[1], newgui[2], newgui[3] = nil, nil, nil
-  newgui.prefix.name = "prefix"
-  newgui["prefix"].value = global.prefix
-  newgui.x264.name = "x264"
-  newgui["x264"].value = global.x264
-  newgui.x264op.name = "x264op"
-  newgui["x264op"].value = global.x264op
+  newgui.clippath, newgui.linespath = nil, nil
+  newgui.x264, newgui.prefix = table.copy(newgui.prefix), nil
+  newgui.x264.value, newgui.x264.name = global.x264, "x264"
+  newgui.datalabel.label = "       Enter the path to your prefix here (include trailing slash)."
+  newgui.preflabel.label = "              First box: path to x264; second box: x264 options."
+  newgui.windows  = { class = "checkbox"; value = global.windows; label = "I'm on Windows"; name = "windows";
+                      x = 0; y = 21; height = 1; width = 3;}
+  newgui.gui_trim = { class = "checkbox"; value = global.gui_trim; label = "Enable trim GUI"; name = "gui_trim";
+                      x = 3; y = 21; height = 1; width = 4;}
+  newgui.gnupauto = { class = "checkbox"; value = global.gui_expo; label = "Autoplot exports"; name = "gnupauto";
+                      x = 7; y = 21; height = 1; width = 3;}
+  newgui.x264op   = { class = "textbox"; value = global.x264op; name = "x264op";
+                      x = 0; y = 17; height = 4; width = 10;}
+  newgui.prefix   = { class = "textbox"; value = global.prefix; name = "prefix";
+                      x = 0; y = 1; height = 4; width = 10;}
   local valtab = {}
   local cf = config_file
   if not (cf:match("^[A-Z]:\\") or cf:match("^/")) and dpath then
@@ -1292,7 +1257,7 @@ function confmaker()
     for i,v in pairs(guiconf) do
       if valtab[v] ~= nil then
         aegisub.log(5,"Set: %s <- %s\n", v, tostring(valtab[v]))
-        newgui[i].value = valtab[v]
+        newgui[v].value = valtab[v]
       end
     end
     for k,v in pairs(global) do
@@ -1305,7 +1270,11 @@ function confmaker()
     aegisub.log(0,"Config read failed!")
   end
   local button, config = aegisub.dialog.display(newgui)
-  if button then writeconf2(cf,config) end
+  if button then 
+  for k,v in pairs(config) do
+    aegisub.log(0,"config.%s = %s\n",tostring(k),tostring(v))
+  end
+  writeconf2(cf,config) end -- todo: generate table from options and then write table to config file. May be safer that way.
 end
 
 function writeconf2(config,options)
@@ -1332,36 +1301,26 @@ end
 aegisub.register_macro("Motion Data - Config", "Macro for full config editing.", confmaker, isvideo)
 
 gui.t = {
-    [1] = { class = "textbox";
-      x = 0; y = 1; height = 1; width = 30;
-    name = "vid"; hint = "Derp"},
-    [6] = { class = "label";
-      x = 0; y = 0; height = 1; width = 30;
-    label = "The path to the loaded video"},
-    [2] = { class = "textbox";
-      x =0; y = 3; height = 1; width = 30;
-    name = "ind"; hint = "Herp"},
-    [7] = { class = "label";
-      x = 0; y = 2; height = 1; width = 30;
-    label = "The path to the index file."},
-    [3] = { class = "intedit";
-      x = 0; y = 5; height = 1; width = 15;
-    name = "sf"; hint = "Herp"},
-    [8] = { class = "label";
-      x = 0; y = 4; height = 1; width = 15;
-    label = "Start frame"},
-    [4] = { class = "intedit";
-      x = 15; y = 5; height = 1; width = 15;
-    name = "ef"; hint = "Herp"},
-    [9] = { class = "label";
-      x = 15; y = 4; height = 1; width = 15;
-    label = "End frame"},
-    [5] = { class = "textbox";
-      x = 0; y = 7; height = 1; width = 30;
-    name = "op"; hint = "Durr"},
-    [10] = { class = "label";
-      x = 0; y = 6; height = 1; width = 30;
-    label = "Video file to be written"},
+  vidlabel = { class = "label"; label = "The path to the loaded video";
+               x = 0; y = 0; height = 1; width = 30;},
+  video    = { class = "textbox";
+               x = 0; y = 1; height = 1; width = 30;},
+  idxlabel = { class = "label"; label = "The path to the index file.";
+               x = 0; y = 2; height = 1; width = 30;},
+  index    = { class = "textbox";
+               x = 0; y = 3; height = 1; width = 30;},
+  sflabel  = { class = "label"; label = "Start frame";
+               x = 0; y = 4; height = 1; width = 15;},
+  startf   = { class = "intedit";
+               x = 0; y = 5; height = 1; width = 15;},
+  eflabel  = { class = "label"; label = "End frame";
+               x = 15; y = 4; height = 1; width = 15;},
+  endf     = { class = "intedit";
+               x = 15; y = 5; height = 1; width = 15;},
+  oplabel  = { class = "label"; label = "Video file to be written";
+               x = 0; y = 6; height = 1; width = 30;},
+  output   = { class = "textbox";
+               x = 0; y = 7; height = 1; width = 30;},
 }
 
 function collecttrim(sub,sel)
@@ -1410,7 +1369,7 @@ function trimnthings(sub,sel)
     vn = video:match("(.+)%.[^%.]+$") -- the name of the video, with its extension removed. This expression is sketchy.
   end
   if dpath and not global.gui_trim then 
-    local tabae = { ['vid'] = vp, ['sf'] = sf, ['ef'] = ef, ['ind'] = global.prefix..vn..".index", ['op'] = global.prefix..vn.."-"..sf.."-%d.mp4"}
+    local tabae = { ['video'] = vp, ['startf'] = startf, ['endf'] = ef, ['index'] = global.prefix..vn..".index", ['output'] = global.prefix..vn.."-"..startf.."-%d.mp4"}
     writeandencode(tabae)
   else
     someguiorsmth(sf,ef,vp,vn,sub[sel[1]])
@@ -1418,11 +1377,11 @@ function trimnthings(sub,sel)
 end
 
 function someguiorsmth(sf,ef,vp,vn,line)
-  gui.t[1].value = vp
-  gui.t[2].value = global.prefix..vn..".index"
-  gui.t[3].value = sf
-  gui.t[4].value = ef
-  gui.t[5].value = global.prefix..(line.effect or vn).."-"..sf.."-%d.mp4"
+  gui.t.video.value = vp
+  gui.t.index.value = global.prefix..vn..".index"
+  gui.t.startf.value = sf
+  gui.t.endf.value = ef
+  gui.t.output.value = global.prefix..(line.effect or vn).."-"..sf.."-%d.mp4"
   local button, opts = aegisub.dialog.display(gui.t)
   if button then 
     writeandencode(opts)
@@ -1435,18 +1394,18 @@ function writeandencode(opts)
   repeat
     if aegisub.progress.is_cancelled() then error("User cancelled") end
     it = it + 1
-    local n = string.format(opts.op,it)
+    local n = string.format(opts.output,it)
     local f = io.open(n,'r')
     if f then io.close(f); f = false else f = true; out = n end
   until f == true -- crappypasta
   if global.windows then
     local sh = io.open(global.prefix.."encode.bat","w+")
     if not sh then error("Encoding command could not be written. Check your prefix.") end -- to solve the 250 char limit, we write to a self-deleting batch file on windows.
-    sh:write(global.x264..' '..global.x264op..' --index "'..opts.ind..'" --seek '..opts.sf..' --frames '..(opts.ef-opts.sf+1)..' -o "'..out..'" "'..opts.vid..'"\ndel %0')
+    sh:write(global.x264..' '..global.x264op..' --index "'..opts.index..'" --seek '..opts.startf..' --frames '..(opts.endf-opts.startf+1)..' -o "'..out..'" "'..opts.video..'"\ndel %0')
     sh:close()
     os.execute('cd "'..global.prefix..'" && encode.bat')
   else -- nfi what to do on lunix: dunno if it will allow execution of a shell script without explicitly setting the permissions. "x264 `cat x264opts.txt`" perhaps
-    os.execute(global.x264..' '..global.x264op..' --index "'..opts.ind..'" --seek '..opts.sf..' --frames '..(opts.ef-opts.sf+1)..' -o "'..out..'" "'..opts.vid..'"')
+    os.execute(global.x264..' '..global.x264op..' --index "'..opts.index..'" --seek '..opts.startf..' --frames '..(opts.endf-opts.startf+1)..' -o "'..out..'" "'..opts.video..'"')
   end
  end
 
