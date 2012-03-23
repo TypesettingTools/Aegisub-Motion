@@ -77,7 +77,7 @@ gui.main = { -- todo: change these to be more descriptive.
                 x = 0; y = 1; height = 4; width = 6;},
   clippath  = { class = "textbox"; name = "clippath"; hint = "Paste data or the path to a file containing it. No quotes or escapes.";
                 x = 6; y = 1; height = 4; width = 5;},
-  prefix    = { class = "textbox"; name = "prefix"; hint = "The prefix";
+  pref      = { class = "textbox"; name = "pref"; hint = "The prefix";
                 x = 0; y = 14; height = 3; width = 10;},
   preflabel = { class = "label"; label = "                     Files will be written to this directory.";
                 x = 0; y = 13; height = 1; width = 10;},
@@ -137,8 +137,9 @@ if config_file == "" and dpath then config_file = aegisub.decode_path("?user/aeg
 global = {
   windows  = true,
   prefix   = "",
-  x264     = "",
-  x264op   = "--crf 16 --tune fastdecode -i 250 --fps 23.976",
+  encoder  = "x264",
+  encbin   = "",
+  encop    = "--crf 16 --tune fastdecode -i 250 --fps 23.976",
   gui_trim = true,
   gnupauto = false,
 }
@@ -210,6 +211,8 @@ guiconf = {
   "vsfscale", "linear", "reverse", "export",
 }
 
+for k,v in pairs(global) do table.insert(guiconf,k) end
+
 function dcos(a) return math.cos(math.rad(a)) end
 function dacos(a) return math.deg(math.acos(a)) end
 function dsin(a) return math.sin(math.rad(a)) end
@@ -231,10 +234,10 @@ fix.ypos = {
   function(sy,v) return v    end;
 }
 
-function readconf(confpat) -- todo: MAKE THIS WORK WITHOUT CODE DUPLICATION HOLY FUCK I THINK I'M RETARDED
+function readconf(conf,guitab) -- todo: MAKE THIS WORK WITHOUT CODE DUPLICATION HOLY FUCK I THINK I'M RETARDED
   local valtab = {}
-  aegisub.log(5,"Opening config file: %s\n",confpat)
-  local cf = io.open(confpat,'r')
+  aegisub.log(5,"Opening config file: %s\n",conf)
+  local cf = io.open(conf,'r')
   if cf then
     aegisub.log(5,"Reading config file...\n")
     for line in cf:lines() do
@@ -243,55 +246,42 @@ function readconf(confpat) -- todo: MAKE THIS WORK WITHOUT CODE DUPLICATION HOLY
       valtab[key] = val:tobool()
     end
     cf:close()
-    convertfromconf(valtab)
-    globalvars(valtab)
+    convertfromconf(valtab,guitab)
     return true
   else
     return nil
   end
 end
 
-function convertfromconf(valtab)
+function convertfromconf(valtab,guitab)
   for i,v in pairs(guiconf) do
     if valtab[v] ~= nil then
       aegisub.log(5,"Set: %s <- %s\n", v, tostring(valtab[v]))
-      gui.main[v].value = valtab[v]
+      guitab[v].value = valtab[v]
     else
       aegisub.log(5,"%s unset (nil value)\n", v)
     end
   end
 end
 
-function globalvars(valtab)
-  for k,v in pairs(global) do
-    if valtab[k] ~= nil then
-      aegisub.log(5,"Set: %s <- %s\n",k,tostring(valtab[k]))
-      global[k] = valtab[k]
-    else
-      aegisub.log(5,"%s unset (nil value)\n", k)
-    end
-  end
-end
-
-function writeconf(options)
-  local cf = io.open(config_file,'w+')
+function writeconf(conf,options)
+  local cf = io.open(conf,'w+')
+  local configlines = {}
   if not cf then 
     aegisub.log(0,'Config write failed! Check that %s exists and has write permission.\n',config_file)
     return nil
   end
-  for k,v in pairs(global) do
-    if v ~= nil then
-      aegisub.log(5,"Write: %s:%s -> conf\n",k,tostring(v))
-      cf:write(string.format("%s:%s\n",k,tostring(v)))
-    end
-  end
   for i,v in pairs(guiconf) do
     if options[v] ~= nil then
       aegisub.log(5,"Write: %s:%s -> conf\n",v,tostring(options[v]))
-      cf:write(string.format("%s:%s\n",v,tostring(options[v])))
+      table.insert(configlines,string.format("%s:%s\n",v,tostring(options[v])))
     end
   end
+  for i,v in ipairs(configlines) do
+    cf:write(v)
+  end
   cf:close()
+  return true
 end
 
 function string:splitconf()
@@ -466,19 +456,28 @@ end
 function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   aegisub.progress.title("Selecting Gerbils")
   local accd = preprocessing(sub,sel)
+  for k,v in pairs(global) do
+    gui.main[k] = {}
+  end
+  local cf
   if not (config_file:match("^[A-Z]:\\") or config_file:match("^/")) and dpath then
-    local cf = io.open(aegisub.decode_path("?script/"..config_file))
+    cf = io.open(aegisub.decode_path("?script/"..config_file))
     if not cf then
-      if not readconf(aegisub.decode_path("?user/"..config_file)) then --[[ todo: insert a popup window or smth here ]] end
+      cf = aegisub.decode_path("?user/"..config_file)
     else
       cf:close()
-      readconf(aegisub.decode_path("?script/"..config_file))
+      cf = aegisub.decode_path("?script/"..config_file)
     end
   else
-    if not readconf(config_file) then --[[ todo: insert a popup window or smth here ]] end
+    cf = config_file
+  end
+  if not readconf(cf,gui.main) then aegisub.log(0,"Failed to read config!") end
+  for k,v in pairs(global) do
+    global[k] = gui.main[k].value
+    gui.main[k] = nil -- set to nil so dialog.display doesn't throw a hissy fit
   end
   if dpath then gui.main.linespath.value = clipboard.get() end
-  gui.main.prefix.value = global.prefix
+  gui.main.pref.value = global.prefix
   printmem("GUI startup")
   local button, config = aegisub.dialog.display(gui.main, {"Go","Abort","Export"})
   if button == "Go" then
@@ -488,7 +487,10 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
       aegisub.progress.title("Mincing Gerbils")
     end
     if config.wconfig then
-      writeconf(config)
+      for k,v in pairs(global) do
+        config[k] = v
+      end
+      writeconf(cf,config)
     end
     printmem("Go")
     local newsel = frame_by_frame(sub,accd,config)
@@ -529,6 +531,7 @@ function parse_input(input,shx,shy,opts)
     input = input:gsub("[\r]*","") -- SERIOUSLY FUCK THIS SHIT
     ftab = input:split("\n")
   end
+  local xmult,ymult
   if opts.override then
     xmult, ymult = opts.sizeratio, opts.sizeratio
   else
@@ -544,8 +547,8 @@ function parse_input(input,shx,shy,opts)
         break
       end
     end
-    local xmult = shx/tonumber(sw)
-    local ymult = shy/tonumber(sh)
+    xmult = shx/tonumber(sw)
+    ymult = shy/tonumber(sh)
   end
   for keys, valu in ipairs(ftab) do -- idk it might be more flexible now or something
     if valu == "Position" then
@@ -1024,9 +1027,10 @@ function cleanup(sub, sel, opts, src) -- make into its own macro eventually.
   if opts.sortd ~= "Default" then
     sel = dialog_sort(sub, sel, opts.sortd)
   end
+  --[[ idk why this was here
   for i,v in ipairs(sel) do
     
-  end
+  end--]]
 end
 
 function dialog_sort(sub, sel, sor)
@@ -1220,17 +1224,17 @@ end
 function confmaker()
   local newgui = table.copy_deep(gui.main) -- OH JESUS CHRIST WHAT HAVE I DONE
   newgui.clippath, newgui.linespath = nil, nil
-  newgui.x264, newgui.prefix = table.copy(newgui.prefix), nil
-  newgui.x264.value, newgui.x264.name = global.x264, "x264"
+  newgui.encbin, newgui.pref = table.copy(newgui.pref), nil
+  newgui.encbin.value, newgui.encbin.name = global.encbin, "encbin"
   newgui.datalabel.label = "       Enter the path to your prefix here (include trailing slash)."
-  newgui.preflabel.label = "              First box: path to x264; second box: x264 options."
+  newgui.preflabel.label = "      First box: path to encoder binary; second box: encoder options."
   newgui.windows  = { class = "checkbox"; value = global.windows; label = "I'm on Windows"; name = "windows";
                       x = 0; y = 21; height = 1; width = 3;}
   newgui.gui_trim = { class = "checkbox"; value = global.gui_trim; label = "Enable trim GUI"; name = "gui_trim";
                       x = 3; y = 21; height = 1; width = 4;}
   newgui.gnupauto = { class = "checkbox"; value = global.gui_expo; label = "Autoplot exports"; name = "gnupauto";
                       x = 7; y = 21; height = 1; width = 3;}
-  newgui.x264op   = { class = "textbox"; value = global.x264op; name = "x264op";
+  newgui.encop   = { class = "textbox"; value = global.encop; name = "encop";
                       x = 0; y = 17; height = 4; width = 10;}
   newgui.prefix   = { class = "textbox"; value = global.prefix; name = "prefix";
                       x = 0; y = 1; height = 4; width = 10;}
@@ -1246,56 +1250,13 @@ function confmaker()
       cf = aegisub.decode_path("?script/"..config_file)
     end
   end
-  local conf = io.open(cf) -- there is probably a less terrible way to do this.
-  if conf then
-    aegisub.log(5,"Reading config file...\n")
-    for line in conf:lines() do
-      local key, val = line:splitconf()
-      aegisub.log(5,"Read: %s -> %s\n", key, tostring(val:tobool()))
-      valtab[key] = val:tobool()
-    end
-    for i,v in pairs(guiconf) do
-      if valtab[v] ~= nil then
-        aegisub.log(5,"Set: %s <- %s\n", v, tostring(valtab[v]))
-        newgui[v].value = valtab[v]
-      end
-    end
-    for k,v in pairs(global) do
-      if valtab[k] ~= nil then
-        aegisub.log(5,"Set: %s <- %s\n", k, tostring(valtab[k]))
-        newgui[k].value = valtab[k]
-      end
-    end
-  else
-    aegisub.log(0,"Config read failed!")
-  end
+  if not readconf(cf,newgui) then aegisub.log(0,"Config read failed!") end
   local button, config = aegisub.dialog.display(newgui)
   if button then 
   for k,v in pairs(config) do
     aegisub.log(0,"config.%s = %s\n",tostring(k),tostring(v))
   end
-  writeconf2(cf,config) end -- todo: generate table from options and then write table to config file. May be safer that way.
-end
-
-function writeconf2(config,options)
-  local cf = io.open(config,'w+')
-  if not cf then 
-    aegisub.log(0,'Config write failed! Check that %s exists and has write permission.\n',config_file)
-    return nil
-  end
-  for k,v in pairs(global) do
-    if options[k] ~= nil then
-      aegisub.log(5,"Write: %s:%s -> conf\n",k,tostring(options[k]))
-      cf:write(string.format("%s:%s\n",k,tostring(options[k])))
-    end
-  end
-  for i,v in pairs(guiconf) do
-    if options[v] ~= nil then
-      aegisub.log(5,"Write: %s:%s -> conf\n",v,tostring(options[v]))
-      cf:write(string.format("%s:%s\n",v,tostring(options[v])))
-    end
-  end
-  cf:close()
+  writeconf(cf,config) end
 end
 
 aegisub.register_macro("Motion Data - Config", "Macro for full config editing.", confmaker, isvideo)
@@ -1401,12 +1362,14 @@ function writeandencode(opts)
   if global.windows then
     local sh = io.open(global.prefix.."encode.bat","w+")
     if not sh then error("Encoding command could not be written. Check your prefix.") end -- to solve the 250 char limit, we write to a self-deleting batch file on windows.
-    sh:write(global.x264..' '..global.x264op..' --index "'..opts.index..'" --seek '..opts.startf..' --frames '..(opts.endf-opts.startf+1)..' -o "'..out..'" "'..opts.video..'"\ndel %0')
+    sh:write(global.encbin..' '..global.encop..' --index "'..opts.index..'" --seek '..opts.startf..' --frames '..(opts.endf-opts.startf+1)..' -o "'..out..'" "'..opts.video..'"\ndel %0')
     sh:close()
     os.execute('cd "'..global.prefix..'" && encode.bat')
   else -- nfi what to do on lunix: dunno if it will allow execution of a shell script without explicitly setting the permissions. "x264 `cat x264opts.txt`" perhaps
-    os.execute(global.x264..' '..global.x264op..' --index "'..opts.index..'" --seek '..opts.startf..' --frames '..(opts.endf-opts.startf+1)..' -o "'..out..'" "'..opts.video..'"')
+    os.execute(global.encbin..' '..global.encop..' --index "'..opts.index..'" --seek '..opts.startf..' --frames '..(opts.endf-opts.startf+1)..' -o "'..out..'" "'..opts.video..'"')
   end
- end
+end
+
+-- ffmpeg -ss <start> -t <duration> -sn -i "anysourcevideo" "image%05d.png"
 
 aegisub.register_macro("Motion Data - Trim","Cuts and encodes the current scene for use with motion tracking software.", trimnthings, isvideo)
