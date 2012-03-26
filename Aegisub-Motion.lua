@@ -134,15 +134,22 @@ end
 
 if config_file == "" and dpath then config_file = aegisub.decode_path("?user/aegisub-motion.conf") end
 
+encpre = {
+x264    = '"<encbin>" --crf 16 --tune fastdecode -i 250 --fps 23.976 --sar 1:1 --index "<prefix><index>.index" --seek <startf> --frames <lenf> -o "<prefix><output>.mp4" "<input>"',
+ffmpeg  = '"<encbin>" -ss <startt> -t <lent> -sn -i "<input>" "<prefix><output>-%%05d.jpg"',
+avs2yuv = 'echo FFVideoSource("<input>",cachefile="<prefix><index>.index").trim(<startf>,<endf>).ConvertToRGB.ImageWriter("<prefix><output>.",type="jpg") > "<prefix>encode.avs"<nl>"<encbin>" -o NUL "<prefix>encode.avs"<nl>del "<prefix>encode.avs"',}
+
 global = {
   windows  = true,
   prefix   = "",
   encoder  = "x264",
   encbin   = "",
-  encop    = "--crf 16 --tune fastdecode -i 250 --fps 23.976",
   gui_trim = true,
   gnupauto = false,
+  -- encoder presets
 }
+
+global.enccom = encpre[global.encoder]
 
 header = {
   ['xscl'] = "scale_x",
@@ -234,7 +241,7 @@ fix.ypos = {
   function(sy,v) return v    end;
 }
 
-function readconf(conf,guitab) -- todo: MAKE THIS WORK WITHOUT CODE DUPLICATION HOLY FUCK I THINK I'M RETARDED
+function readconf(conf,guitab)
   local valtab = {}
   aegisub.log(5,"Opening config file: %s\n",conf)
   local cf = io.open(conf,'r')
@@ -255,7 +262,7 @@ end
 
 function convertfromconf(valtab,guitab)
   for i,v in pairs(guiconf) do
-    if valtab[v] ~= nil then
+    if valtab[v] ~= nil and guitab[v] ~= nil then
       aegisub.log(5,"Set: %s <- %s\n", v, tostring(valtab[v]))
       guitab[v].value = valtab[v]
     else
@@ -397,7 +404,7 @@ function information(sub, sel)
   accd.poserrs, accd.alignerrs = {}, {}
   local numlines = #sel
   for i, v in pairs(sel) do -- burning cpu cycles like they were no thing
-    local opline = table.copy(sub[v]) -- I have no idea if a shallow copy is even an intelligent thing to do here
+    local opline = sub[v] -- these are different.
     opline.num = v -- for inserting lines later
     karaskel.preproc_line(sub, accd.meta, accd.styles, opline) -- get linewidth/height and margins
     if not opline.effect then opline.effect = "" end
@@ -525,7 +532,7 @@ function parse_input(input,shx,shy,opts)
     for line in datams:lines() do
       line = line:gsub("[\r\n]*","") -- FUCK YOU CRLF
       table.insert(ftab,line) -- dump the lines from the file into a table.
-    end
+    end 
     datams:close()
   else
     input = input:gsub("[\r]*","") -- SERIOUSLY FUCK THIS SHIT
@@ -1223,21 +1230,23 @@ end
 
 function confmaker()
   local newgui = table.copy_deep(gui.main) -- OH JESUS CHRIST WHAT HAVE I DONE
-  newgui.clippath, newgui.linespath = nil, nil
+  newgui.clippath, newgui.linespath, newgui.wconfig = nil
   newgui.encbin, newgui.pref = table.copy(newgui.pref), nil
   newgui.encbin.value, newgui.encbin.name = global.encbin, "encbin"
   newgui.datalabel.label = "       Enter the path to your prefix here (include trailing slash)."
-  newgui.preflabel.label = "      First box: path to encoder binary; second box: encoder options."
+  newgui.preflabel.label = "  First box: path to encoder binary; second box: encoder command."
   newgui.windows  = { class = "checkbox"; value = global.windows; label = "I'm on Windows"; name = "windows";
                       x = 0; y = 21; height = 1; width = 3;}
   newgui.gui_trim = { class = "checkbox"; value = global.gui_trim; label = "Enable trim GUI"; name = "gui_trim";
                       x = 3; y = 21; height = 1; width = 4;}
   newgui.gnupauto = { class = "checkbox"; value = global.gui_expo; label = "Autoplot exports"; name = "gnupauto";
                       x = 7; y = 21; height = 1; width = 3;}
-  newgui.encop   = { class = "textbox"; value = global.encop; name = "encop";
+  newgui.enccom    = { class = "textbox"; value = global.enccom; name = "enccom";
                       x = 0; y = 17; height = 4; width = 10;}
   newgui.prefix   = { class = "textbox"; value = global.prefix; name = "prefix";
                       x = 0; y = 1; height = 4; width = 10;}
+  newgui.encoder  = { class = "dropdown"; value = global.encoder; name = "encoder"; items = {"x264", "ffmpeg", "avs2yuv", "custom"};
+                      x = 0; y = 10; width = 2; height = 1;}
   local valtab = {}
   local cf = config_file
   if not (cf:match("^[A-Z]:\\") or cf:match("^/")) and dpath then
@@ -1251,6 +1260,7 @@ function confmaker()
     end
   end
   if not readconf(cf,newgui) then aegisub.log(0,"Config read failed!") end
+  newgui.enccom.value = encpre[newgui.encoder.value] or newgui.enccom.value
   local button, config = aegisub.dialog.display(newgui)
   if button then 
   for k,v in pairs(config) do
@@ -1264,37 +1274,39 @@ aegisub.register_macro("Motion Data - Config", "Macro for full config editing.",
 gui.t = {
   vidlabel = { class = "label"; label = "The path to the loaded video";
                x = 0; y = 0; height = 1; width = 30;},
-  video    = { class = "textbox";
+  input    = { class = "textbox"; name = "input";
                x = 0; y = 1; height = 1; width = 30;},
   idxlabel = { class = "label"; label = "The path to the index file.";
                x = 0; y = 2; height = 1; width = 30;},
-  index    = { class = "textbox";
+  index    = { class = "textbox"; name = "index";
                x = 0; y = 3; height = 1; width = 30;},
   sflabel  = { class = "label"; label = "Start frame";
                x = 0; y = 4; height = 1; width = 15;},
-  startf   = { class = "intedit";
+  startf   = { class = "intedit"; name = "startf";
                x = 0; y = 5; height = 1; width = 15;},
   eflabel  = { class = "label"; label = "End frame";
                x = 15; y = 4; height = 1; width = 15;},
-  endf     = { class = "intedit";
+  endf     = { class = "intedit"; name = "endf";
                x = 15; y = 5; height = 1; width = 15;},
   oplabel  = { class = "label"; label = "Video file to be written";
                x = 0; y = 6; height = 1; width = 30;},
-  output   = { class = "textbox";
+  output   = { class = "textbox"; name = "output";
                x = 0; y = 7; height = 1; width = 30;},
 }
 
-function collecttrim(sub,sel)
-  local sf, ef = aegisub.frame_from_ms(sub[sel[1]].start_time), aegisub.frame_from_ms(sub[sel[1]].end_time)
+function collecttrim(sub,sel,wc)
+  wc.startt, wc.endt = sub[sel[1]].start_time, sub[sel[1]].end_time
   for i,v in ipairs(sel) do
     local l = sub[v]
-    local lsf, lef = aegisub.frame_from_ms(l.start_time), aegisub.frame_from_ms(l.end_time)
-    if lsf < sf then sf = lsf end
-    if lef > ef then ef = lef end
+    local lst, let = l.start_time, l.end_time
+    if lst < wc.startt then wc.startt = lst end
+    if let > wc.endt then wc.endt = let end
   end
-  return sf,ef-1
+  wc.startf, wc.endf = aegisub.frame_from_ms(wc.startt), aegisub.frame_from_ms(wc.endt)-1
+  wc.lenf = wc.endf-wc.startf+1
+  wc.lent = wc.endt-wc.startt
 end
-
+--<encbin> <input> <prefix> <index> <output> <startf> <lenf> <endf> <startt> <lent> <endt> <nl>
 function getvideoname(sub)
   for x = 1,#sub do
     if sub[x].class == "info" then
@@ -1307,69 +1319,87 @@ function getvideoname(sub)
 end
 
 function trimnthings(sub,sel)
+  local cf
   if not (config_file:match("^[A-Z]:\\") or config_file:match("^/")) and dpath then
-    local cf = io.open(aegisub.decode_path("?script/"..config_file))
+    cf = io.open(aegisub.decode_path("?script/"..config_file))
     if not cf then
-      if not readconf(aegisub.decode_path("?user/"..config_file)) then aegisub.log(0,"Failed to read config!\n") end
+      cf = aegisub.decode_path("?user/"..config_file)
     else
       cf:close()
-      readconf(aegisub.decode_path("?script/"..config_file))
+      cf = aegisub.decode_path("?script/"..config_file)
     end
   else
-    if not readconf(config_file) then aegisub.log(0,"Failed to read config!\n") end
+    cf = config_file
   end
-  local video = ""
-  local vp
-  local vn
-  local sf,ef = collecttrim(sub,sel)
+  local gtab = {}
+  for k,v in pairs(global) do gtab[k] = {} end
+  if not readconf(cf,gtab) then aegisub.log(0,"Failed to read config!") end
+  for k,v in pairs(gtab) do if v.value ~= nil then global[k] = v.value end end
+  --global.enccom = encpre[global.encoder] or gtab[enccom]
+  gtab = nil
+  local wildc = {}
+  wildc.encbin = global.encbin
+  wildc.prefix = global.prefix
+  wildc.nl = "\n"
+  collecttrim(sub,sel,wildc)
   if dpath then
-    video = getvideoname(sub)
-    assert(not video:match("?dummy"), "No dummy videos allowed. Sorry.")
-    video = video:gsub("[A-Z]:\\",""):gsub(".-[^\\]\\","")
-    if dpath then vp = aegisub.decode_path("?video")..video else vp = video end-- the name of the video appended to the video path from aegisub.
-    vn = video:match("(.+)%.[^%.]+$") -- the name of the video, with its extension removed. This expression is sketchy.
+    local vid = getvideoname(sub):gsub("[A-Z]:\\",""):gsub(".-[^\\]\\","")
+    assert(not vid:match("?dummy"), "No dummy videos allowed. Sorry.")
+    wildc.input = aegisub.decode_path("?video")..vid
+    wildc.index = vid:match("(.+)%.[^%.]+$")
+    wildc.output = wildc.index..'-'..wildc.startf.."-%d"
+  else
+    wildc.input = getvideoname(sub)
+    assert(not vid:match("?dummy"), "No dummy videos allowed. Sorry.")
+    wildc.index = wildc.input:gsub("[A-Z]:\\",""):gsub(".-[^\\]\\",""):match("(.+)%.[^%.]+$")
+    wildc.output = wildc.index..'-'..wildc.startf.."-%d"
   end
   if dpath and not global.gui_trim then 
-    local tabae = { ['video'] = vp, ['startf'] = startf, ['endf'] = ef, ['index'] = global.prefix..vn..".index", ['output'] = global.prefix..vn.."-"..startf.."-%d.mp4"}
-    writeandencode(tabae)
+    writeandencode(wildc)
   else
-    someguiorsmth(sf,ef,vp,vn,sub[sel[1]])
+    someguiorsmth(wildc)
   end
 end
 
-function someguiorsmth(sf,ef,vp,vn,line)
-  gui.t.video.value = vp
-  gui.t.index.value = global.prefix..vn..".index"
-  gui.t.startf.value = sf
-  gui.t.endf.value = ef
-  gui.t.output.value = global.prefix..(line.effect or vn).."-"..sf.."-%d.mp4"
+function someguiorsmth(wildc)
+  gui.t.input.value = wildc.input
+  gui.t.index.value = wildc.index
+  gui.t.startf.value = wildc.startf
+  gui.t.endf.value = wildc.endf
+  gui.t.output.value = wildc.output
   local button, opts = aegisub.dialog.display(gui.t)
-  if button then 
-    writeandencode(opts)
+  if button then
+    for k,v in pairs(opts) do
+      wildc[k] = v
+    end
+    wildc.startt, wildc.endt = aegisub.ms_from_frame(wildc.startf), aegisub.ms_from_frame(wildc.endf)
+    wildc.lenf, wildc.lent = wildc.endf-wildc.startf, wildc.endt-wildc.startt
+    writeandencode(wildc)
   end
 end
 
-function writeandencode(opts)
+function writeandencode(wildc)
   local it = 0
-  local out
+  wildc.startt, wildc.endt, wildc.lent = wildc.startt/1000, wildc.endt/1000, wildc.lent/1000
+  local function FormatWildCards(wc)
+    return wildc[wc:sub(2,-2)]
+  end
   repeat
     if aegisub.progress.is_cancelled() then error("User cancelled") end
     it = it + 1
-    local n = string.format(opts.output,it)
+    local n = string.format(wildc.output,it)
     local f = io.open(n,'r')
-    if f then io.close(f); f = false else f = true; out = n end
+    if f then io.close(f); f = false else f = true; wildc.output = n end
   until f == true -- crappypasta
   if global.windows then
     local sh = io.open(global.prefix.."encode.bat","w+")
-    if not sh then error("Encoding command could not be written. Check your prefix.") end -- to solve the 250 char limit, we write to a self-deleting batch file on windows.
-    sh:write(global.encbin..' '..global.encop..' --index "'..opts.index..'" --seek '..opts.startf..' --frames '..(opts.endf-opts.startf+1)..' -o "'..out..'" "'..opts.video..'"\ndel %0')
+    assert(sh,"Encoding command could not be written. Check your prefix.") -- to solve the 250 byte limit, we write to a self-deleting batch file.
+    sh:write(global.enccom:gsub("(%b<>)",FormatWildCards)..'\ndel %0')
     sh:close()
-    os.execute('cd "'..global.prefix..'" && encode.bat')
+    os.execute(string.format("%q",global.prefix.."encode.bat"))
   else -- nfi what to do on lunix: dunno if it will allow execution of a shell script without explicitly setting the permissions. "x264 `cat x264opts.txt`" perhaps
-    os.execute(global.encbin..' '..global.encop..' --index "'..opts.index..'" --seek '..opts.startf..' --frames '..(opts.endf-opts.startf+1)..' -o "'..out..'" "'..opts.video..'"')
+    os.execute(global.encbin..' '..global.enccom..' --index "'..opts.index..'" --seek '..opts.startf..' --frames '..(opts.endf-opts.startf+1)..' -o "'..out..'" "'..opts.video..'"')
   end
 end
-
--- ffmpeg -ss <start> -t <duration> -sn -i "anysourcevideo" "image%05d.png"
 
 aegisub.register_macro("Motion Data - Trim","Cuts and encodes the current scene for use with motion tracking software.", trimnthings, isvideo)
