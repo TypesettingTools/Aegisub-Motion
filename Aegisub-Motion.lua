@@ -135,9 +135,9 @@ end
 if config_file == "" and dpath then config_file = aegisub.decode_path("?user/aegisub-motion.conf") end
 
 encpre = {
-x264    = '"<encbin>" --crf 16 --tune fastdecode -i 250 --fps 23.976 --sar 1:1 --index "<prefix><index>.index" --seek <startf> --frames <lenf> -o "<prefix><output>.mp4" "<input>"',
-ffmpeg  = '"<encbin>" -ss <startt> -t <lent> -sn -i "<input>" "<prefix><output>-%%05d.jpg"',
-avs2yuv = 'echo FFVideoSource("<input>",cachefile="<prefix><index>.index").trim(<startf>,<endf>).ConvertToRGB.ImageWriter("<prefix><output>.",type="jpg") > "<prefix>encode.avs"<nl>"<encbin>" -o NUL "<prefix>encode.avs"<nl>del "<prefix>encode.avs"',}
+x264    = '"#{encbin}" --crf 16 --tune fastdecode -i 250 --fps 23.976 --sar 1:1 --index "#{prefix}#{index}.index" --seek #{startf} --frames #{lenf} -o "#{prefix}#{output}.mp4" "#{input}"',
+ffmpeg  = '"#{encbin}" -ss #{startt} -t #{lent} -sn -i "#{input}" "#{prefix}#{output}-%%05d.jpg"',
+avs2yuv = 'echo FFVideoSource("#{input}",cachefile="#{prefix}#{index}.index").trim(#{startf},#{endf}).ConvertToRGB.ImageWriter("#{prefix}#{output}.",type="jpg") > "#{prefix}encode.avs"#{nl}"#{encbin}" -o NUL "#{prefix}encode.avs"#{nl}del "#{prefix}encode.avs"',}
 
 global = {
   windows  = true,
@@ -146,10 +146,12 @@ global = {
   encbin   = "",
   gui_trim = true,
   gnupauto = false,
+  autocopy = true,
+  acfilter = true,
   -- encoder presets
 }
 
-global.enccom = encpre[global.encoder]
+global.enccom = encpre[global.encoder] or ""
 
 header = {
   ['xscl'] = "scale_x",
@@ -483,7 +485,16 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
     global[k] = gui.main[k].value
     gui.main[k] = nil -- set to nil so dialog.display doesn't throw a hissy fit
   end
-  if dpath then gui.main.linespath.value = clipboard.get() end
+  if dpath and global.autocopy then
+    local paste = clipboard.get()
+    if global.acfilter then
+      if paste:match("^Adobe After Effects 6.0 Keyframe Data") then
+        gui.main.linespath.value = paste
+      end
+    else
+      gui.main.linespath.value = paste
+    end
+  end
   gui.main.pref.value = global.prefix
   printmem("GUI startup")
   local button, config = aegisub.dialog.display(gui.main, {"Go","Abort","Export"})
@@ -1234,19 +1245,23 @@ function confmaker()
   newgui.encbin, newgui.pref = table.copy(newgui.pref), nil
   newgui.encbin.value, newgui.encbin.name = global.encbin, "encbin"
   newgui.datalabel.label = "       Enter the path to your prefix here (include trailing slash)."
-  newgui.preflabel.label = "  First box: path to encoder binary; second box: encoder command."
-  newgui.windows  = { class = "checkbox"; value = global.windows; label = "I'm on Windows"; name = "windows";
+  newgui.preflabel.label = "First box: path to encoder binary; second box: encoder command."
+  newgui.windows  = { class = "checkbox"; value = global.windows; label = "Windows"; name = "windows";
                       x = 0; y = 21; height = 1; width = 3;}
   newgui.gui_trim = { class = "checkbox"; value = global.gui_trim; label = "Enable trim GUI"; name = "gui_trim";
                       x = 3; y = 21; height = 1; width = 4;}
   newgui.gnupauto = { class = "checkbox"; value = global.gui_expo; label = "Autoplot exports"; name = "gnupauto";
                       x = 7; y = 21; height = 1; width = 3;}
-  newgui.enccom    = { class = "textbox"; value = global.enccom; name = "enccom";
+  newgui.enccom   = { class = "textbox"; value = global.enccom; name = "enccom";
                       x = 0; y = 17; height = 4; width = 10;}
   newgui.prefix   = { class = "textbox"; value = global.prefix; name = "prefix";
                       x = 0; y = 1; height = 4; width = 10;}
   newgui.encoder  = { class = "dropdown"; value = global.encoder; name = "encoder"; items = {"x264", "ffmpeg", "avs2yuv", "custom"};
-                      x = 0; y = 10; width = 2; height = 1;}
+                      x = 0; y = 10; height = 1; width = 2;}
+  newgui.autocopy = { class = "checkbox"; value = global.windows; label = "Autocopy"; name = "autocopy";
+                      x = 2; y = 10; height = 1; width = 3;}
+  newgui.acfilter = { class = "checkbox"; value = global.windows; label = "Copy Filter"; name = "acfilter";
+                      x = 5; y = 10; height = 1; width = 3;}
   local valtab = {}
   local cf = config_file
   if not (cf:match("^[A-Z]:\\") or cf:match("^/")) and dpath then
@@ -1267,7 +1282,7 @@ function confmaker()
     aegisub.log(0,"config.%s = %s\n",tostring(k),tostring(v))
   end
   writeconf(cf,config) end
-end
+end --Adobe After Effects 6.0 Keyframe Data
 
 aegisub.register_macro("Motion Data - Config", "Macro for full config editing.", confmaker, isvideo)
 
@@ -1306,7 +1321,7 @@ function collecttrim(sub,sel,wc)
   wc.lenf = wc.endf-wc.startf+1
   wc.lent = wc.endt-wc.startt
 end
---<encbin> <input> <prefix> <index> <output> <startf> <lenf> <endf> <startt> <lent> <endt> <nl>
+-- #{encbin} #{input} #{prefix} #{index} #{output} #{startf} #{lenf} #{endf} #{startt} #{lent} #{endt} #{nl}
 function getvideoname(sub)
   for x = 1,#sub do
     if sub[x].class == "info" then
@@ -1394,7 +1409,7 @@ function writeandencode(wildc)
   if global.windows then
     local sh = io.open(global.prefix.."encode.bat","w+")
     assert(sh,"Encoding command could not be written. Check your prefix.") -- to solve the 250 byte limit, we write to a self-deleting batch file.
-    sh:write(global.enccom:gsub("(%b<>)",FormatWildCards)..'\ndel %0')
+    sh:write(global.enccom:gsub("#(%b{})",FormatWildCards)..'\ndel %0')
     sh:close()
     os.execute(string.format("%q",global.prefix.."encode.bat"))
   else -- nfi what to do on lunix: dunno if it will allow execution of a shell script without explicitly setting the permissions. "x264 `cat x264opts.txt`" perhaps
