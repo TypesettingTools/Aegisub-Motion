@@ -181,7 +181,7 @@ patterns = {
   ['fs']      = "\\fs([%d%.]+)",  
 }
 
-alltags = { -- http://lua-users.org/wiki/SwitchStatement yuuup.
+alltags = {
   ['xscl']    = "\\fscx([%d%.]+)",
   ['yscl']    = "\\fscy([%d%.]+)",
   ['ali']     = "\\an([1-9])",
@@ -499,6 +499,8 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   printmem("GUI startup")
   local button, config = aegisub.dialog.display(gui.main, {"Go","Abort","Export"})
   if button == "Go" then
+    if config.linespath == "" then config.linespath = false end
+    if config.clippath == "" then config.clippath = false end
     if config.reverse then
       aegisub.progress.title("slibreG gnicniM") -- BECAUSE ITS FUNNY GEDDIT
     else
@@ -615,8 +617,17 @@ end
 
 function frame_by_frame(sub,accd,opts)
   printmem("Start of main loop")
-  local mocha = parse_input(opts.linespath,accd.meta.res_x,accd.meta.res_y,opts) -- global variables have no automatic gc
-  assert(accd.totframes==mocha.flength,"Number of frames from selected lines differs from number of frames tracked.")
+  local mocha
+  local clipa
+  if opts.linespath then
+    mocha = parse_input(opts.linespath,accd.meta.res_x,accd.meta.res_y,opts)
+    assert(accd.totframes==mocha.flength,string.format("Number of frames selected (%d) does not match parsed line tracking data length (%d).",accd.totframes,mocha.flength))
+  end
+  if opts.clippath then
+    clipa = parse_input(opts.clippath,accd.meta.res_x,accd.meta.res_y,opts)
+    assert(accd.totframes==clipa.flength,string.format("Number of frames selected (%d) does not match parsed clip tracking data length (%d).",accd.totframes,clipa.flength))
+    opts.linear = false
+  end
   if opts.export then export(accd,mocha,opts) end
   mocha.s = 1
   if opts.reverse then mocha.s = mocha.flength end
@@ -629,7 +640,6 @@ function frame_by_frame(sub,accd,opts)
   end
   local _ = nil
   local newlines = {} -- table to stick indicies of tracked lines into for cleanup.
-  local srclines = {}
   if not opts.scale then
     for k,d in ipairs(mocha.xscl) do
       mocha.xscl[k] = 100 -- old method was wrong and didn't work.
@@ -995,10 +1005,10 @@ function munch(sub,sel)
   return changed
 end
 
-function cleanup(sub, sel, opts, src) -- make into its own macro eventually.
-  src = src or {}
+function cleanup(sub, sel, opts) -- make into its own macro eventually.
+  opts = opts or {}
   local linediff
-  function cleantrans(cont) -- internal function because that's the only way to pass the line difference to it
+  local function cleantrans(cont) -- internal function because that's the only way to pass the line difference to it
     local t_s, t_e, ex, eff = cont:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
     if tonumber(t_e) <= 0 or tonumber(t_e) <= tonumber(t_s) then return string.format("%s",eff) end -- if the end time is less than or equal to zero, the transformation has finished. Replace it with only its contents.
     if tonumber(t_s) > linediff then return "" end -- if the start time is greater than the length of the line, the transform has not yet started, and can be removed from the line.
@@ -1045,10 +1055,6 @@ function cleanup(sub, sel, opts, src) -- make into its own macro eventually.
   if opts.sortd ~= "Default" then
     sel = dialog_sort(sub, sel, opts.sortd)
   end
-  --[[ idk why this was here
-  for i,v in ipairs(sel) do
-    
-  end--]]
 end
 
 function dialog_sort(sub, sel, sor)
@@ -1365,7 +1371,7 @@ function trimnthings(sub,sel)
     wildc.output = wildc.index..'-'..wildc.startf.."-%d"
   else
     wildc.input = getvideoname(sub)
-    assert(not vid:match("?dummy"), "No dummy videos allowed. Sorry.")
+    assert(not wildc.input:match("?dummy"), "No dummy videos allowed. Sorry.")
     wildc.index = wildc.input:gsub("[A-Z]:\\",""):gsub(".-[^\\]\\",""):match("(.+)%.[^%.]+$")
     wildc.output = wildc.index..'-'..wildc.startf.."-%d"
   end
