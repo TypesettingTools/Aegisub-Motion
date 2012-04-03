@@ -9,7 +9,7 @@ Aegisub-Motion is best suited to be used with the 3.0.0 branch of Aegisub, curre
 
 It should still work with the 2.1.X branch of Aegisub (current stable), though some functions may be crippled. I do no testing with 2.1.X, but if you run into any problems, feel free to report them to me. The script also has not been (officially) tested on a *nix operating system, though I have attempted to make it compatable (I think).
 
-The input motion data must be of the format `Adobe After Effects 6.0 Keyframe Data`, which looks like this:
+The input motion data must be of the format `Adobe After Effects 6.0 Keyframe Data` (For Mocha, export to `After Effects Transform Data [anchor point, position, scale and rotation](*.txt)`), which looks like this:
 
     Adobe After Effects 6.0 Keyframe Data
     
