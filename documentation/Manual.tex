@@ -6,18 +6,38 @@
 \usepackage[all]{hypcap}
 \usepackage{fontspec} % using xelatex like a professional
 \setromanfont[Mapping=tex-text]{Myriad Pro}
-\title{Aegisub-Motion User Manual}
+\title{Aegisub-Motion Manual}
 \author{}
 \date{\today}
 \begin{document}
-	\maketitle
-	\tableofcontents
-	\newpage
-	\section{Preamble}
+  \maketitle
+  \tableofcontents
+  \newpage
+  \section{Preamble}
   There have been a huge number of changes to the way this script operates since the last ``version'' was released. I have also decided to separate the sections on mocha usage into their own manual.
   
-  While I'd like to believe that the usage of this script is pretty self explanatory, there are many things that have been added that cannot simply be discovered from the interface. The code in the script itself is definitely not laid out in the most understandable fashion, so I think it's only fair that a comprehensive explanation should be made. This manual is intended to cover, from start to finish, the order that the script is intended to be used.
+  While I'd like to believe that the usage of this script is pretty self explanatory, there are many things that have been added that cannot simply be discovered from the interface. The code in the script itself is definitely not laid out in the most understandable fashion, so I think it's only fair that a comprehensive explanation should be made. This manual is intended to cover, from start to finish, the order that the script is intended to be used. It is written assuming by default that you are using Aegisub 3.0.0 or above, and specific differences for 2.1.X are noted at the end of each section.
+
+  \section{Configuration}
+  \emph{Aegisub-Motion attempts to read a configuration file every time one of its macros is executed. This config is used to override the hardcoded defaults on the user-end, for convenience. Aegisub-Motion can use per-project or global configuration files, which allows greater flexibility of use.}
+
+  \medskip
+
+  To use a configuration file with Aegisub-Motion, you must first set the global variable {\tt config\_file} at the top of the script (currently line {\tt5}). I would personally recommend not changing the default, if only to save you the effort of having to change it every time you update the script. The comment at the top of the script explains how config loading works; I will rephrase it here, in case the meaning was unclear.
   
-	\section*{Acknowledgements}
-	I'd like to thank \textbackslash{}fake, \_\_ar, Hale, delamoo, nullx, zanget, Sutai, tophf and tp7 for their assistance, technical or otherwise, in writing this script. I'd also like to thank jfs and Plorkyeran (among others) for all the work they've done on Aegisub.  
+  If you set {\tt{}config\_file} to an absolute path (e.g. C:\textbackslash{}a-mo\textbackslash{}config or \textasciitilde/a-mo/config), this will be used as a global config file, and the same file will always be loaded and written to.
+  
+  If you set {\tt{}config\_file} to a relative path (without a preceding slash), the behavior changes. Aegisub motion will attempt to load the config file from the same directory as the script. If this fails to load, it will fall back to the config file in Aegisub's userdata path (\%APPDATA\%\textbackslash{}Aegisub or \textasciitilde/.aegisub). This means that you can have both a global config file (the one in userdata), as well as per-project configurations (assuming you keep all of the scripts from one project in the same directory). The usefulness of this will be explained in more detail with the rest of the config options.
+  
+  \subsubsection*{Aegisub 2.1.X Users Beware!}
+  The relative path config will not work with Aegisub 2.1.X, as it uses helper functions only available in trunk to determine the different paths. The recommended practice for 2.1.X is to use an absolute path to your config file. Leaving it as a relative path can have unexpected results.
+  
+  \subsection{Running{\tt{} Motion Data - Config}}
+  \emph{This is a helper macro for generating your initial config and setting global options that cannot be set from the }{\tt Motion Data - Apply}\emph{ macro. The config file can also be edited manually, and its format is very simple to understand.}
+  
+  %screenshot etc
+  
+    
+  \section*{Acknowledgements}
+  I'd like to thank \textbackslash{}fake, \_\_ar, Hale, delamoo, nullx, zanget, Sutai, tophf and tp7 for their assistance, technical or otherwise, in writing this script. I'd also like to thank jfs and Plorkyeran (among others) for all the work they've done on Aegisub.  
 \end{document}
