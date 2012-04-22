@@ -1,5 +1,5 @@
-﻿Aegisub-Motion.lua
-------------------
+﻿NOW IS THE TIME TO BREAK THINGS, COMRADES
+-----------------------------------------
 
 Aegisub-Motion.lua, from here on referred to by vague pronouns such as “it” or “this”, is an Automation 4 script for [Aegisub](http://www.aegisub.org/), that provides a set of macros (well, really just two at the moment) to facilitate converting basic motion tracking data into Advanced Substation Alpha override tags.
 
@@ -45,9 +45,9 @@ It sports a semi-advanced post-processing cleanup function that removes duplicat
 
 The output can be sorted by one of two methods: the default, which is to place each tracked line sequentially after its source line, and by time, which sorts the output lines by their start time.
 
-The second macro can trim and encode the current scene to an H.264-in-mp4 file ready for motion tracking. It requires [x264](http://www.videolan.org/developers/x264.html) to do this.
+The second macro will trim and encode the current scene to an H.264-in-mp4 file or image sequence ready for motion tracking. It can use a variety of different encoders to do this.
 
-It uses a very simple external configuration file to save user input across scripts. Unfortunately, the configuration writing functions are not safe, and if an error occurs during them, the entire config script can be erased. Fortunately, this shouldn't happen under normal circumstances.
+It uses a very simple external configuration file to save user input across scripts. The configuration writing functions should no longer be capable of accidentally deleting the config file, unless terrible unexpected errors occur.
 
 Finally, it also supports exporting the tracking data into a format that is compatible with [gnuplot](http://www.gnuplot.info/), along with gnuplot plotting instructions. It can even plot the data automatically, if you have gnuplot in your PATH.
 
