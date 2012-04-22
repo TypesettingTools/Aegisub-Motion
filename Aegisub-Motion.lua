@@ -685,7 +685,7 @@ function frame_by_frame(sub,accd,opts)
   if opts.vsfscale then
     opts.sclround = 2
   end
-  if opts.rot then
+  if opts.rotation then
     table.insert(eraser,"\\org%([%-%d%.]+,[%-%d%.]+%)")
     table.insert(operations,rotate)
     table.insert(eraser,"\\frz[%-%d%.]+")
@@ -711,7 +711,7 @@ function frame_by_frame(sub,accd,opts)
     if opts.reverse then
       rstartf, rendf = rendf, rstartf -- reverse them to set the differences
     end
-    if opts.rot then
+    if opts.rotation then
       v.zrotd = mocha.zrot[rstartf] - v.zrot -- idr there was something silly about this
     end
     if v.xpos and opts.position then
@@ -856,7 +856,7 @@ function linearize(line,mocha,opts,rstartf,rendf)
       end
     end
   end
-  if opts.rot then
+  if opts.rotation then
     pre = pre..string.format("\\frz%g",round(mocha.zrot[rendf]-line.zrotd,opts.sclround)) -- not being able to move org might be a large issue
     trans = trans..string.format("\\frz%g",mocha.zrot)
   end
@@ -1140,7 +1140,7 @@ function export(accd,mocha,opts)
     fnames[4] = "%s T-sclX %d-%d.txt"
     fnames[5] = "%s T-sclY %d-%d.txt"
   end
-  if opts.rot then
+  if opts.rotation then
     fnames[6] = "%s T-rot %d-%d.txt"
   end
   fnames[7] = "%s gnuplot-command %d-%d.txt"
@@ -1208,7 +1208,7 @@ function export(accd,mocha,opts)
     table.insert(bigstring,string.format([=[if (b >= 0) slope = sprintf('Equation: scly(t) = %%.3ft + %%.3f : R^2: %%.3f',m,b,TvSYstat_correlation**2); else slope = sprintf('Equation: scly(t) = %%.3ft - %%.3f : R^2: %%.3f',m,0-b,TvSYstat_correlation**2)]=]..'\n'))
     table.insert(bigstring,string.format([=[plot '%s' using 1:2 notitle with points, f(x) title slope with lines]=]..'\n',global.prefix..fnames[5]))
   end
-  if opts.rot then
+  if opts.rotation then
     table.insert(bigstring,string.format('\n'..[=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',round(len*2+70,0),600,global.prefix..fnames[6]:sub(0,-5)))
     table.insert(bigstring,string.format([=[set title 'Plot of T vs rot'; unset x2label]=]..'\n'))
     table.insert(bigstring,string.format([=[unset x2tics; unset mx2tics; set xtics out mirror; set mxtics 5; set xlabel 'Time (centiseconds)'; set xrange [0:%d]]=]..'\n',round(len,0)))
@@ -1234,7 +1234,7 @@ function export(accd,mocha,opts)
       fhandle[4]:write(string.format("%g %g\n",cs,mocha.xscl[x]))
       fhandle[5]:write(string.format("%g %g\n",cs,mocha.yscl[x]))
     end
-    if opts.rot then
+    if opts.rotation then
       fhandle[6]:write(string.format("%g %g\n",cs,mocha.zrot[x]))
     end
   end
