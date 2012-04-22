@@ -1,4 +1,4 @@
-  --[=[ If a full path is provided, that config file will always be used. If a filename is provided,
+﻿  --[=[ If a full path is provided, that config file will always be used. If a filename is provided,
         then we attempt to open that file in the script directory, and if that fails, then we open
         it in the aegisub userdata directory (%APPDATA%/Aegisub or ~/.aegisub). This allows different
         settings (prefix, etc) per-project if you desire. If you don't trust any of this crazy shit,
@@ -110,8 +110,8 @@ gui.main = { -- todo: change these to be more descriptive.
                 x = 6; y = 11; height = 1; width = 1;},
   vsfscale  = { class = "checkbox"; name = "vsfscale"; value = false; label = "VSfilter scaling";
                 x = 0; y = 12; height = 1; width = 3;},
-  linear    = { class = "checkbox"; name = "linear"; value = false; label = "Linear";
-                x = 4; y = 12; height = 1; width = 2;},
+  --[[linear    = { class = "checkbox"; name = "linear"; value = false; label = "Linear";
+                x = 4; y = 12; height = 1; width = 2;},--]]
   reverse   = { class = "checkbox"; name = "reverse"; value = false; label = "Reverse";
                 x = 6; y = 12; height = 1; width = 2;},
   export    = { class = "checkbox"; name = "export"; value = false; label = "Export";
@@ -133,9 +133,9 @@ gui.clip = {
                x = 0; y = 6; height = 1; width = 2;},
   rotation = { class = "checkbox"; name = "rotation"; value = false; label = "Rotation";
                x = 0; y = 7; height = 1; width = 3;},
-  --reverse  = { class = "checkbox"; name = "reverse"; value = false; label = "Reverse";
-  --             x = 6; y = 5; height = 1; width = 3;},
-} -- entire inner loop needs to be rewritten to handle reverse better.
+  reverse  = { class = "checkbox"; name = "reverse"; value = false; label = "Reverse";
+               x = 6; y = 5; height = 1; width = 3;},
+} -- entire inner loop needs to be rewritten to handle reverse independently.
 
 for k,v in pairs(aegisub) do
   dpath = false
@@ -527,6 +527,7 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
     button, clipconf = aegisub.dialog.display(gui.clip, {"Go","Cancel","Abort"})
   end
   if button == "Go" then
+    local clipconf = clipconf or {} -- solve indexing errors
     if config.linespath == "" then config.linespath = false end
     if clipconf.clippath == "" then clipconf.clippath = false else config.clip = false end -- set clip to false if clippath exists
     if config.reverse then
@@ -541,7 +542,7 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
       writeconf(cf,config)
     end
     printmem("Go")
-    local newsel = frame_by_frame(sub,accd,config)
+    local newsel = frame_by_frame(sub,accd,config,clipconf)
     if munch(sub,newsel) then
       newsel = {}
       for x = 1,#sub do
@@ -719,7 +720,7 @@ function frame_by_frame(sub,accd,opts,clipopts)
   if opts.vsfscale then
     opts.sclround = 2
   end
-  if opts.rot then
+  if opts.rotation then
     table.insert(eraser,"\\org%([%-%d%.]+,[%-%d%.]+%)")
     table.insert(operations,rotate)
     table.insert(eraser,"\\frz[%-%d%.]+")
@@ -731,7 +732,7 @@ function frame_by_frame(sub,accd,opts,clipopts)
     v.rendf = v.endframe - accd.startframe -- end frame of line relative to start frame of tracked data
     local maths, mathsanswer = nil, nil -- create references without allocation? idk how this works.
     local clipme = false
-    if clipa and line.clip then
+    if clipa and v.clip then
       clipme = true -- use this in the inner loop because it only needs to be calculated once per line.
       table.insert(eraser,"\\i?clip%b()")
     end
@@ -748,118 +749,53 @@ function frame_by_frame(sub,accd,opts,clipopts)
       mathsanswer = math.floor(blue-red+moremaths) -- and this voodoo magic is the total length of the line plus the difference (which is negative) between the start of the last frame the line is on and the end time of the line.
     end
     if opts.reverse then
-      v.rstartf, v.rendf = v.rendf, v.rstartf -- reverse them to set the differences
+      mocha.start = v.rendf -- set the reference frame to be the first frame
+    else
+      mocha.start = v.rstartf
+    end
+    if clipopts.reverse then
+      clipa.start = v.rendf
+    else
+      clipa.start = v.rstartf
     end
     mocha.s = v.rstartf -- after swapping to compensate
-    if opts.rot then
-      v.zrotd = mocha.zrot[v.rstartf] - v.zrot -- idr there was something silly about this
+    ---[[
+    if opts.rotation then
+      v.zrotd = mocha.zrot[mocha.start] - v.zrot -- idr there was something silly about this
     end
-    if v.xpos and opts.position then
-      v.xdiff, v.ydiff = mocha.xpos[v.rstartf] - v.xpos, mocha.ypos[v.rstartf] - v.ypos
-    end
+    if opts.position then
+      v.xdiff, v.ydiff = mocha.xpos[mocha.start] - v.xpos, mocha.ypos[mocha.start] - v.ypos
+    end --]]
     for ie, ei in pairs(eraser) do -- have to do it before inserting our new values (also before setting the orgline)
       v.text = v.text:gsub(ei,"")
     end
     local orgtext = v.text -- tables are passed as references.
-    if opts.reverse then -- reverse order
-      if opts.linear then
-        if not v.is_comment then
-          v.ratx, v.raty = mocha.xscl[v.rendf]/mocha.xscl[v.rstartf],mocha.yscl[v.rendf]/mocha.yscl[v.rstartf]
-          local tag = "{"
-          local trans = string.format("\\t(%d,%d,",maths,mathsanswer)
-          if opts.position then
-            tag = tag..string.format("\\move(%g,%g,%g,%g,%d,%d)",mocha.xpos[v.rendf]-v.xdiff*v.ratx,mocha.ypos[v.rendf]-v.ydiff*v.raty,v.xpos,v.ypos,maths,mathsanswer)
-          end
-          local pre, rtrans = linearize(v,mocha,opts)
-          if pre ~= "" then
-            tag = tag..pre..trans..rtrans..")}"..string.char(6)
-          else
-            tag = tag.."}"..string.char(6)
-          end
-          v.text = tag..v.text
-        end
-        sub[v.num] = v -- yep
-      else
-        v.rstartf, v.rendf = v.rendf, v.rstartf -- un-reverse them
-        for x = v.rstartf,v.rendf do
-          printmem("Inner loop")
-          aegisub.progress.title(string.format("Processing frame %g/%g",x-v.rstartf+1,v.rendf-v.rstartf+1))
-          aegisub.progress.set((x-v.rstartf)/(v.rendf-v.rstartf)*100)
+    for x = v.rendf,v.rstartf,-1 do -- new inner loop structure
+      printmem("Inner loop")
+      aegisub.progress.title(string.format("Processing frame %g/%g",x,v.rendf-v.rstartf+1))
+      aegisub.progress.set((x-v.rstartf)/(v.rendf-v.rstartf)*100)
+      if aegisub.progress.is_cancelled() then error("User cancelled") end
+      v.start_time = aegisub.ms_from_frame(accd.startframe+x-1)
+      v.end_time = aegisub.ms_from_frame(accd.startframe+x)
+      if not v.is_comment then -- don't do any math for commented lines.
+        local tag = "{"
+        v.ratx = mocha.xscl[x]/mocha.xscl[mocha.start] -- DIVISION IS SLOW
+        v.raty = mocha.yscl[x]/mocha.yscl[mocha.start]
+        v.time_delta = aegisub.ms_from_frame(accd.startframe+x-1) - aegisub.ms_from_frame(accd.startframe)
+        for vk,kv in ipairs(v.trans) do
           if aegisub.progress.is_cancelled() then error("User cancelled") end
-          local iter = v.rendf-x+1 -- hm
-          v.start_time = aegisub.ms_from_frame(accd.startframe+iter-1)
-          v.end_time = aegisub.ms_from_frame(accd.startframe+iter)
-          if not v.is_comment then -- don't touch commented lines.
-            local tag = "{"
-            v.ratx = mocha.xscl[iter]/mocha.xscl[v.rendf] -- DIVISION IS SLOW
-            v.raty = mocha.yscl[iter]/mocha.yscl[v.rendf]
-            v.time_delta = aegisub.ms_from_frame(accd.startframe+iter-1) - aegisub.ms_from_frame(accd.startframe)
-            for vk,kv in ipairs(v.trans) do
-              if aegisub.progress.is_cancelled() then error("User cancelled") end
-              v.text = transformate(v,kv)
-            end
-            for vk,kv in ipairs(operations) do -- iterate through the necessary operations
-              if aegisub.progress.is_cancelled() then error("User cancelled") end
-              tag = tag..kv(v,mocha,opts,iter)
-            end
-            tag = tag.."}"..string.char(6)
-            v.text = v.text:gsub(string.char(1),"")
-            v.text = tag..v.text
-          end
-          sub.insert(v.num+1,v)
-          v.text = orgtext
+          v.text = transformate(v,kv)
         end
+        for vk,kv in ipairs(operations) do -- iterate through the necessary operations
+          if aegisub.progress.is_cancelled() then error("User cancelled") end
+          tag = tag..kv(v,mocha,opts,x)
+        end
+        tag = tag.."}"..string.char(6)
+        v.text = v.text:gsub(string.char(1),"")
+        v.text = tag..v.text
       end
-    else -- normal order
-      if opts.linear then
-        if not v.is_comment then
-          v.ratx, v.raty = mocha.xscl[v.rendf]/mocha.xscl[v.rstartf],mocha.yscl[v.rendf]/mocha.yscl[v.rstartf]
-          local tag = "{"
-          local trans = string.format("\\t(%d,%d,",maths,mathsanswer)
-          if opts.position then
-            tag = tag..string.format("\\move(%g,%g,%g,%g,%d,%d)",v.xpos,v.ypos,mocha.xpos[v.rendf]-v.xdiff*v.ratx,mocha.ypos[v.rendf]-v.ydiff*v.raty,maths,mathsanswer)
-          end
-          local pre, rtrans = linearize(v,mocha,opts,v.rstartf,v.rendf)
-          if pre ~= "" then
-            tag = tag..pre..trans..rtrans..")}"..string.char(6)
-          else
-            tag = tag.."}"..string.char(6)
-          end
-          v.text = tag..v.text
-        end
-        sub[v.num] = v -- yep
-      else
-        for x = v.rstartf,v.rendf do
-          printmem("Inner loop")
-          aegisub.progress.title(string.format("Processing frame %g/%g",x-v.rstartf+1,v.rendf-v.rstartf+1))
-          aegisub.progress.set((x-v.rstartf)/(v.rendf-v.rstartf)*100)
-          if aegisub.progress.is_cancelled() then error("User cancelled") end -- probably should have put this in here a long time ago
-          v.start_time = aegisub.ms_from_frame(accd.startframe+x-1)
-          v.end_time = aegisub.ms_from_frame(accd.startframe+x)
-          if not v.is_comment then
-            local tag = "{"
-            v.ratx = mocha.xscl[x]/mocha.xscl[v.rstartf] -- DIVISION IS SLOW
-            v.raty = mocha.yscl[x]/mocha.yscl[v.rstartf]
-            v.time_delta = aegisub.ms_from_frame(accd.startframe+x-1) - aegisub.ms_from_frame(accd.startframe)
-            if clipme then
-              clippinate(v,clipa,iter)
-            end
-            for vk,kv in ipairs(v.trans) do
-              if aegisub.progress.is_cancelled() then error("User cancelled") end
-              v.text = transformate(v,kv)
-            end
-            for vk,kv in ipairs(operations) do -- iterate through the necessary operations
-              if aegisub.progress.is_cancelled() then error("User cancelled") end
-              tag = tag..kv(v,mocha,opts,x)
-            end
-            tag = tag.."}"..string.char(6)
-            v.text = v.text:gsub(string.char(1),"")
-            v.text = tag..v.text
-          end
-          sub.insert(v.num+x-v.rstartf+1,v)
-          v.text = orgtext
-        end
-      end
+      sub.insert(v.num+1,v)
+      v.text = orgtext
     end
   end
   for x = 1,#sub do
@@ -895,7 +831,7 @@ function linearize(line,mocha,opts)
       end
     end
   end
-  if opts.rot then
+  if opts.rotation then
     pre = pre..string.format("\\frz%g",round(mocha.zrot[line.rendf]-line.zrotd,opts.sclround)) -- not being able to move org might be a large issue
     trans = trans..string.format("\\frz%g",mocha.zrot)
   end
@@ -913,15 +849,18 @@ function possify(line,mocha,opts,iter)
   local yd = ypos - mocha.ypos[iter]
   local r = math.sqrt(xd^2+yd^2)
   local alpha = datan(yd,xd) -- this should be a constant---move its calculation outside the inner loop, perhaps?
-  xpos = mocha.xpos[iter] + r*dcos(alpha-mocha.zrot[iter]+mocha.zrot[mocha.s])
-  ypos = mocha.ypos[iter] + r*dsin(alpha-mocha.zrot[iter]+mocha.zrot[mocha.s])
+  xpos = mocha.xpos[iter] + r*dcos(alpha-mocha.zrot[iter]+mocha.zrot[mocha.start])
+  ypos = mocha.ypos[iter] + r*dsin(alpha-mocha.zrot[iter]+mocha.zrot[mocha.start])
   aegisub.log(5,"Position: (%f,%f) -> (%f,%f)\n",line.xpos,line.ypos,xpos,ypos)
   local nf = string.format("%%.%df",opts.posround) -- new method of number formatting!
   return "\\pos("..string.format(nf,xpos)..","..string.format(nf,ypos)..")"
 end
 
-function clippinate
-  local derp
+function clippinate(line,clipa,iter)
+  local cx, cy = clipa.xpos[iter], clipa.ypos[iter]
+  local diffx, diffy = cx - clipa.xpos[clipa.start], cy - clipa.ypos[clipa.start]
+  local ratx, raty = clipa.xscl[iter]/clipa.xscl[clipa.start], clipa.yscl[iter]/clipa.yscl[clipa.start]
+  local diffrz = clipa.zrot[iter] - clipa.zrot[clipa.start]
 end
 
 function posiclip(line,mocha,opts,iter) -- TODO: REWRITE WITH TRANSFORMATION MATRICES
@@ -989,8 +928,8 @@ function scalify(line,mocha,opts)
 end
 
 function bordicate(line,mocha,opts)
-  local xbord = line.xbord*round(line.ratx,opts.sclround) -- round beforehand to minimize random float errors
-  local ybord = line.ybord*round(line.raty,opts.sclround) -- or maybe that's rly fucking dumb? idklol
+  local xbord = line.xbord*line.ratx
+  local ybord = line.ybord*line.raty
   if xbord == ybord then
     aegisub.log(5,"Border: %f -> %f\n",line.xbord,xbord)
     return string.format("\\bord%g",round(xbord,opts.sclround))
@@ -1002,8 +941,8 @@ function bordicate(line,mocha,opts)
 end
 
 function shadinate(line,mocha,opts)
-  local xshad = line.xshad*round(line.ratx,opts.sclround) -- scale shadow the same way as everything else
-  local yshad = line.yshad*round(line.raty,opts.sclround) -- hope it turns out as desired
+  local xshad = line.xshad*line.ratx
+  local yshad = line.yshad*line.raty
   if xshad == yshad then
     aegisub.log(5,"Shadow: %f -> %f\n",line.xshad,xshad)
     return string.format("\\shad%g",round(xshad,opts.sclround))
@@ -1183,7 +1122,7 @@ function export(accd,mocha,opts)
     fnames[4] = "%s T-sclX %d-%d.txt"
     fnames[5] = "%s T-sclY %d-%d.txt"
   end
-  if opts.rot then
+  if opts.rotation then
     fnames[6] = "%s T-rot %d-%d.txt"
   end
   fnames[7] = "%s gnuplot-command %d-%d.txt"
@@ -1251,7 +1190,7 @@ function export(accd,mocha,opts)
     table.insert(bigstring,string.format([=[if (b >= 0) slope = sprintf('Equation: scly(t) = %%.3ft + %%.3f : R^2: %%.3f',m,b,TvSYstat_correlation**2); else slope = sprintf('Equation: scly(t) = %%.3ft - %%.3f : R^2: %%.3f',m,0-b,TvSYstat_correlation**2)]=]..'\n'))
     table.insert(bigstring,string.format([=[plot '%s' using 1:2 notitle with points, f(x) title slope with lines]=]..'\n',global.prefix..fnames[5]))
   end
-  if opts.rot then
+  if opts.rotation then
     table.insert(bigstring,string.format('\n'..[=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',round(len*2+70,0),600,global.prefix..fnames[6]:sub(0,-5)))
     table.insert(bigstring,string.format([=[set title 'Plot of T vs rot'; unset x2label]=]..'\n'))
     table.insert(bigstring,string.format([=[unset x2tics; unset mx2tics; set xtics out mirror; set mxtics 5; set xlabel 'Time (centiseconds)'; set xrange [0:%d]]=]..'\n',round(len,0)))
@@ -1277,7 +1216,7 @@ function export(accd,mocha,opts)
       fhandle[4]:write(string.format("%g %g\n",cs,mocha.xscl[x]))
       fhandle[5]:write(string.format("%g %g\n",cs,mocha.yscl[x]))
     end
-    if opts.rot then
+    if opts.rotation then
       fhandle[6]:write(string.format("%g %g\n",cs,mocha.zrot[x]))
     end
   end
