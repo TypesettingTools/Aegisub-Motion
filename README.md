@@ -45,9 +45,9 @@ It sports a semi-advanced post-processing cleanup function that removes duplicat
 
 The output can be sorted by one of two methods: the default, which is to place each tracked line sequentially after its source line, and by time, which sorts the output lines by their start time.
 
-The second macro can trim and encode the current scene to an H.264-in-mp4 file ready for motion tracking. It requires [x264](http://www.videolan.org/developers/x264.html) to do this.
+The second macro can trim and encode the current scene to an H.264-in-mp4 file or an image sequence ready for motion tracking. It can utilize x264, ffmpeg, avisynth, or potentially many other command-line tools to do this (ffmpeg is not frame accurate, and avisynth needs ffms2 or another frame accurate source filter to be, well, frame accurate.)
 
-It uses a very simple external configuration file to save user input across scripts. Unfortunately, the configuration writing functions are not safe, and if an error occurs during them, the entire config script can be erased. Fortunately, this shouldn't happen under normal circumstances.
+It uses a very simple external configuration file to save user input across scripts. The config writing functions should no longer be capable of erasing the contents of config file if they error.
 
 Finally, it also supports exporting the tracking data into a format that is compatable with [gnuplot](http://www.gnuplot.info/), along with gnuplot plotting instructions. It can even plot the data automatically, if you have gnuplot in your PATH.
 
