@@ -80,7 +80,7 @@ gui.main = { -- todo: change these to be more descriptive.
                 x = 0; y = 14; height = 3; width = 10;},
   preflabel = { class = "label"; label = "                  Files will be written to this directory.";
                 x = 0; y = 13; height = 1; width = 10;},
-  datalabel = { class = "label"; label = "                            Paste data or enter a filepath.";
+  datalabel = { class = "label"; label = "                       Paste data or enter a filepath.";
                 x = 0; y = 0; height = 1; width = 10;},
   optlabel  = { class = "label"; label = "What tracking data should be applied?         Rounding";
                 x = 0; y = 6; height = 1; width = 10;},
@@ -124,17 +124,17 @@ gui.main = { -- todo: change these to be more descriptive.
 
 gui.clip = {
   clippath = { class = "textbox"; name = "clippath"; hint = "Paste data or the path to a file containing it. No quotes or escapes.";
-               x = 0; y = 1; height = 4; width = 10;},
-  label    = { class = "label"; label = "    Paste data or enter a filepath.";
-               x = 0; y = 0; height = 1; width = 10;},
+               x = 0; y = 1; height = 4; width = 15;},
+  label    = { class = "label"; label = "               Paste data or enter a filepath.";
+               x = 0; y = 0; height = 1; width = 15;},
   position = { class = "checkbox"; name = "position"; value = true; label = "Position";
-               x = 0; y = 5; height = 1; width = 3;},
+               x = 0; y = 6; height = 1; width = 3;},
   scale    = { class = "checkbox"; name = "scale"; value = true; label = "Scale";
-               x = 0; y = 6; height = 1; width = 2;},
+               x = 0; y = 7; height = 1; width = 2;},
   rotation = { class = "checkbox"; name = "rotation"; value = false; label = "Rotation";
-               x = 0; y = 7; height = 1; width = 3;},
+               x = 0; y = 8; height = 1; width = 3;},
   reverse  = { class = "checkbox"; name = "reverse"; value = false; label = "Reverse";
-               x = 6; y = 5; height = 1; width = 3;},
+               x = 11; y = 6; height = 1; width = 3;},
 } -- entire inner loop needs to be rewritten to handle reverse independently.
 
 for k,v in pairs(aegisub) do
@@ -644,15 +644,30 @@ function parse_input(mocha_table,input,shx,shy,opts)
   --return mocha_table -- returning tables is so last week.
 end
 
-function prepare_data(parsed_table,opts)
+function spoof_table(parsed_table,opts,len)
+  local len = len or #parsed_table.xpos
+  parsed_table.xpos = parsed_table.xpos or {}
+  parsed_table.ypos = parsed_table.ypos or {}
+  parsed_table.xscl = parsed_table.xscl or {}
+  parsed_table.yscl = parsed_table.yscl or {}
+  parsed_table.zrot = parsed_table.zrot or {}
+  if not opts.position then
+    aegisub.log(0,'derp\n')
+    for k = 1, len do
+      parsed_table.xpos[k] = 0
+      parsed_table.ypos[k] = 0
+    end
+  end
   if not opts.scale then
-    for k,d in ipairs(parsed_table.xscl) do
+    aegisub.log(0,'herp\n')
+    for k = 1, len do
       parsed_table.xscl[k] = 100
       parsed_table.yscl[k] = 100
     end
   end
   if not opts.rotation then
-    for k,d in ipairs(parsed_table.zrot) do
+    aegisub.log(0,'hurr\n')
+    for k = 1,len do
       parsed_table.zrot[k] = 0
     end
   end
@@ -667,7 +682,7 @@ function frame_by_frame(sub,accd,opts,clipopts)
   if opts.linespath then
     parse_input(mocha,opts.linespath,accd.meta.res_x,accd.meta.res_y,opts)
     assert(accd.totframes==mocha.flength,string.format("Number of frames selected (%d) does not match parsed line tracking data length (%d).",accd.totframes,mocha.flength))
-    prepare_data(mocha,opts)
+    spoof_table(mocha,opts)
     if opts.clip then clipa = mocha end
   end
   if clipopts.clippath then
@@ -675,7 +690,8 @@ function frame_by_frame(sub,accd,opts,clipopts)
     assert(accd.totframes==clipa.flength,string.format("Number of frames selected (%d) does not match parsed clip tracking data length (%d).",accd.totframes,clipa.flength))
     opts.linear = false -- no linear mode with moving clip, sorry
     opts.clip = true -- simplify things a bit
-    prepare_data(clipa,opts)
+    spoof_table(clipa,clipopts)
+    if not opts.linespath then spoof_table(mocha,opts,#clipa.xpos) end
   end
   if opts.export then export(accd,mocha,opts) end
   for k,v in ipairs(accd.lines) do -- comment lines that were commented in the thingy
@@ -778,14 +794,14 @@ function frame_by_frame(sub,accd,opts,clipopts)
       v.end_time = aegisub.ms_from_frame(accd.startframe+x)
       if not v.is_comment then -- don't do any math for commented lines.
         local tag = "{"
-        v.ratx = mocha.xscl[x]/mocha.xscl[mocha.start] -- DIVISION IS SLOW
-        v.raty = mocha.yscl[x]/mocha.yscl[mocha.start]
         v.time_delta = aegisub.ms_from_frame(accd.startframe+x-1) - aegisub.ms_from_frame(accd.startframe)
         for vk,kv in ipairs(v.trans) do
           if aegisub.progress.is_cancelled() then error("User cancelled") end
           v.text = transformate(v,kv)
         end
         for vk,kv in ipairs(operations) do -- iterate through the necessary operations
+          v.ratx = mocha.xscl[x]/mocha.xscl[mocha.start] -- DIVISION IS SLOW
+          v.raty = mocha.yscl[x]/mocha.yscl[mocha.start]
           if aegisub.progress.is_cancelled() then error("User cancelled") end
           tag = tag..kv(v,mocha,opts,x)
         end
