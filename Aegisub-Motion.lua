@@ -439,7 +439,6 @@ function information(sub, sel)
     opline.startframe, opline.endframe = aegisub.frame_from_ms(opline.start_time), aegisub.frame_from_ms(opline.end_time)
     if opline.comment then opline.is_comment = true else opline.is_comment = false end
     if not opline.xpos then
-      aegisub.log(5,"Touching little boys\n")
       opline.xpos = fix.xpos[opline.ali%3+1](accd.meta.res_x,opline._l,opline._r)
       opline.ypos = fix.ypos[math.ceil(opline.ali/3)](accd.meta.res_y,opline._v)
       aegisub.log(5,"Line %d: pos -> (%f,%f)\n", opline.num, opline.xpos, opline.ypos)
@@ -529,7 +528,7 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   if button == "Go" then
     local clipconf = clipconf or {} -- solve indexing errors
     if config.linespath == "" then config.linespath = false end
-    if clipconf.clippath == "" then clipconf.clippath = false else config.clip = false end -- set clip to false if clippath exists
+    if clipconf.clippath == "" or clipconf.clippath == nil then clipconf.clippath = false else config.clip = false end -- set clip to false if clippath exists
     if config.reverse then
       aegisub.progress.title("slibreG gnicniM") -- BECAUSE ITS FUNNY GEDDIT
     else
@@ -732,7 +731,7 @@ function frame_by_frame(sub,accd,opts,clipopts)
     v.rendf = v.endframe - accd.startframe -- end frame of line relative to start frame of tracked data
     local maths, mathsanswer = nil, nil -- create references without allocation? idk how this works.
     local clipme = false
-    if clipa and v.clip then
+    if opts.clip and clipa and v.clip then
       clipme = true -- use this in the inner loop because it only needs to be calculated once per line.
       table.insert(eraser,"\\i?clip%b()")
     end
@@ -789,6 +788,9 @@ function frame_by_frame(sub,accd,opts,clipopts)
         for vk,kv in ipairs(operations) do -- iterate through the necessary operations
           if aegisub.progress.is_cancelled() then error("User cancelled") end
           tag = tag..kv(v,mocha,opts,x)
+        end
+        if clipme then
+          tag = tag..clippinate(v,clipa,x)
         end
         tag = tag.."}"..string.char(6)
         v.text = v.text:gsub(string.char(1),"")
@@ -858,58 +860,34 @@ end
 
 function clippinate(line,clipa,iter)
   local cx, cy = clipa.xpos[iter], clipa.ypos[iter]
-  local diffx, diffy = cx - clipa.xpos[clipa.start], cy - clipa.ypos[clipa.start]
   local ratx, raty = clipa.xscl[iter]/clipa.xscl[clipa.start], clipa.yscl[iter]/clipa.yscl[clipa.start]
   local diffrz = clipa.zrot[iter] - clipa.zrot[clipa.start]
-end
-
-function posiclip(line,mocha,opts,iter) -- TODO: REWRITE WITH TRANSFORMATION MATRICES
-  local xpos = mocha.xpos[iter]-(line.xdiff*line.ratx)
-  local ypos = mocha.ypos[iter]-(line.ydiff*line.raty)
-  local xd = xpos - mocha.xpos[iter]
-  local yd = ypos - mocha.ypos[iter]
-  local r = math.sqrt(xd^2+yd^2)
-  local alpha = datan(yd,xd)
-  xpos = mocha.xpos[iter] + r*dcos(alpha-mocha.zrot[iter]+mocha.zrot[mocha.s])
-  ypos = mocha.ypos[iter] + r*dsin(alpha-mocha.zrot[iter]+mocha.zrot[mocha.s])
-  aegisub.log(5,"Position: (%f,%f) -> (%f,%f)\n",line.xpos,line.ypos,xpos,ypos)
-  local nf = string.format("%%.%df",opts.posround) -- new method of number formatting!
+  aegisub.log(5,"cx: %f cy: %f\n",cx,cy)
+  aegisub.log(5,"rx: %f ry: %f\n",ratx,raty)
+  aegisub.log(5,"frz: %f\n",diffrz)
   local clip = ""
-  if line.clip then
-    local newvals = {}
-    local newclip = line.clip
-    local it = 0
-    local function xy(x,y)
-      local xo,yo = x,y
-      x = (tonumber(x) - line.xpos)*line.xscl*line.ratx/100
-      y = (tonumber(y) - line.ypos)*line.yscl*line.raty/100
-      local pr = math.sqrt(x^2+y^2)
-      local theta = datan(y,x)
-      x = xpos + pr*dcos(theta-mocha.zrot[iter]+mocha.zrot[mocha.s])
-      y = ypos + pr*dsin(theta-mocha.zrot[iter]+mocha.zrot[mocha.s])
-      aegisub.log(5,"Clip: %d %d -> %d %d\n",xo,yo,x,y)
-      if line.sclip then 
-        x = x*1024/(2^(line.sclip-1))
-        y = y*1024/(2^(line.sclip-1))
-      end
-      table.insert(newvals,round(x).." "..round(y))
-      it = it+1
-      return string.char(1)
-    end
-    newclip = newclip:gsub("([%.%d%-]+) ([%.%d%-]+)",xy)
-    local i = 0
-    local function ret(sub)
-      i = i+1
-      return newvals[i]
-    end
-    newclip = newclip:gsub(string.char(1),ret)
+  local function xy(x,y)
+    local xo,yo = x,y
+    x = (tonumber(x) - clipa.xpos[clipa.start])*ratx
+    y = (tonumber(y) - clipa.ypos[clipa.start])*raty
+    local r = math.sqrt(x^2+y^2)
+    local alpha = datan(y,x)
+    x = cx + r*dcos(alpha-diffrz)
+    y = cy + r*dsin(alpha-diffrz)
+    aegisub.log(5,"Clip: %d %d -> %d %d\n",xo,yo,x,y)
     if line.sclip then 
-      clip = string.format("\\%s(11,%s)",line.clips,newclip)
-    else
-      clip = string.format("\\%s(%s)",line.clips,newclip)
+      x = x*1024/(2^(line.sclip-1))
+      y = y*1024/(2^(line.sclip-1))
     end
+    return string.format("%d %d",round(x),round(y))
   end
-  return "\\pos("..string.format(nf,xpos)..","..string.format(nf,ypos)..")"..clip
+  clip = line.clip:gsub("([%.%d%-]+) ([%.%d%-]+)",xy)
+  if line.sclip then 
+    clip = string.format("\\%s(11,%s)",line.clips,clip)
+  else
+    clip = string.format("\\%s(%s)",line.clips,clip)
+  end
+  return clip
 end
 
 function transformate(line,trans)
@@ -1267,7 +1245,7 @@ function confmaker()
   local button, config = aegisub.dialog.display(newgui)
   if button then 
   for k,v in pairs(config) do
-    aegisub.log(0,"config.%s = %s\n",tostring(k),tostring(v))
+    aegisub.log(5,"config.%s = %s\n",tostring(k),tostring(v))
   end
   writeconf(cf,config) end
 end --Adobe After Effects 6.0 Keyframe Data
