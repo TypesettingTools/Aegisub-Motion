@@ -82,8 +82,10 @@ gui.main = { -- todo: change these to be more descriptive.
                 x = 0; y = 13; height = 1; width = 10;},
   datalabel = { class = "label"; label = "                       Paste data or enter a filepath.";
                 x = 0; y = 0; height = 1; width = 10;},
-  optlabel  = { class = "label"; label = "What tracking data should be applied?         Rounding";
-                x = 0; y = 6; height = 1; width = 10;},
+  optlabel  = { class = "label"; label = "Data to be applied";
+                x = 0; y = 6; height = 1; width = 5;},
+  rndlabel  = { class = "label"; label = "Rounding";
+                x = 7; y = 6; height = 1; width = 3;},
   position  = { class = "checkbox"; name = "position"; value = true; label = "Position";
                 x = 0; y = 7; height = 1; width = 3;},
   clip      = { class = "checkbox"; name = "clip"; value = false; label = "Clip";
@@ -104,16 +106,14 @@ gui.main = { -- todo: change these to be more descriptive.
                 x = 7; y = 9; height = 1; width = 3;},
   wconfig   = { class = "checkbox"; name = "wconfig"; value = false; label = "Write config";
                 x = 0; y = 11; height = 1; width = 4;},
-  sizeratio = { class = "floatedit"; name = "sizeratio"; value = 1;
+  relative  = { class = "checkbox"; name = "relative"; value = true; label = "Relative";
+                x = 4; y = 11; height = 1; width = 3;},
+  stframe   = { class = "intedit"; name = "stframe"; value = 1;
                 x = 7; y = 11; height = 1; width = 3;},
-  override  = { class = "checkbox"; name = "override"; value = 1;
-                x = 6; y = 11; height = 1; width = 1;},
   vsfscale  = { class = "checkbox"; name = "vsfscale"; value = false; label = "VSfilter scaling";
                 x = 0; y = 12; height = 1; width = 3;},
   --[[linear    = { class = "checkbox"; name = "linear"; value = false; label = "Linear";
-                x = 4; y = 12; height = 1; width = 2;},--]]
-  reverse   = { class = "checkbox"; name = "reverse"; value = false; label = "Reverse";
-                x = 6; y = 12; height = 1; width = 2;},
+                x = 4; y = 12; height = 1; width = 2;},--]] -- broken because I deleted the code for it because restructured loop
   export    = { class = "checkbox"; name = "export"; value = false; label = "Export";
                 x = 8; y = 12; height = 1; width = 2;},
   sortd     = { class = "dropdown"; name = "sortd"; hint = "Sort lines by"; value = "Default"; items = {"Default", "Time"};
@@ -124,17 +124,19 @@ gui.main = { -- todo: change these to be more descriptive.
 
 gui.clip = {
   clippath = { class = "textbox"; name = "clippath"; hint = "Paste data or the path to a file containing it. No quotes or escapes.";
-               x = 0; y = 1; height = 4; width = 15;},
+               x = 0; y = 1; height = 4; width = 10;},
   label    = { class = "label"; label = "               Paste data or enter a filepath.";
-               x = 0; y = 0; height = 1; width = 15;},
+               x = 0; y = 0; height = 1; width = 10;},
   position = { class = "checkbox"; name = "position"; value = true; label = "Position";
                x = 0; y = 6; height = 1; width = 3;},
   scale    = { class = "checkbox"; name = "scale"; value = true; label = "Scale";
                x = 0; y = 7; height = 1; width = 2;},
   rotation = { class = "checkbox"; name = "rotation"; value = false; label = "Rotation";
                x = 0; y = 8; height = 1; width = 3;},
-  reverse  = { class = "checkbox"; name = "reverse"; value = false; label = "Reverse";
-               x = 11; y = 6; height = 1; width = 3;},
+  relative  = { class = "checkbox"; name = "relative"; value = true; label = "Relative";
+                x = 4; y = 6; height = 1; width = 3;},
+  stframe   = { class = "intedit"; name = "stframe"; value = 1;
+                x = 7; y = 6; height = 1; width = 3;},
 } -- entire inner loop needs to be rewritten to handle reverse independently.
 
 for k,v in pairs(aegisub) do
@@ -231,8 +233,8 @@ guiconf = {
   "position", "clip", "posround",
   "scale", "border", "shadow", "sclround",
   "rotation", "rotround",
-  "sizeratio", "override",
-  "vsfscale", "linear", "reverse", "export",
+  "relative", "stframe",
+  "vsfscale", "export", --"linear", 
 }
 
 for k,v in pairs(global) do table.insert(guiconf,k) end
@@ -495,6 +497,8 @@ end
 function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   aegisub.progress.title("Selecting Gerbils")
   local accd = preprocessing(sub,sel)
+  gui.main.stframe.min = -accd.totframes; gui.main.stframe.max = accd.totframes;
+  gui.clip.stframe.min = -accd.totframes; gui.clip.stframe.max = accd.totframes;
   for k,v in pairs(global) do
     gui.main[k] = {}
   end
@@ -527,6 +531,8 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   end
   if button == "Go" then
     local clipconf = clipconf or {} -- solve indexing errors
+    if config.stframe == 0 then config.stframe = 1 end
+    if clipconf.stframe == 0 then clipconf.stframe = 1 end
     if config.linespath == "" then config.linespath = false end
     if clipconf.clippath == "" or clipconf.clippath == nil then clipconf.clippath = false else config.clip = false end -- set clip to false if clippath exists
     if config.reverse then
@@ -564,7 +570,7 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   printmem("Closing")
 end
 
-function parse_input(mocha_table,input,shx,shy,opts)
+function parse_input(mocha_table,input,shx,shy)
   printmem("Start of input parsing")
   local ftab = {}
   local sect, care = 0, 0
@@ -581,24 +587,20 @@ function parse_input(mocha_table,input,shx,shy,opts)
     ftab = input:split("\n")
   end
   local xmult,ymult
-  if opts.override then
-    xmult, ymult = opts.sizeratio, opts.sizeratio
-  else
-    local sw, sh -- need to be declared outside for loop
-    for k,v in ipairs(ftab) do
-      if v:match("Source Width") then
-        sw = v:match("Source Width\t([0-9]+)")
-      end
-      if v:match("Source Height") then
-        sh = v:match("Source Height\t([0-9]+)")
-      end
-      if sw and sh then
-        break
-      end
+  local sw, sh -- need to be declared outside for loop
+  for k,v in ipairs(ftab) do
+    if v:match("Source Width") then
+      sw = v:match("Source Width\t([0-9]+)")
     end
-    xmult = shx/tonumber(sw)
-    ymult = shy/tonumber(sh)
+    if v:match("Source Height") then
+      sh = v:match("Source Height\t([0-9]+)")
+    end
+    if sw and sh then
+      break
+    end
   end
+  xmult = shx/tonumber(sw)
+  ymult = shy/tonumber(sh)
   for keys, valu in ipairs(ftab) do -- idk it might be more flexible now or something
     if valu == "Position" then
     sect = sect + 1
@@ -680,18 +682,32 @@ function frame_by_frame(sub,accd,opts,clipopts)
   local mocha = {}
   local clipa = {}
   if opts.linespath then
-    parse_input(mocha,opts.linespath,accd.meta.res_x,accd.meta.res_y,opts)
+    parse_input(mocha,opts.linespath,accd.meta.res_x,accd.meta.res_y)
     assert(accd.totframes==mocha.flength,string.format("Number of frames selected (%d) does not match parsed line tracking data length (%d).",accd.totframes,mocha.flength))
     spoof_table(mocha,opts)
+    if not opts.relative then
+      if opts.stframe < 0 then
+        mocha.start = accd.totframes + opts.stframe + 1
+      else
+        mocha.start = opts.stframe
+      end
+    end
     if opts.clip then clipa = mocha end
   end
   if clipopts.clippath then
-    parse_input(clipa,clipopts.clippath,accd.meta.res_x,accd.meta.res_y,opts)
+    parse_input(clipa,clipopts.clippath,accd.meta.res_x,accd.meta.res_y)
     assert(accd.totframes==clipa.flength,string.format("Number of frames selected (%d) does not match parsed clip tracking data length (%d).",accd.totframes,clipa.flength))
     opts.linear = false -- no linear mode with moving clip, sorry
     opts.clip = true -- simplify things a bit
     spoof_table(clipa,clipopts)
     if not opts.linespath then spoof_table(mocha,opts,#clipa.xpos) end
+    if not clipopts.relative then
+      if clipopts.stframe < 0 then
+        clipa.start = accd.totframes + clipopts.stframe + 1
+      else
+        clipa.start = clipopts.stframe
+      end
+    end
   end
   if opts.export then export(accd,mocha,opts) end
   for k,v in ipairs(accd.lines) do -- comment lines that were commented in the thingy
@@ -763,15 +779,19 @@ function frame_by_frame(sub,accd,opts,clipopts)
       local moremaths = three-blue+(four-three)/2
       mathsanswer = math.floor(blue-red+moremaths) -- and this voodoo magic is the total length of the line plus the difference (which is negative) between the start of the last frame the line is on and the end time of the line.
     end
-    if opts.reverse then
-      mocha.start = v.rendf -- set the reference frame to be the first frame
-    else
-      mocha.start = v.rstartf
+    if opts.relative then
+      if opts.stframe < 0 then
+        mocha.start = v.rendf + opts.stframe + 1
+      else
+        mocha.start = v.rstartf + clipopts.stframe - 1
+      end
     end
-    if clipopts.reverse then
-      clipa.start = v.rendf
-    else
-      clipa.start = v.rstartf
+    if clipopts.relative then
+      if clipopts.stframe < 0 then
+        clipa.start = v.rendf + clipopts.stframe + 1
+      else
+        clipa.start = v.rstartf + clipopts.stframe - 1
+      end
     end
     mocha.s = v.rstartf -- after swapping to compensate
     ---[[
