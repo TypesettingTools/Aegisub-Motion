@@ -170,34 +170,6 @@ global = {
 
 global.enccom = encpre[global.encoder] or ""
 
-header = {
-  ['xscl'] = "scale_x",
-  ['yscl'] = "scale_y",
-  ['ali']  = "align",
-  ['zrot'] = "angle",
-  ['bord'] = "outline",
-  ['shad'] = "shadow",
-  ['_v']   = "margin_t",
-  ['_l']   = "margin_l",
-  ['_r']   = "margin_r",
-  ['fs']   = "fontsize",
-  ['fn']   = "fontname",
-}
-
-patterns = {
-  ['xscl']    = "\\fscx([%d%.]+)",
-  ['yscl']    = "\\fscy([%d%.]+)",
-  ['ali']     = "\\an([1-9])",
-  ['zrot']    = "\\frz?([%-%d%.]+)",
-  ['bord']    = "\\bord([%d%.]+)",
-  ['xbord']   = "\\xbord([%d%.]+)",
-  ['ybord']   = "\\ybord([%d%.]+)",
-  ['shad']    = "\\shad([%-%d%.])",
-  ['xshad']   = "\\xshad([%-%d%.]+)",
-  ['yshad']   = "\\yshad([%-%d%.]+)",
-  ['fs']      = "\\fs([%d%.]+)",  
-}
-
 alltags = {
   ['xscl']    = "\\fscx([%d%.]+)",
   ['yscl']    = "\\fscy([%d%.]+)",
@@ -344,33 +316,9 @@ function preprocessing(sub, sel)
 end
 
 function getinfo(sub, line, num)
-  for k, v in pairs(header) do
-    line[k] = line.styleref[v]
-    aegisub.log(5,"Line %d: %s -> %s (from header)\n", num, v, tostring(line[k]))
-  end
-  if line.bord then line.xbord = tonumber(line.bord); line.ybord = tonumber(line.bord); end
-  if line.shad then line.xshad = tonumber(line.shad); line.yshad = tonumber(line.shad); end
-  if line.text:match("\\pos%([%-%d%.]+,[%-%d%.]+%)") then -- have to check now since default pos is calculated/given by karaskel
-    line.xpos, line.ypos = line.text:match("\\pos%(([%-%d%.]+),([%-%d%.]+)%)")
-    line.xorg, line.yorg = line.xpos, line.ypos
-    aegisub.log(5,"Line %d: pos -> (%f,%f)\n", num, line.xpos, line.ypos)
-  end
-  if line.text:match("\\org%(([%-%d%.]+),([%-%d%.]+)%)") then -- this should be more correctly handled now
-    line.xorg, line.yorg = line.text:match("\\org%(([%-%d%.]+),([%-%d%.]+)%)")
-    aegisub.log(5,"Line %d: org -> (%f,%f)\n", num, line.xorg, line.yorg)
-  end
   line.trans = {}
-  local a = line.text:match("%{(.-)}")
-  if a then
+  for a in line.text:gmatch("%{(.-)}")
     aegisub.log(5,"Found a comment/override block in line %d: %s\n",num,a)
-    for k, v in pairs(patterns) do
-      local _ = a:match(v)
-      if _ then 
-        line[k] = tonumber(_)
-        aegisub.log(5,"Line %d: %s -> %s\n",num,k,tostring(_))
-      end
-    end
-    if a:match("\\fn([^\\}]+)") then line.fn = a:match("\\fn([^\\}]+)") end
     local function cconv(a,b,c,d,e)
       line.clips = a
       line.clip = string.format("m %d %d l %d %d %d %d %d %d",b,c,d,c,d,e,b,e)
@@ -379,28 +327,21 @@ function getinfo(sub, line, num)
     if not line.clip then
       line.clips, line.sclip, line.clip = a:match("\\(i?clip)%(([%d]*),?(.-)%)")
     end
-    if line.sclip == "" then line.sclip = false else line.sclip = tonumber(line.sclip) end
-    if line.clip then 
+    if line.clip then
+      line.sclip = tonumber(line.sclip) or false
       if line.sclip then aegisub.log(5,"Clip: \\%s(%s,%s)\n",line.clips,line.sclip,line.clip)
       else aegisub.log(5,"Clip: \\%s(%s)\n",line.clips,line.clip) end
     end -- because otherwise it crashes!
-    for b in line.text:gmatch("%{(.-)%}") do
-      for c in b:gmatch("\\t(%b())") do -- this will return an empty string for t_exp if no exponential factor is specified
-        t_start,t_end,t_exp,t_eff = c:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
-        if t_exp == "" then t_exp = 1 end -- set it to 1 because stuff and things
-        table.insert(line.trans,{tonumber(t_start),tonumber(t_end),tonumber(t_exp),t_eff})
-        aegisub.log(5,"Line %d: \\t(%g,%g,%g,%s) found\n",num,t_start,t_end,t_exp,t_eff)
-      end
+    for c in a:gmatch("\\t(%b())") do -- this will return an empty string for t_exp if no exponential factor is specified
+      t_start,t_end,t_exp,t_eff = c:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
+      t_exp = tonumber(t_exp) or 1 -- set to 1 if unspecified
+      table.insert(line.trans,{tonumber(t_start),tonumber(t_end),tonumber(t_exp),t_eff})
+      aegisub.log(5,"Line %d: \\t(%g,%g,%g,%s) found\n",num,t_start,t_end,t_exp,t_eff)
     end
-    -- have to run it again because of :reasons: related to bad programming
-    if line.bord then line.xbord = tonumber(line.bord); line.ybord = tonumber(line.bord); end
-    if line.shad then line.xshad = tonumber(line.shad); line.yshad = tonumber(line.shad); end
-    if line.margin_v ~= 0 then line._v = line.margin_v end
-    if line.margin_l ~= 0 then line._l = line.margin_l end
-    if line.margin_r ~= 0 then line._r = line.margin_r end
-  else
-    aegisub.log(5,"No comment/override block found in line %d\n",num)
   end
+  if line.margin_v ~= 0 then line._v = line.margin_v else line._v = line.styleref.margin_v end
+  if line.margin_l ~= 0 then line._l = line.margin_l else line._l = line.styleref.margin_l end
+  if line.margin_r ~= 0 then line._r = line.margin_r else line._r = line.styleref.margin_r end
 end
 
 function information(sub, sel)
@@ -430,11 +371,6 @@ function information(sub, sel)
     getinfo(sub, opline, v-strt)
     opline.styleref.fontname = opline.fn
     opline.styleref.fontsize = opline.fs
-    local ofsx,ofsy = opline.styleref.scale_x,opline.styleref.scale_y
-    opline.styleref.scale_y = 100
-    opline.styleref.scale_x = 100
-    opline.width, opline.height, opline.descent, opline.extlead = aegisub.text_extents(opline.styleref,opline.text_stripped)
-    opline.styleref.scale_x,opline.styleref.scale_y = ofsx,ofsy -- I don't think this actually matters since we don't write these back to the subtitle file
     if opline.margin_v ~= 0 then opline._v = opline.margin_v end
     if opline.margin_l ~= 0 then opline._l = opline.margin_l end
     if opline.margin_r ~= 0 then opline._r = opline.margin_r end
@@ -444,15 +380,6 @@ function information(sub, sel)
       opline.xpos = fix.xpos[opline.ali%3+1](accd.meta.res_x,opline._l,opline._r)
       opline.ypos = fix.ypos[math.ceil(opline.ali/3)](accd.meta.res_y,opline._v)
       aegisub.log(5,"Line %d: pos -> (%f,%f)\n", opline.num, opline.xpos, opline.ypos)
-    end
-    if opline.xorg then
-      local xd = opline.xpos - opline.xorg
-      local yd = opline.ypos - opline.yorg
-      local r = math.sqrt(xd^2+yd^2)
-      local alpha = datan(yd,xd)
-      opline.xpos = opline.xorg + r*dcos(alpha-opline.zrot)
-      opline.ypos = opline.yorg + r*dsin(alpha-opline.zrot)
-      opline.text = opline.text:gsub("\\org%(([%-%d%.]+),([%-%d%.]+)%)","")
     end
     if opline.startframe < accd.startframe then -- make timings flexible. Number of frames total has to match the tracked data but
       aegisub.log(5,"Line %d: startframe changed from %d to %d\n",v-strt,accd.startframe,opline.startframe)
@@ -717,44 +644,29 @@ function frame_by_frame(sub,accd,opts,clipopts)
     if not v.is_comment then v.comment = false end
   end
   local _ = nil
-  local newlines = {} -- table to stick indicies of tracked lines into for cleanup.
-  local operations, eraser = {}, {} -- create a table and put the necessary functions into it, which will save a lot of if operations in the inner loop. This was the most elegant solution I came up with.
+  local newlines = {} -- table to stick indices of tracked lines into for cleanup.
+  local operations = {} -- create a table and put the necessary functions into it, which will save a lot of if operations in the inner loop. This was the most elegant solution I came up with.
   if opts.position then
-    table.insert(operations,possify)
-    --[[
-    if opts.clip then
-      table.insert(eraser,"\\i?clip%b()")
-    end --]]
-    table.insert(eraser,"\\\pos%([%-%d%.]+,[%-%d%.]+%)") -- \\\ because I DON'T FUCKING KNOW OKAY THAT'S JUST THE WAY IT WORKS
+    operations["\\\pos%([%-%d%.]+,[%-%d%.]+%)"] = possify -- no idea why it needs \\\ here
   end
   if opts.scale then
     if opts.vsfscale then
-      table.insert(operations,VScalify)
+      opts.sclround = 2
+      operations["\\fscx[%d%.]+"] = VSxscalify
+      operations["\\fscy[%d%.]+"] = VSyscalify
     else
-      table.insert(operations,scalify)
+      operations["\\fscx[%d%.]+"] = xscalify
+      operations["\\fscy[%d%.]+"] = yscalify
     end
-    table.insert(eraser,"\\fscx[%d%.]+")
-    table.insert(eraser,"\\fscy[%d%.]+")
     if opts.border then
-      table.insert(operations,bordicate)
-      table.insert(eraser,"\\xbord[%d%.]+")
-      table.insert(eraser,"\\ybord[%d%.]+")
-      table.insert(eraser,"\\bord[%d%.]+")
+      operations["\\bord[%d%.]+"] = bordicate
     end
     if opts.shadow then
-      table.insert(operations,shadinate)
-      table.insert(eraser,"\\xshad[%-%d%.]+")
-      table.insert(eraser,"\\yshad[%-%d%.]+")
-      table.insert(eraser,"\\shad[%-%d%.]+")
+      operations["\\shad[%-%d%.]+"] = shadinate
     end
   end
-  if opts.vsfscale then
-    opts.sclround = 2
-  end
   if opts.rotation then
-    table.insert(eraser,"\\org%([%-%d%.]+,[%-%d%.]+%)")
-    table.insert(operations,rotate)
-    table.insert(eraser,"\\frz[%-%d%.]+")
+    operations["\\frz[%-%d%.]+"] = rotate
   end
   printmem("End of table insertion")
   for i,v in ipairs(accd.lines) do
@@ -763,9 +675,9 @@ function frame_by_frame(sub,accd,opts,clipopts)
     v.rendf = v.endframe - accd.startframe -- end frame of line relative to start frame of tracked data
     local maths, mathsanswer = nil, nil -- create references without allocation? idk how this works.
     local clipme = false
-    if opts.clip and clipa and v.clip then
+    if clipa and v.clip then
       clipme = true -- use this in the inner loop because it only needs to be calculated once per line.
-      table.insert(eraser,"\\i?clip%b()")
+      -- table.insert(eraser,"\\i?clip%b()")
     end
     v.effect = "aa-mou"..v.effect
     if opts.linear then
@@ -776,7 +688,7 @@ function frame_by_frame(sub,accd,opts,clipopts)
       local three = aegisub.ms_from_frame(aegisub.frame_from_ms(v.end_time)-1)
       local four = aegisub.ms_from_frame(aegisub.frame_from_ms(v.end_time))
       maths = math.floor(one-red+(two-one)/2) -- this voodoo magic gets the time length (in ms) from the start of the first subtitle frame to the actual start of the line time.
-      local moremaths = three-blue+(four-three)/2
+      local moremaths = three-blue+(four-three)/2 -- Could be more sane?
       mathsanswer = math.floor(blue-red+moremaths) -- and this voodoo magic is the total length of the line plus the difference (which is negative) between the start of the last frame the line is on and the end time of the line.
     end
     if opts.relative then
