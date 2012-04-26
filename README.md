@@ -5,6 +5,7 @@ This branch is not guaranteed to be stable at any time. If you want something th
 done:
 
  - independent clip motion
+ - arbitrary start frame, rather than just first or last.
 
 todo:
 
