@@ -308,16 +308,19 @@ function preprocessing(sub, sel)
     local a = line.text:match("%{(.-)%}")
     if a then
       local length = line.end_time - line.start_time
-      local fad_s,fad_e = a:match("\\fad%(([%d]+),([%d]+)%)") -- uint
-      fad_s, fad_e = tonumber(fad_s), tonumber(fad_e)
-      if fad_s then -- Swap out fade for a transform so we can stage it.
-        line.text = line.text:gsub("\\fad%([%d]+,[%d]+%)",string.format("\\alpha&HFF&\\t(%d,%d,1,\\alpha&H00&)\\t(%d,%d,1,\\alpha&HFF&)",0,fad_s,length-fad_e,length))
+      local function fadrep(a,b)
+        a, b = tonumber(a), tonumber(b)
+        local str = ""
+        if a > 0 then str = str..string.format("\\alpha&HFF&\\t(%d,%d,1,\\alpha&H00&)",0,a) end -- there are a bunch of edge cases for which this won't work, I think
+        if b > 0 then str = str..string.format("\\t(%d,%d,1,\\alpha&HFF&)",length-b,length) end
+        return str
       end
-      local fade_a,fade_a2,fade_a3,fade_s,fade_m,fade_m2,fade_e = a:match("\\fade%(([%d]+),([%d]+),([%d]+),([%d]+),([%d]+),([%d]+),([%d]+)%)") -- I imagine this has never actually been tested
-      if fade_a then
-        line.text = line.text:gsub("\\fade%([%d]+,[%d]+,[%d]+,[%-%d]+,[%-%d]+,[%-%d]+,[%-%d]+%)",string.format("\\alpha&H%X&\\t(%d,%d,\\alpha&H%X&)\\t(%d,%d,\\alpha&H%X&)",fade_a,fade_s,fade_m,fade_a2,fade_m2,fade_3,fade_a3)) -- okay that wasn't actually so bad
+      line.text = line.text:gsub("\\fad%(([%d]+),([%d]+)%)",fadrep)
+      local function faderep(a,b,c,d,e,f,g)
+        a,b,c,d,e,f,g = tonumber(a),tonumber(b),tonumber(c),tonumber(d),tonumber(e),tonumber(f),tonumber(g)
+        return string.format("\\alpha&H%02X&\\t(%d,%d,1,\\alpha&H%02X&)\\t(%d,%d,1,\\alpha&H%02X&)",a,d,e,b,f,g,c)
       end
-      local p1, p2 = a:match("\\move%(([%-%d%.]+),([%-%d%.]+),[%-%d%.]+,[%-%d%.]+,?[%-%d]*,?[%-%d]*%)")
+      line.text:gsub("\\fade%(([%d]+),([%d]+),([%d]+),([%-%d]+),([%-%d]+),([%-%d]+),([%-%d]+)%)",faderep)
     end
     sub[v] = line -- replace
   end
