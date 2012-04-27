@@ -74,9 +74,7 @@ require "karaskel"
 gui = {} -- I'm really beginning to think this shouldn't be a global variable
 gui.main = { -- todo: change these to be more descriptive.
   linespath = { class = "textbox"; name = "linespath"; hint = "Paste data or the path to a file containing it. No quotes or escapes.";
-                x = 0; y = 1; height = 4; width = 6;},
-  clippath  = { class = "textbox"; name = "clippath"; hint = "Paste data or the path to a file containing it. No quotes or escapes.";
-                x = 6; y = 1; height = 4; width = 5;},
+                x = 0; y = 1; height = 4; width = 10;},
   pref      = { class = "textbox"; name = "pref"; hint = "The prefix";
                 x = 0; y = 14; height = 3; width = 10;},
   preflabel = { class = "label"; label = "                     Files will be written to this directory.";
@@ -500,7 +498,6 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   local button, config = aegisub.dialog.display(gui.main, {"Go","Abort","Export"})
   if button == "Go" then
     if config.linespath == "" then config.linespath = false end
-    if config.clippath == "" then config.clippath = false end
     if config.reverse then
       aegisub.progress.title("slibreG gnicniM") -- BECAUSE ITS FUNNY GEDDIT
     else
@@ -622,11 +619,6 @@ function frame_by_frame(sub,accd,opts)
   if opts.linespath then
     mocha = parse_input(opts.linespath,accd.meta.res_x,accd.meta.res_y,opts)
     assert(accd.totframes==mocha.flength,string.format("Number of frames selected (%d) does not match parsed line tracking data length (%d).",accd.totframes,mocha.flength))
-  end
-  if opts.clippath then
-    clipa = parse_input(opts.clippath,accd.meta.res_x,accd.meta.res_y,opts)
-    assert(accd.totframes==clipa.flength,string.format("Number of frames selected (%d) does not match parsed clip tracking data length (%d).",accd.totframes,clipa.flength))
-    opts.linear = false
   end
   if opts.export then export(accd,mocha,opts) end
   mocha.s = 1
@@ -1247,7 +1239,7 @@ end
 
 function confmaker()
   local newgui = table.copy_deep(gui.main) -- OH JESUS CHRIST WHAT HAVE I DONE
-  newgui.clippath, newgui.linespath, newgui.wconfig = nil
+  newgui.linespath, newgui.wconfig = nil
   newgui.encbin, newgui.pref = table.copy(newgui.pref), nil
   newgui.encbin.value, newgui.encbin.name = global.encbin, "encbin"
   newgui.datalabel.label = "       Enter the path to your prefix here (include trailing slash)."
