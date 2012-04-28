@@ -319,7 +319,7 @@ end
 
 function getinfo(sub, line, num)
   line.trans = {}
-  for a in line.text:gmatch("%{(.-)}")
+  for a in line.text:gmatch("%{(.-)}") do
     aegisub.log(5,"Found a comment/override block in line %d: %s\n",num,a)
     local function cconv(a,b,c,d,e)
       line.clips = a
@@ -363,7 +363,6 @@ function information(sub, sel)
   accd.lines = {}
   accd.endframe = aegisub.frame_from_ms(sub[sel[1]].end_time) -- get the end frame of the first selected line
   accd.startframe = aegisub.frame_from_ms(sub[sel[1]].start_time) -- get the start frame of the first selected line
-  accd.poserrs, accd.alignerrs = {}, {}
   local numlines = #sel
   for i, v in pairs(sel) do -- burning cpu cycles like they were no thing
     local opline = sub[v] -- these are different.
@@ -376,6 +375,8 @@ function information(sub, sel)
     if opline.margin_v ~= 0 then opline._v = opline.margin_v end
     if opline.margin_l ~= 0 then opline._l = opline.margin_l end
     if opline.margin_r ~= 0 then opline._r = opline.margin_r end
+    opline.ali = opline.text:match("\\an([1-9])") or opline.styleref.align
+    opline.xpos, opline.ypos = opline.text:match("\\pos%(([%-%d%.]+),([%-%d%.]+)%)")
     opline.startframe, opline.endframe = aegisub.frame_from_ms(opline.start_time), aegisub.frame_from_ms(opline.end_time)
     if opline.comment then opline.is_comment = true else opline.is_comment = false end
     if not opline.xpos then
@@ -583,27 +584,30 @@ function spoof_table(parsed_table,opts,len)
   parsed_table.yscl = parsed_table.yscl or {}
   parsed_table.zrot = parsed_table.zrot or {}
   if not opts.position then
-    aegisub.log(0,'derp\n')
     for k = 1, len do
       parsed_table.xpos[k] = 0
       parsed_table.ypos[k] = 0
     end
   end
   if not opts.scale then
-    aegisub.log(0,'herp\n')
     for k = 1, len do
       parsed_table.xscl[k] = 100
       parsed_table.yscl[k] = 100
     end
   end
   if not opts.rotation then
-    aegisub.log(0,'hurr\n')
     for k = 1,len do
       parsed_table.zrot[k] = 0
     end
   end
   parsed_table.s = 1
   if opts.reverse then parsed_table.s = parsed_table.flength end
+end
+
+function ensuretags(line,opts)
+  if not line.text:match("^{") then
+    --stuff
+  end
 end
 
 function frame_by_frame(sub,accd,opts,clipopts)
@@ -649,26 +653,26 @@ function frame_by_frame(sub,accd,opts,clipopts)
   local newlines = {} -- table to stick indices of tracked lines into for cleanup.
   local operations = {} -- create a table and put the necessary functions into it, which will save a lot of if operations in the inner loop. This was the most elegant solution I came up with.
   if opts.position then
-    operations["\\\pos%([%-%d%.]+,[%-%d%.]+%)"] = possify -- no idea why it needs \\\ here
+    operations["\\pos%(([%-%d%.]+,[%-%d%.]+)%)"] = possify -- no idea why it needs \\\ here
   end
   if opts.scale then
     if opts.vsfscale then
       opts.sclround = 2
-      operations["\\fscx[%d%.]+"] = VSxscalify
-      operations["\\fscy[%d%.]+"] = VSyscalify
+      operations["\\fscx([%d%.]+)"] = VSxscalify
+      operations["\\fscy([%d%.]+)"] = VSyscalify
     else
-      operations["\\fscx[%d%.]+"] = xscalify
-      operations["\\fscy[%d%.]+"] = yscalify
+      operations["\\fscx([%d%.]+)"] = xscalify
+      operations["\\fscy([%d%.]+)"] = yscalify
     end
     if opts.border then
-      operations["\\bord[%d%.]+"] = bordicate
+      operations["\\bord([%d%.]+)"] = bordicate
     end
     if opts.shadow then
-      operations["\\shad[%-%d%.]+"] = shadinate
+      operations["\\shad([%-%d%.]+)"] = shadinate
     end
   end
   if opts.rotation then
-    operations["\\frz[%-%d%.]+"] = rotate
+    operations["\\frz([%-%d%.]+)"] = rotate
   end
   printmem("End of table insertion")
   for i,currline in ipairs(accd.lines) do
@@ -697,10 +701,10 @@ function frame_by_frame(sub,accd,opts,clipopts)
       if opts.stframe < 0 then
         mocha.start = currline.rendf + opts.stframe + 1
       else
-        mocha.start = currline.rstartf + clipopts.stframe - 1
+        mocha.start = currline.rstartf + opts.stframe - 1
       end
     end
-    if clipopts.relative then
+    if clipopts.relative and clipa then
       if clipopts.stframe < 0 then
         clipa.start = currline.rendf + clipopts.stframe + 1
       else
@@ -714,10 +718,10 @@ function frame_by_frame(sub,accd,opts,clipopts)
     end
     if opts.position then
       currline.xdiff, currline.ydiff = mocha.xpos[mocha.start] - currline.xpos, mocha.ypos[mocha.start] - currline.ypos
-    end --]]
+    end
     for ie, ei in pairs(eraser) do -- have to do it before inserting our new values (also before setting the orgline)
       currline.text = currline.text:gsub(ei,"")
-    end
+    end --]]
     local orgtext = currline.text -- tables are passed as references.
     for x = currline.rendf,currline.rstartf,-1 do -- new inner loop structure
       printmem("Inner loop")
@@ -730,23 +734,26 @@ function frame_by_frame(sub,accd,opts,clipopts)
         currline.time_delta = aegisub.ms_from_frame(accd.startframe+x-1) - aegisub.ms_from_frame(accd.startframe)
         for vk,kv in ipairs(currline.trans) do
           if aegisub.progress.is_cancelled() then error("User cancelled") end
-          currline.text = transformate(v,kv)
+          currline.text = transformate(currline,kv)
         end
         for pattern,func in pairs(operations) do -- iterate through the necessary operations
-          currline.ratx = mocha.xscl[x]/mocha.xscl[mocha.start] -- DIVISION IS SLOW
-          currline.raty = mocha.yscl[x]/mocha.yscl[mocha.start]
-          currline.text = currline.text:gsub(pattern,function(a) return func(tonumber(a),v,mocha,opts) end)
+          mocha.ratx = mocha.xscl[x]/mocha.xscl[mocha.start] -- DIVISION IS SLOW
+          mocha.raty = mocha.yscl[x]/mocha.yscl[mocha.start]
+          mocha.xdiff = mocha.xpos[x]-mocha.xpos[mocha.start]
+          mocha.ydiff = mocha.ypos[x]-mocha.ypos[mocha.start]
+          mocha.zrotd = mocha.zrot[x]-mocha.zrot[mocha.start]
+          currline.text = currline.text:gsub(pattern,function(a) return func(a,currline,mocha,opts,x) end)
           if aegisub.progress.is_cancelled() then error("User cancelled") end
         end
         local tag = "{"
         if clipme then
-          tag = tag..clippinate(v,clipa,x)
+          tag = tag..clippinate(currline,clipa,x)
         end
-        currline.text = tag..'}\6'..currline.text
+        if tag:len() > 1 then currline.text = tag..'}\6'..currline.text end
         currline.text = currline.text:gsub('\1',"")
         currline.text = tag..currline.text
       end
-      sub.insert(currline.num+1,v)
+      sub.insert(currline.num+1,currline)
       currline.text = orgtext
     end
   end
@@ -759,18 +766,22 @@ function frame_by_frame(sub,accd,opts,clipopts)
   return newlines -- yeah mang
 end
 
-function possify(line,mocha,opts,iter)
-  local xpos = mocha.xpos[iter]-(line.xdiff*line.ratx)
-  local ypos = mocha.ypos[iter]-(line.ydiff*line.raty)
+function possify(pos,line,mocha,opts,iter)
+  local oxpos,oypos = pos:match("([%-%d%.]+),([%-%d%.]+)")
+  local xpos = (tonumber(oxpos) + mocha.xdiff)*mocha.ratx
+  local ypos = (tonumber(oypos) + mocha.ydiff)*mocha.raty
+  xpos = xpos + (1 - mocha.ratx)*mocha.xpos[iter]
+  ypos = ypos + (1 - mocha.raty)*mocha.ypos[iter]
+  --[[
   local xd = xpos - mocha.xpos[iter]
   local yd = ypos - mocha.ypos[iter]
   local r = math.sqrt(xd^2+yd^2)
   local alpha = datan(yd,xd) -- this should be a constant---move its calculation outside the inner loop, perhaps?
   xpos = mocha.xpos[iter] + r*dcos(alpha-mocha.zrot[iter]+mocha.zrot[mocha.start])
   ypos = mocha.ypos[iter] + r*dsin(alpha-mocha.zrot[iter]+mocha.zrot[mocha.start])
-  aegisub.log(5,"Position: (%f,%f) -> (%f,%f)\n",line.xpos,line.ypos,xpos,ypos)
-  local nf = string.format("%%.%df",opts.posround) -- new method of number formatting!
-  return "\\pos("..string.format(nf,xpos)..","..string.format(nf,ypos)..")"
+  --]]
+  aegisub.log(5,"Position: (%f,%f) -> (%f,%f)\n",oxpos,oypos,xpos,ypos)
+  return string.format("\\pos(%g,%g)",round(xpos,opts.posround),round(ypos,opts.posround))
 end
 
 function clippinate(line,clipa,iter)
@@ -812,25 +823,28 @@ function transformate(line,trans)
   return line.text:gsub("\\t%b()","\\"..string.char(1)..string.format("t(%d,%d,%g,%s)",t_s,t_e,trans[3],trans[4]),1)
 end
 
-function scalify(line,mocha,opts)
-  local xscl = line.xscl*line.ratx
-  aegisub.log(5,"X Scale: %f -> %f\n",line.xscl,xscl)
-  local yscl = line.yscl*line.raty
-  aegisub.log(5,"Y Scale: %f -> %f\n",line.yscl,yscl)
-  return string.format("\\fscx%g\\fscy%g",round(xscl,opts.sclround),round(yscl,opts.sclround))
+function xscalify(xscale,line,mocha,opts)
+  local xscl = xscale*mocha.ratx
+  aegisub.log(5,"X Scale: %f -> %f\n",xscale,xscl)
+  return string.format("\\fscx%g",round(xscl,opts.sclround))
 end
 
-function bordicate(line,mocha,opts)
-  local xbord = line.xbord*line.ratx
-  local ybord = line.ybord*line.raty
-  if xbord == ybord then
-    aegisub.log(5,"Border: %f -> %f\n",line.xbord,xbord)
-    return string.format("\\bord%g",round(xbord,opts.sclround))
-  else
-    aegisub.log(5,"XBorder: %f -> %f\n",line.xbord,xbord)
-    aegisub.log(5,"YBorder: %f -> %f\n",line.ybord,ybord)
-    return string.format("\\xbord%g\\ybord%g",round(xbord,opts.sclround),round(ybord,opts.sclround))
-  end
+function yscalify(yscale,line,mocha,opts)
+  local yscl = yscale*mocha.ratx
+  aegisub.log(5,"Y Scale: %f -> %f\n",yscale,yscl)
+  return string.format("\\fscy%g",round(yscl,opts.sclround))
+end
+
+function bordicate(bord,line,mocha,opts)
+  local nbord = bord*mocha.ratx
+  aegisub.log(5,"Border: %f -> %f\n",bord,nbord)
+  return string.format("\\bord%g",round(nbord,opts.sclround))
+end
+
+function shadinate(shad,line,mocha,opts)
+  local nshad = shad*mocha.ratx
+  aegisub.log(5,"Shadow: %f -> %f\n",shad,nshad)
+  return string.format("\\shad%g",round(nshad,opts.sclround))
 end
 
 function shadinate(line,mocha,opts)
