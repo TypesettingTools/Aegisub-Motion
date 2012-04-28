@@ -69,8 +69,18 @@ INALIABLE RIGHTS:
 script_name = "Aegisub-Motion"
 script_description = "A set of tools for simplifying the process of creating and applying motion tracking data with Aegisub." -- and it might have memory issues. I think.
 script_author = "torque"
-script_version = "μοε-RC1" -- no, I have no idea how this versioning system works either.
+script_version = "2.0.0.0.0.0" -- no, I have no idea how this versioning system works either.
 require "karaskel"
+for k,v in pairs(aegisub) do
+  dpath = false
+  if k == "file_name" then
+    dpath = true
+    break
+  end
+end
+if not dpath then error("Aegisub 3.0.0 or better is required.") end
+dpath = nil
+require "clipboard"
 
 gui = {} -- I'm really beginning to think this shouldn't be a global variable
 gui.main = { -- todo: change these to be more descriptive.
@@ -139,21 +149,12 @@ gui.clip = {
                 x = 7; y = 6; height = 1; width = 3;},
 } -- entire inner loop needs to be rewritten to handle reverse independently.
 
-for k,v in pairs(aegisub) do
-  dpath = false
-  if k == "file_name" then
-    dpath = true
-    require "clipboard"
-    break
-  end
-end
-
-if config_file == "" and dpath then config_file = aegisub.decode_path("?user/aegisub-motion.conf") end
+if config_file == "" then config_file = aegisub.decode_path("?user/aegisub-motion.conf") end
 
 encpre = {
-x264    = '"#{encbin}" --crf 16 --tune fastdecode -i 250 --fps 23.976 --sar 1:1 --index "#{prefix}#{index}.index" --seek #{startf} --frames #{lenf} -o "#{prefix}#{output}.mp4" "#{input}"',
-ffmpeg  = '"#{encbin}" -ss #{startt} -t #{lent} -sn -i "#{input}" "#{prefix}#{output}-%%05d.jpg"',
-avs2yuv = 'echo FFVideoSource("#{input}",cachefile="#{prefix}#{index}.index").trim(#{startf},#{endf}).ConvertToRGB.ImageWriter("#{prefix}#{output}.",type="png") > "#{prefix}encode.avs"#{nl}"#{encbin}" -o NUL "#{prefix}encode.avs"#{nl}del "#{prefix}encode.avs"',}
+x264    = '"#{encbin}" --crf 16 --tune fastdecode -i 250 --fps 23.976 --sar 1:1 --index "#{prefix}#{index}.index" --seek #{startf} --frames #{lenf} -o "#{prefix}#{output}[#{startf}-#{endf}].mp4" "#{input}"',
+ffmpeg  = '"#{encbin}" -ss #{startt} -t #{lent} -sn -i "#{input}" "#{prefix}#{output}[#{startf}-#{endf}]-%%05d.jpg"',
+avs2yuv = 'echo FFVideoSource("#{input}",cachefile="#{prefix}#{index}.index").trim(#{startf},#{endf}).ConvertToRGB.ImageWriter("#{prefix}#{output}[#{startf}-#{endf}].",type="png") > "#{prefix}encode.avs"#{nl}"#{encbin}" -o NUL "#{prefix}encode.avs"#{nl}del "#{prefix}encode.avs"',}
 
 global = {
   windows  = true,
@@ -288,9 +289,7 @@ function string:splitconf()
 end
 
 function string:tobool()
-  if self == "true" then return true
-  elseif self == "false" then return false
-  else return self end
+  return ({['true'] = true, ['false'] = false})[self] or self
 end
 
 function preprocessing(sub, sel)
@@ -299,16 +298,19 @@ function preprocessing(sub, sel)
     local a = line.text:match("%{(.-)%}")
     if a then
       local length = line.end_time - line.start_time
-      local fad_s,fad_e = a:match("\\fad%(([%d]+),([%d]+)%)") -- uint
-      fad_s, fad_e = tonumber(fad_s), tonumber(fad_e)
-      if fad_s then -- Swap out fade for a transform so we can stage it.
-        line.text = line.text:gsub("\\fad%([%d]+,[%d]+%)",string.format("\\alpha&HFF&\\t(%d,%d,1,\\alpha&H00&)\\t(%d,%d,1,\\alpha&HFF&)",0,fad_s,length-fad_e,length))
+      local function fadrep(a,b)
+        a, b = tonumber(a), tonumber(b)
+        local str = ""
+        if a > 0 then str = str..string.format("\\alpha&HFF&\\t(%d,%d,1,\\alpha&H00&)",0,a) end -- there are a bunch of edge cases for which this won't work, I think
+        if b > 0 then str = str..string.format("\\t(%d,%d,1,\\alpha&HFF&)",length-b,length) end
+        return str
       end
-      local fade_a,fade_a2,fade_a3,fade_s,fade_m,fade_m2,fade_e = a:match("\\fade%(([%d]+),([%d]+),([%d]+),([%d]+),([%d]+),([%d]+),([%d]+)%)") -- I imagine this has never actually been tested
-      if fade_a then
-        line.text = line.text:gsub("\\fade%([%d]+,[%d]+,[%d]+,[%-%d]+,[%-%d]+,[%-%d]+,[%-%d]+%)",string.format("\\alpha&H%X&\\t(%d,%d,\\alpha&H%X&)\\t(%d,%d,\\alpha&H%X&)",fade_a,fade_s,fade_m,fade_a2,fade_m2,fade_3,fade_a3)) -- okay that wasn't actually so bad
+      line.text = line.text:gsub("\\fad%(([%d]+),([%d]+)%)",fadrep)
+      local function faderep(a,b,c,d,e,f,g)
+        a,b,c,d,e,f,g = tonumber(a),tonumber(b),tonumber(c),tonumber(d),tonumber(e),tonumber(f),tonumber(g)
+        return string.format("\\alpha&H%02X&\\t(%d,%d,1,\\alpha&H%02X&)\\t(%d,%d,1,\\alpha&H%02X&)",a,d,e,b,f,g,c)
       end
-      local p1, p2 = a:match("\\move%(([%-%d%.]+),([%-%d%.]+),[%-%d%.]+,[%-%d%.]+,?[%-%d]*,?[%-%d]*%)")
+      line.text:gsub("\\fade%(([%d]+),([%d]+),([%d]+),([%-%d]+),([%-%d]+),([%-%d]+),([%-%d]+)%)",faderep)
     end
     sub[v] = line -- replace
   end
@@ -407,7 +409,7 @@ end
 
 function localconfig(cf_name)
   local cf
-  if not (cf_name:match("^[A-Z]:\\") or cf_name:match("^/")) and dpath then
+  if not (cf_name:match("^[A-Z]:\\") or cf_name:match("^/")) then
     cf = io.open(aegisub.decode_path("?script/"..cf_name))
     if not cf then
       cf = aegisub.decode_path("?user/"..cf_name)
@@ -439,7 +441,7 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
       gui.main[k] = nil -- set to nil so dialog.display doesn't throw a hissy fit
     end
   end
-  if dpath and global.autocopy then
+  if global.autocopy then
     local paste = clipboard.get() or "" -- if nothing on the clipboard then returns nil
     if global.acfilter then
       if paste:match("^Adobe After Effects 6.0 Keyframe Data") then
@@ -491,7 +493,7 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
     init_input(sub,sel) -- this is extremely unideal as it reruns all of the information gathering functions as well.
   else
     aegisub.progress.task("ABORT")
-    if dpath then aegisub.cancel() end
+    aegisub.cancel()
   end
   aegisub.set_undo_point("Motion Data")
   printmem("Closing")
@@ -669,83 +671,83 @@ function frame_by_frame(sub,accd,opts,clipopts)
     operations["\\frz[%-%d%.]+"] = rotate
   end
   printmem("End of table insertion")
-  for i,v in ipairs(accd.lines) do
+  for i,currline in ipairs(accd.lines) do
     printmem("Outer loop")
-    v.rstartf = v.startframe - accd.startframe + 1 -- start frame of line relative to start frame of tracked data
-    v.rendf = v.endframe - accd.startframe -- end frame of line relative to start frame of tracked data
+    currline.rstartf = currline.startframe - accd.startframe + 1 -- start frame of line relative to start frame of tracked data
+    currline.rendf = currline.endframe - accd.startframe -- end frame of line relative to start frame of tracked data
     local maths, mathsanswer = nil, nil -- create references without allocation? idk how this works.
     local clipme = false
-    if clipa and v.clip then
+    if clipa and currline.clip then
       clipme = true -- use this in the inner loop because it only needs to be calculated once per line.
       -- table.insert(eraser,"\\i?clip%b()")
     end
-    v.effect = "aa-mou"..v.effect
+    currline.effect = "aa-mou"..currline.effect
     if opts.linear then
-      local one = aegisub.ms_from_frame(aegisub.frame_from_ms(v.start_time))
-      local two = aegisub.ms_from_frame(aegisub.frame_from_ms(v.start_time)+1)
-      local red = v.start_time
-      local blue = v.end_time
-      local three = aegisub.ms_from_frame(aegisub.frame_from_ms(v.end_time)-1)
-      local four = aegisub.ms_from_frame(aegisub.frame_from_ms(v.end_time))
+      local one = aegisub.ms_from_frame(aegisub.frame_from_ms(currline.start_time))
+      local two = aegisub.ms_from_frame(aegisub.frame_from_ms(currline.start_time)+1)
+      local red = currline.start_time
+      local blue = currline.end_time
+      local three = aegisub.ms_from_frame(aegisub.frame_from_ms(currline.end_time)-1)
+      local four = aegisub.ms_from_frame(aegisub.frame_from_ms(currline.end_time))
       maths = math.floor(one-red+(two-one)/2) -- this voodoo magic gets the time length (in ms) from the start of the first subtitle frame to the actual start of the line time.
       local moremaths = three-blue+(four-three)/2 -- Could be more sane?
       mathsanswer = math.floor(blue-red+moremaths) -- and this voodoo magic is the total length of the line plus the difference (which is negative) between the start of the last frame the line is on and the end time of the line.
     end
     if opts.relative then
       if opts.stframe < 0 then
-        mocha.start = v.rendf + opts.stframe + 1
+        mocha.start = currline.rendf + opts.stframe + 1
       else
-        mocha.start = v.rstartf + clipopts.stframe - 1
+        mocha.start = currline.rstartf + clipopts.stframe - 1
       end
     end
     if clipopts.relative then
       if clipopts.stframe < 0 then
-        clipa.start = v.rendf + clipopts.stframe + 1
+        clipa.start = currline.rendf + clipopts.stframe + 1
       else
-        clipa.start = v.rstartf + clipopts.stframe - 1
+        clipa.start = currline.rstartf + clipopts.stframe - 1
       end
     end
-    mocha.s = v.rstartf -- after swapping to compensate
-    ---[[
+    mocha.s = currline.rstartf -- after swapping to compensate
+    --[[
     if opts.rotation then
-      v.zrotd = mocha.zrot[mocha.start] - v.zrot -- idr there was something silly about this
+      currline.zrotd = mocha.zrot[mocha.start] - currline.zrot -- idr there was something silly about this
     end
     if opts.position then
-      v.xdiff, v.ydiff = mocha.xpos[mocha.start] - v.xpos, mocha.ypos[mocha.start] - v.ypos
+      currline.xdiff, currline.ydiff = mocha.xpos[mocha.start] - currline.xpos, mocha.ypos[mocha.start] - currline.ypos
     end --]]
     for ie, ei in pairs(eraser) do -- have to do it before inserting our new values (also before setting the orgline)
-      v.text = v.text:gsub(ei,"")
+      currline.text = currline.text:gsub(ei,"")
     end
-    local orgtext = v.text -- tables are passed as references.
-    for x = v.rendf,v.rstartf,-1 do -- new inner loop structure
+    local orgtext = currline.text -- tables are passed as references.
+    for x = currline.rendf,currline.rstartf,-1 do -- new inner loop structure
       printmem("Inner loop")
-      aegisub.progress.title(string.format("Processing frame %g/%g",x,v.rendf-v.rstartf+1))
-      aegisub.progress.set((x-v.rstartf)/(v.rendf-v.rstartf)*100)
+      aegisub.progress.title(string.format("Processing frame %g/%g",x,currline.rendf-currline.rstartf+1))
+      aegisub.progress.set((x-currline.rstartf)/(currline.rendf-currline.rstartf)*100)
       if aegisub.progress.is_cancelled() then error("User cancelled") end
-      v.start_time = aegisub.ms_from_frame(accd.startframe+x-1)
-      v.end_time = aegisub.ms_from_frame(accd.startframe+x)
-      if not v.is_comment then -- don't do any math for commented lines.
+      currline.start_time = aegisub.ms_from_frame(accd.startframe+x-1)
+      currline.end_time = aegisub.ms_from_frame(accd.startframe+x)
+      if not currline.is_comment then -- don't do any math for commented lines.
+        currline.time_delta = aegisub.ms_from_frame(accd.startframe+x-1) - aegisub.ms_from_frame(accd.startframe)
+        for vk,kv in ipairs(currline.trans) do
+          if aegisub.progress.is_cancelled() then error("User cancelled") end
+          currline.text = transformate(v,kv)
+        end
+        for pattern,func in pairs(operations) do -- iterate through the necessary operations
+          currline.ratx = mocha.xscl[x]/mocha.xscl[mocha.start] -- DIVISION IS SLOW
+          currline.raty = mocha.yscl[x]/mocha.yscl[mocha.start]
+          currline.text = currline.text:gsub(pattern,function(a) return func(tonumber(a),v,mocha,opts) end)
+          if aegisub.progress.is_cancelled() then error("User cancelled") end
+        end
         local tag = "{"
-        v.time_delta = aegisub.ms_from_frame(accd.startframe+x-1) - aegisub.ms_from_frame(accd.startframe)
-        for vk,kv in ipairs(v.trans) do
-          if aegisub.progress.is_cancelled() then error("User cancelled") end
-          v.text = transformate(v,kv)
-        end
-        for vk,kv in ipairs(operations) do -- iterate through the necessary operations
-          v.ratx = mocha.xscl[x]/mocha.xscl[mocha.start] -- DIVISION IS SLOW
-          v.raty = mocha.yscl[x]/mocha.yscl[mocha.start]
-          if aegisub.progress.is_cancelled() then error("User cancelled") end
-          tag = tag..kv(v,mocha,opts,x)
-        end
         if clipme then
           tag = tag..clippinate(v,clipa,x)
         end
-        tag = tag.."}"..string.char(6)
-        v.text = v.text:gsub(string.char(1),"")
-        v.text = tag..v.text
+        currline.text = tag..'}\6'..currline.text
+        currline.text = currline.text:gsub('\1',"")
+        currline.text = tag..currline.text
       end
-      sub.insert(v.num+1,v)
-      v.text = orgtext
+      sub.insert(currline.num+1,v)
+      currline.text = orgtext
     end
   end
   for x = 1,#sub do
@@ -755,41 +757,6 @@ function frame_by_frame(sub,accd,opts,clipopts)
     end
   end
   return newlines -- yeah mang
-end
-
-function linearize(line,mocha,opts)
-  local pre,trans = "",""
-  if opts.scale then
-    pre = pre..string.format("\\fscx%g\\fscy%g",round(line.xscl*line.ratx,opts.sclround),round(line.yscl*line.raty,opts.sclround))
-    trans = trans..string.format("\\fscx%g\\fscy%g",line.xscl,line.yscl)
-    if opts.border then
-      if line.xbord == line.ybord then
-        pre = pre..string.format("\\bord%g",round(line.xbord*line.ratx,opts.sclround))
-        trans = trans..string.format("\\bord%g",line.xbord)
-      else
-        pre = pre..string.format("\\xbord%g\\ybord%g",round(line.xbord*line.ratx,opts.sclround),round(line.ybord*line.raty,opts.sclround))
-        trans = trans..string.format("\\xbord%g\\ybord%g",line.xbord,line.ybord)
-      end
-    end
-    if opts.shadow then
-      if line.xbord == line.ybord then
-        pre = pre..string.format("\\shad%g",round(line.xshad*line.ratx,opts.sclround))
-        trans = trans..string.format("\\shad%g",line.xshad)
-      else
-        pre = pre..string.format("\\xshad%g\\yshad%g",round(line.xshad*line.ratx,opts.sclround),round(line.yshad*line.raty,opts.sclround))
-        trans = trans..string.format("\\xshad%g\\yshad%g",line.xshad,line.yshad)
-      end
-    end
-  end
-  if opts.rotation then
-    pre = pre..string.format("\\frz%g",round(mocha.zrot[line.rendf]-line.zrotd,opts.sclround)) -- not being able to move org might be a large issue
-    trans = trans..string.format("\\frz%g",mocha.zrot)
-  end
-  if opts.reverse then
-    return pre, trans
-  else
-    return trans, pre
-  end
 end
 
 function possify(line,mocha,opts,iter)
@@ -1024,14 +991,10 @@ end
 
 function isvideo() -- a very rudimentary (but hopefully efficient) check to see if there is a video loaded.
   local l = aegisub.video_size() and true or false -- and forces boolean conversion?
-  if dpath then
-    if l then
-      return l
-    else
-      return l,"Validation failed: you don't have a video loaded."
-    end
-  else
+  if l then
     return l
+  else
+    return l,"Validation failed: you don't have a video loaded."
   end
 end
 
@@ -1178,7 +1141,7 @@ function confmaker()
                       x = 5; y = 10; height = 1; width = 3;}
   local valtab = {}
   local cf = config_file
-  if not (cf:match("^[A-Z]:\\") or cf:match("^/")) and dpath then
+  if not (cf:match("^[A-Z]:\\") or cf:match("^/")) then
     aegisub.log(5,"herp\n")
     cf = io.open(aegisub.decode_path("?script/"..config_file))
     if not cf then
@@ -1223,17 +1186,17 @@ gui.t = {
                x = 0; y = 7; height = 1; width = 30;},
 }
 
-function collecttrim(sub,sel,wc)
-  wc.startt, wc.endt = sub[sel[1]].start_time, sub[sel[1]].end_time
+function collecttrim(sub,sel,tokens)
+  tokens.startt, tokens.endt = sub[sel[1]].start_time, sub[sel[1]].end_time
   for i,v in ipairs(sel) do
     local l = sub[v]
     local lst, let = l.start_time, l.end_time
-    if lst < wc.startt then wc.startt = lst end
-    if let > wc.endt then wc.endt = let end
+    if lst < tokens.startt then tokens.startt = lst end
+    if let > tokens.endt then tokens.endt = let end
   end
-  wc.startf, wc.endf = aegisub.frame_from_ms(wc.startt), aegisub.frame_from_ms(wc.endt)-1
-  wc.lenf = wc.endf-wc.startf+1
-  wc.lent = wc.endt-wc.startt
+  tokens.startf, tokens.endf = aegisub.frame_from_ms(tokens.startt), aegisub.frame_from_ms(tokens.endt)-1
+  tokens.lenf = tokens.endf-tokens.startf+1
+  tokens.lent = tokens.endt-tokens.startt
 end
 -- #{encbin} #{input} #{prefix} #{index} #{output} #{startf} #{lenf} #{endf} #{startt} #{lent} #{endt} #{nl}
 function getvideoname(sub)
@@ -1250,7 +1213,7 @@ end
 function trimnthings(sub,sel)
   local cf
   if config_file then
-    if not (config_file:match("^[A-Z]:\\") or config_file:match("^/")) and dpath then
+    if not (config_file:match("^[A-Z]:\\") or config_file:match("^/")) then
       cf = io.open(aegisub.decode_path("?script/"..config_file))
       if not cf then
         cf = aegisub.decode_path("?user/"..config_file)
@@ -1268,68 +1231,53 @@ function trimnthings(sub,sel)
     --global.enccom = encpre[global.encoder] or gtab[enccom]
     gtab = nil
   end
-  local wildc = {}
-  wildc.encbin = global.encbin
-  wildc.prefix = global.prefix
-  wildc.nl = "\n"
-  collecttrim(sub,sel,wildc)
-  if dpath then
-    local vid = getvideoname(sub):gsub("[A-Z]:\\",""):gsub(".-[^\\]\\","")
-    assert(not vid:match("?dummy"), "No dummy videos allowed. Sorry.")
-    wildc.input = aegisub.decode_path("?video")..vid
-    wildc.index = vid:match("(.+)%.[^%.]+$")
-    wildc.output = wildc.index..'-'..wildc.startf.."-%d"
+  local tokens = {}
+  tokens.encbin = global.encbin
+  tokens.prefix = global.prefix
+  tokens.nl = "\n"
+  collecttrim(sub,sel,tokens)
+  local vid = getvideoname(sub):gsub("[A-Z]:\\",""):gsub(".-[^\\]\\","")
+  assert(not vid:match("?dummy"), "No dummy videos allowed. Sorry.")
+  tokens.input = aegisub.decode_path("?video")..vid
+  tokens.index = vid:match("(.+)%.[^%.]+$")
+  tokens.output = tokens.index -- huh.
+  if not global.gui_trim then 
+    writeandencode(tokens)
   else
-    wildc.input = getvideoname(sub)
-    assert(not wildc.input:match("?dummy"), "No dummy videos allowed. Sorry.")
-    wildc.index = wildc.input:gsub("[A-Z]:\\",""):gsub(".-[^\\]\\",""):match("(.+)%.[^%.]+$")
-    wildc.output = wildc.index..'-'..wildc.startf.."-%d"
-  end
-  if dpath and not global.gui_trim then 
-    writeandencode(wildc)
-  else
-    someguiorsmth(wildc)
+    someguiorsmth(tokens)
   end
 end
 
-function someguiorsmth(wildc)
-  gui.t.input.value = wildc.input
-  gui.t.index.value = wildc.index
-  gui.t.startf.value = wildc.startf
-  gui.t.endf.value = wildc.endf
-  gui.t.output.value = wildc.output
+function someguiorsmth(tokens)
+  gui.t.input.value = tokens.input
+  gui.t.index.value = tokens.index
+  gui.t.startf.value = tokens.startf
+  gui.t.endf.value = tokens.endf
+  gui.t.output.value = tokens.output
   local button, opts = aegisub.dialog.display(gui.t)
   if button then
     for k,v in pairs(opts) do
-      wildc[k] = v
+      tokens[k] = v
     end
-    wildc.startt, wildc.endt = aegisub.ms_from_frame(wildc.startf), aegisub.ms_from_frame(wildc.endf)
-    wildc.lenf, wildc.lent = wildc.endf-wildc.startf, wildc.endt-wildc.startt
-    writeandencode(wildc)
+    tokens.startt, tokens.endt = aegisub.ms_from_frame(tokens.startf), aegisub.ms_from_frame(tokens.endf)
+    tokens.lenf, tokens.lent = tokens.endf-tokens.startf, tokens.endt-tokens.startt
+    writeandencode(tokens)
   end
 end
 
-function writeandencode(wildc)
-  local it = 0
-  wildc.startt, wildc.endt, wildc.lent = wildc.startt/1000, wildc.endt/1000, wildc.lent/1000
-  local function FormatWildCards(wc)
-    return wildc[wc:sub(2,-2)]
+function writeandencode(tokens)
+  tokens.startt, tokens.endt, tokens.lent = tokens.startt/1000, tokens.endt/1000, tokens.lent/1000
+  local function ReplaceTokens(token)
+    return tokens[token:sub(2,-2)]
   end
-  repeat
-    if aegisub.progress.is_cancelled() then error("User cancelled") end
-    it = it + 1
-    local n = string.format(wildc.output,it)
-    local f = io.open(n,'r')
-    if f then io.close(f); f = false else f = true; wildc.output = n end
-  until f == true -- crappypasta
   if global.windows then
     local sh = io.open(global.prefix.."encode.bat","w+")
     assert(sh,"Encoding command could not be written. Check your prefix.") -- to solve the 250 byte limit, we write to a self-deleting batch file.
-    sh:write(global.enccom:gsub("#(%b{})",FormatWildCards)..'\ndel %0')
+    sh:write(global.enccom:gsub("#(%b{})",ReplaceTokens)..'\ndel %0')
     sh:close()
-    os.execute(string.format("%q",global.prefix.."encode.bat"))
-  else -- nfi what to do on lunix: dunno if it will allow execution of a shell script without explicitly setting the permissions. "x264 `cat x264opts.txt`" perhaps
-    os.execute(global.encbin..' '..global.enccom..' --index "'..opts.index..'" --seek '..opts.startf..' --frames '..(opts.endf-opts.startf+1)..' -o "'..out..'" "'..opts.video..'"')
+    os.execute(string.format("cd %q & %q",global.prefix,"encode.bat"))
+  else -- nfi what to do on lunix
+    os.execute(global.enccom:gsub("#(%b{})",ReplaceTokens))
   end
 end
 
