@@ -11,6 +11,13 @@ todo:
 
  - multiple override block per line support
  - add the clip stuff to the config
- - autostart mocha via command line for love and peace
- - manual file saving
- - I'm considering throwing out the 2.1.X compatability code because it's kinda annoying, and I don't care much about 2.1.X at this point.
+ - autostart mocha via command line for love and peace (may not actually happen, as the command window opened by lua may block aegisub-motion (and therefore aegisub) until mocha is closed, which would be fairly undesirable)
+
+regressions:
+
+ - linear mode completely broken (well, actually, deleted).
+ - NO SUPPORT FOR AEGISUB 2.1.X BECAUSE I DON'T LIKE IT
+
+scrapped ideas:
+
+ - manual save (entirely incompatable with the current token system)
