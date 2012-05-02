@@ -390,8 +390,6 @@ function information(sub, sel)
     karaskel.preproc_line(sub, accd.meta, accd.styles, opline) -- get linewidth/height and margins
     if not opline.effect then opline.effect = "" end
     getinfo(sub, opline, opline.num-strt)
-    opline.styleref.fontname = opline.fn
-    opline.styleref.fontsize = opline.fs
     if opline.margin_v ~= 0 then opline._v = opline.margin_v else opline._v = opline.styleref.margin_v end
     if opline.margin_l ~= 0 then opline._l = opline.margin_l else opline._l = opline.styleref.margin_l end
     if opline.margin_r ~= 0 then opline._r = opline.margin_r else opline._r = opline.styleref.margin_r end
@@ -405,11 +403,11 @@ function information(sub, sel)
       aegisub.log(5,"Line %d: pos -> (%f,%f)\n", opline.num, opline.xpos, opline.ypos)
     end
     if opline.startframe < accd.startframe then -- make timings flexible. Number of frames total has to match the tracked data but
-      aegisub.log(5,"Line %d: startframe changed from %d to %d\n",v-strt,accd.startframe,opline.startframe)
+      aegisub.log(5,"Line %d: startframe changed from %d to %d\n",opline.num-strt,accd.startframe,opline.startframe)
       accd.startframe = opline.startframe
     end
     if opline.endframe > accd.endframe then -- individual lines can be shorter than the whole scene
-      aegisub.log(5,"Line %d: endframe changed from %d to %d\n",v-strt,accd.endframe,opline.endframe)
+      aegisub.log(5,"Line %d: endframe changed from %d to %d\n",opline.num-strt,accd.endframe,opline.endframe)
       accd.endframe = opline.endframe
     end
     if opline.endframe-opline.startframe>1 then
