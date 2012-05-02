@@ -92,12 +92,14 @@ gui.main = { -- todo: change these to be more descriptive.
                 x = 0; y = 13; height = 1; width = 10;},
   datalabel = { class = "label"; label = "                       Paste data or enter a filepath.";
                 x = 0; y = 0; height = 1; width = 10;},
-  optlabel  = { class = "label"; label = "Data to be applied";
+  optlabel  = { class = "label"; label = "Data to be applied:";
                 x = 0; y = 6; height = 1; width = 5;},
   rndlabel  = { class = "label"; label = "Rounding";
                 x = 7; y = 6; height = 1; width = 3;},
   position  = { class = "checkbox"; name = "position"; value = true; label = "Position";
-                x = 0; y = 7; height = 1; width = 3;},
+                x = 0; y = 7; height = 1; width = 2;},
+  origin    = { class = "checkbox"; name = "origin"; value = false; label = "Origin";
+                x = 2; y = 7; height = 1; width = 2;},
   clip      = { class = "checkbox"; name = "clip"; value = false; label = "Clip";
                 x = 4; y = 7; height = 1; width = 2;},
   scale     = { class = "checkbox"; name = "scale"; value = true; label = "Scale";
@@ -225,7 +227,7 @@ alltags = {
 
 guiconf = {
   "sortd",
-  "position", "clip", "posround",
+  "position", "origin", "clip", "posround",
   "scale", "border", "shadow", "sclround",
   "rotation", "rotround",
   "relative", "stframe",
@@ -638,7 +640,8 @@ end
 
 function ensuretags(line,opts)
   local startblock = line.text:match("^{(.-)}")
-  line.xpos,line.ypos = line.text:match("\\pos%(([%-%d%.]+),([%-%d%.]+)%)")
+  --line.xpos,line.ypos = line.text:match("\\pos%(([%-%d%.]+),([%-%d%.]+)%)")
+  line.oxpos,line.oypos = line.text:match("\\org%(([%-%d%.]+),([%-%d%.]+)%)")
   if a then
     --stuff
   else
@@ -689,7 +692,10 @@ function frame_by_frame(sub,accd,opts,clipopts)
   local newlines = {} -- table to stick indices of tracked lines into for cleanup.
   local operations = {} -- create a table and put the necessary functions into it, which will save a lot of if operations in the inner loop. This was the most elegant solution I came up with.
   if opts.position then
-    operations["\\pos%(([%-%d%.]+,[%-%d%.]+)%)"] = possify -- no idea why it needs \\\ here
+    operations["\\pos%(([%-%d%.]+,[%-%d%.]+)%)"] = possify
+    if opts.origin then
+      operations["\\org%(([%-%d%.]+,[%-%d%.]+)%)"] = orginate
+    end
   end
   if opts.scale then
     if opts.vsfscale then
@@ -746,7 +752,9 @@ function frame_by_frame(sub,accd,opts,clipopts)
         clipa.start = currline.rstartf + clipopts.stframe - 1
       end
     end
+    ensuretags(currline,opts)
     currline.alpha = -datan(currline.ypos-mocha.ypos[mocha.start],currline.xpos-mocha.xpos[mocha.start])
+    if opts.origin then currline.beta = -datan(currline.oypos-mocha.ypos[mocha.start],currline.oxpos-mocha.xpos[mocha.start]) end
     aegisub.log(0,"alpha: %g\n",currline.alpha)
     local orgtext = currline.text -- tables are passed as references.
     for x = currline.rendf,currline.rstartf,-1 do -- new inner loop structure
@@ -762,14 +770,14 @@ function frame_by_frame(sub,accd,opts,clipopts)
           if aegisub.progress.is_cancelled() then error("User cancelled") end
           currline.text = transformate(currline,kv)
         end
+        mocha.ratx = mocha.xscl[x]/mocha.xscl[mocha.start] -- DIVISION IS SLOW
+        mocha.raty = mocha.yscl[x]/mocha.yscl[mocha.start]
+        mocha.xdiff = mocha.xpos[x]-mocha.xpos[mocha.start]
+        mocha.ydiff = mocha.ypos[x]-mocha.ypos[mocha.start]
+        mocha.zrotd = mocha.zrot[x]-mocha.zrot[mocha.start]
         for pattern,func in pairs(operations) do -- iterate through the necessary operations
-          mocha.ratx = mocha.xscl[x]/mocha.xscl[mocha.start] -- DIVISION IS SLOW
-          mocha.raty = mocha.yscl[x]/mocha.yscl[mocha.start]
-          mocha.xdiff = mocha.xpos[x]-mocha.xpos[mocha.start]
-          mocha.ydiff = mocha.ypos[x]-mocha.ypos[mocha.start]
-          mocha.zrotd = mocha.zrot[x]-mocha.zrot[mocha.start]
-          currline.text = currline.text:gsub(pattern,function(a) return func(a,currline,mocha,opts,x) end)
           if aegisub.progress.is_cancelled() then error("User cancelled") end
+          currline.text = currline.text:gsub(pattern,function(a) return func(a,currline,mocha,opts,x) end)
         end
         if clipme then
           currline.text = '{'..clippinate(currline,clipa,x)..'}\6'..currline.text
@@ -780,7 +788,7 @@ function frame_by_frame(sub,accd,opts,clipopts)
       currline.text = orgtext
     end
   end
-  for x = 1,#sub do
+  for x = #sub,1,-1 do
     if tostring(sub[x].effect):match("^aa%-mou") then
       aegisub.log(5,"I choose you, %d!\n",x)
       table.insert(newlines,x) -- seems to work as intended
@@ -800,6 +808,19 @@ function possify(pos,line,mocha,opts,iter)
   ypos = mocha.ypos[iter] - r*dsin(line.alpha + mocha.zrotd)
   aegisub.log(5,"Position: (%f,%f) -> (%f,%f)\n",oxpos,oypos,xpos,ypos)
   return string.format("\\pos(%g,%g)",round(xpos,opts.posround),round(ypos,opts.posround))
+end
+
+function orginate(opos,line,mocha,opts,iter)
+  local oxpos,oypos = opos:match("([%-%d%.]+),([%-%d%.]+)")
+  local xpos = (tonumber(oxpos) + mocha.xdiff)*mocha.ratx
+  local ypos = (tonumber(oypos) + mocha.ydiff)*mocha.raty
+  xpos = xpos + (1 - mocha.ratx)*mocha.xpos[iter]
+  ypos = ypos + (1 - mocha.raty)*mocha.ypos[iter]
+  local r = math.sqrt((xpos - mocha.xpos[iter])^2+(ypos - mocha.ypos[iter])^2)
+  xpos = mocha.xpos[iter] + r*dcos(line.beta + mocha.zrotd)
+  ypos = mocha.ypos[iter] - r*dsin(line.beta + mocha.zrotd)
+  aegisub.log(5,"Position: (%f,%f) -> (%f,%f)\n",oxpos,oypos,xpos,ypos)
+  return string.format("\\org(%g,%g)",round(xpos,opts.posround),round(ypos,opts.posround))
 end
 
 function clippinate(line,clipa,iter)
@@ -889,11 +910,11 @@ end
 
 function munch(sub,sel)
   local changed = false
-  for i,v in ipairs(sel) do 
-    local num = sel[#sel-i+1]
+  for i,num in ipairs(sel) do
+    if aegisub.progress.is_cancelled() then error("User cancelled") end
     local l1 = sub[num-1]
     local l2 = sub[num]
-    if l1.text == l2.text then
+    if l1.text == l2.text and l1.effect == l2.effect then
       l1.end_time = l2.end_time
       sub[num-1]=l1
       sub.delete(num)
