@@ -746,7 +746,8 @@ function frame_by_frame(sub,accd,opts,clipopts)
         clipa.start = currline.rstartf + clipopts.stframe - 1
       end
     end
-    currline.alpha = datan(currline.ypos-mocha.ypos[mocha.start],currline.xpos-mocha.xpos[mocha.start])
+    currline.alpha = -datan(currline.ypos-mocha.ypos[mocha.start],currline.xpos-mocha.xpos[mocha.start])
+    aegisub.log(0,"alpha: %g\n",currline.alpha)
     local orgtext = currline.text -- tables are passed as references.
     for x = currline.rendf,currline.rstartf,-1 do -- new inner loop structure
       printmem("Inner loop")
@@ -774,7 +775,6 @@ function frame_by_frame(sub,accd,opts,clipopts)
           currline.text = '{'..clippinate(currline,clipa,x)..'}\6'..currline.text
         end
         currline.text = currline.text:gsub('\1',"")
-        currline.text = tag..currline.text
       end
       sub.insert(currline.num+1,currline)
       currline.text = orgtext
@@ -797,12 +797,7 @@ function possify(pos,line,mocha,opts,iter)
   ypos = ypos + (1 - mocha.raty)*mocha.ypos[iter]
   local r = math.sqrt((xpos - mocha.xpos[iter])^2+(ypos - mocha.ypos[iter])^2)
   xpos = mocha.xpos[iter] + r*dcos(line.alpha + mocha.zrotd)
-  ypos = mocha.ypos[iter] + r*dsin(line.alpha + mocha.zrotd)
-  --[[
-  local alpha = datan(yd,xd) -- this should be a constant---move its calculation outside the inner loop, perhaps?
-  xpos = mocha.xpos[iter] + r*dcos(alpha-mocha.zrot[iter]+mocha.zrot[mocha.start])
-  ypos = mocha.ypos[iter] + r*dsin(alpha-mocha.zrot[iter]+mocha.zrot[mocha.start])
-  --]]
+  ypos = mocha.ypos[iter] - r*dsin(line.alpha + mocha.zrotd)
   aegisub.log(5,"Position: (%f,%f) -> (%f,%f)\n",oxpos,oypos,xpos,ypos)
   return string.format("\\pos(%g,%g)",round(xpos,opts.posround),round(ypos,opts.posround))
 end
@@ -1157,8 +1152,8 @@ function confmaker()
       cf = aegisub.decode_path("?script/"..config_file)
     end
   end
-  if not readconf(cf,newgui) then aegisub.log(0,"Config read failed!") end
-  newgui.enccom.value = encpre[newgui.encoder.value] or newgui.enccom.value
+  if not readconf(cf,gui.conf) then aegisub.log(0,"Config read failed!") end
+  gui.conf.enccom.value = encpre[gui.conf.encoder.value] or gui.conf.enccom.value
   local button, config = aegisub.dialog.display(gui.conf)
   if button then 
   for k,v in pairs(config) do
