@@ -20,4 +20,4 @@ regressions:
 scrapped ideas:
 
  - manual save (entirely incompatable with the current token system)
- - autostart mocha via command line for love and peace (too lazy to investigate feasibility for not.)
+ - autostart mocha via command line for love and peace (too lazy to investigate feasibility.)
