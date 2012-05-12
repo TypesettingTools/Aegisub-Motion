@@ -159,7 +159,7 @@ ffmpeg  = '"#{encbin}" -ss #{startt} -t #{lent} -sn -i "#{input}" "#{prefix}#{ou
 avs2yuv = 'echo FFVideoSource("#{input}",cachefile="#{prefix}#{index}.index").trim(#{startf},#{endf}).ConvertToRGB.ImageWriter("#{prefix}#{output}[#{startf}-#{endf}].",type="png") > "#{prefix}encode.avs"#{nl}"#{encbin}" -o NUL "#{prefix}encode.avs"#{nl}del "#{prefix}encode.avs"',}
 
 global = {
-  windows  = true,
+  windows  = true, -- try to use windows style paths
   prefix   = "",
   encoder  = "x264",
   encbin   = "",
@@ -167,6 +167,7 @@ global = {
   gnupauto = false,
   autocopy = true,
   acfilter = true,
+  delsourc = false, 
   -- encoder presets
 }
 
@@ -196,33 +197,41 @@ gui.conf.acfilter = { class = "checkbox"; value = global.windows; label = "Copy 
                     x = 5; y = 10; height = 1; width = 3;}
 
 alltags = {
-  ['xscl']    = "\\fscx([%d%.]+)",
-  ['yscl']    = "\\fscy([%d%.]+)",
-  ['ali']     = "\\an([1-9])",
-  ['zrot']    = "\\frz?([%-%d%.]+)",
-  ['bord']    = "\\bord([%d%.]+)",
-  ['xbord']   = "\\xbord([%d%.]+)",
-  ['ybord']   = "\\ybord([%d%.]+)",
-  ['shad']    = "\\shad([%-%d%.])",
-  ['xshad']   = "\\xshad([%-%d%.]+)",
-  ['yshad']   = "\\yshad([%-%d%.]+)",
-  ['resetti'] = "\\r([^\\}]+)",
-  ['alpha']   = "\\alpha&H(%x%x)&",
-  ['l1a']     = "\\1a&H(%x%x)&",
-  ['l2a']     = "\\2a&H(%x%x)&",
-  ['l3a']     = "\\3a&H(%x%x)&",
-  ['l4a']     = "\\4a&H(%x%x)&",
-  ['l1c']     = "\\c&H(%x+)&",
-  ['l1c2']    = "\\1c&H(%x+)&",
-  ['l2c']     = "\\2c&H(%x+)&",
-  ['l3c']     = "\\3c&H(%x+)&",
-  ['l4c']     = "\\4c&H(%x+)&",
-  ['clip']    = "\\clip%((.-)%)",
-  ['iclip']   = "\\iclip%((.-)%)",
-  ['be']      = "\\be([%d%.]+)",
-  ['blur']    = "\\blur([%d%.]+)",
-  ['fax']     = "\\fax([%-%d%.]+)",
-  ['fay']     = "\\fay([%-%d%.]+)"
+  ['xscl']  = "\\fscx([%d%.]+)",
+  ['yscl']  = "\\fscy([%d%.]+)",
+  ['ali']   = "\\an([1-9])",
+  ['zrot']  = "\\frz?([%-%d%.]+)",
+  ['bord']  = "\\bord([%d%.]+)",
+  ['xbord'] = "\\xbord([%d%.]+)",
+  ['ybord'] = "\\ybord([%d%.]+)",
+  ['shad']  = "\\shad([%-%d%.]+)",
+  ['xshad'] = "\\xshad([%-%d%.]+)",
+  ['yshad'] = "\\yshad([%-%d%.]+)",
+  ['reset'] = "\\r([^\\}]*)",
+  ['alpha'] = "\\alpha&H(%x%x)&",
+  ['l1a']   = "\\1a&H(%x%x)&",
+  ['l2a']   = "\\2a&H(%x%x)&",
+  ['l3a']   = "\\3a&H(%x%x)&",
+  ['l4a']   = "\\4a&H(%x%x)&",
+  ['l1c']   = "\\c&H(%x+)&",
+  ['l1c2']  = "\\1c&H(%x+)&",
+  ['l2c']   = "\\2c&H(%x+)&",
+  ['l3c']   = "\\3c&H(%x+)&",
+  ['l4c']   = "\\4c&H(%x+)&",
+  ['clip']  = "\\clip%((.-)%)",
+  ['iclip'] = "\\iclip%((.-)%)",
+  ['be']    = "\\be([%d%.]+)",
+  ['blur']  = "\\blur([%d%.]+)",
+  ['fax']   = "\\fax([%-%d%.]+)",
+  ['fay']   = "\\fay([%-%d%.]+)"
+}
+
+importanttags = { -- scale_x, scale_y, outline, shadow, angle
+  ['xscale'] = {"\\fscx", "scale_x"};
+  ['yscale'] = {"\\fscy", "scale_y"};
+  ['_border'] = {"\\bord", "outline"};
+  ['_shadow'] = {"\\shad", "shadow"};
+  ['_rotation'] = {"\\frz", "angle"};
 }
 
 guiconf = {
@@ -390,18 +399,8 @@ function information(sub, sel)
     karaskel.preproc_line(sub, accd.meta, accd.styles, opline) -- get linewidth/height and margins
     if not opline.effect then opline.effect = "" end
     getinfo(sub, opline, opline.num-strt)
-    if opline.margin_v ~= 0 then opline._v = opline.margin_v else opline._v = opline.styleref.margin_v end
-    if opline.margin_l ~= 0 then opline._l = opline.margin_l else opline._l = opline.styleref.margin_l end
-    if opline.margin_r ~= 0 then opline._r = opline.margin_r else opline._r = opline.styleref.margin_r end
-    opline.ali = opline.text:match("\\an([1-9])") or opline.styleref.align
-    opline.xpos, opline.ypos = opline.text:match("\\pos%(([%-%d%.]+),([%-%d%.]+)%)")
     opline.startframe, opline.endframe = aegisub.frame_from_ms(opline.start_time), aegisub.frame_from_ms(opline.end_time)
     if opline.comment then opline.is_comment = true else opline.is_comment = false end
-    if not opline.xpos then
-      opline.xpos = fix.xpos[opline.ali%3+1](accd.meta.res_x,opline._l,opline._r)
-      opline.ypos = fix.ypos[math.ceil(opline.ali/3)](accd.meta.res_y,opline._v)
-      aegisub.log(5,"Line %d: pos -> (%f,%f)\n", opline.num, opline.xpos, opline.ypos)
-    end
     if opline.startframe < accd.startframe then -- make timings flexible. Number of frames total has to match the tracked data but
       aegisub.log(5,"Line %d: startframe changed from %d to %d\n",opline.num-strt,accd.startframe,opline.startframe)
       accd.startframe = opline.startframe
@@ -636,19 +635,54 @@ function spoof_table(parsed_table,opts,len)
   if opts.reverse then parsed_table.s = parsed_table.flength end
 end
 
-function ensuretags(line,opts)
-  local startblock = line.text:match("^{(.-)}")
-  --line.xpos,line.ypos = line.text:match("\\pos%(([%-%d%.]+),([%-%d%.]+)%)")
+function ensuretags(line,opts,styles,dim)
+  if line.margin_v ~= 0 then line._v = line.margin_v else line._v = line.styleref.margin_v end
+  if line.margin_l ~= 0 then line._l = line.margin_l else line._l = line.styleref.margin_l end
+  if line.margin_r ~= 0 then line._r = line.margin_r else line._r = line.styleref.margin_r end
+  line.ali = line.text:match("\\an([1-9])") or line.styleref.align
+  line.xpos,line.ypos = line.text:match("\\pos%(([%-%d%.]+),([%-%d%.]+)%)")
   line.oxpos,line.oypos = line.text:match("\\org%(([%-%d%.]+),([%-%d%.]+)%)")
-  if a then
-    --stuff
-  else
-    -- other stuff
+  if not line.xpos then -- insert position into line if not present.
+    line.xpos = fix.xpos[line.ali%3+1](dim.x,line._l,line._r)
+    line.ypos = fix.ypos[math.ceil(line.ali/3)](dim.y,line._v)
+    line.text = (("{\\pos(%d,%d)}"):format(line.xpos,line.ypos)..line.text):gsub("^({.-)}{","%1")
   end
+  local mergedtext = line.text:gsub("}{","")
+  local startblock = mergedtext:match("^{(.-)}")
+  local block = ""
+  if startblock then
+    for option, str in pairs(importanttags) do
+      if opts[option:sub(2)] and not startblock:match(str[1].."[%-%d%.]+") then
+        block = block..(str[1].."%f"):format(line.styleref[str[2]])
+      end
+    end
+    if block:len() > 0 then
+      line.text = ("{"..block.."}"..line.text):gsub("^({.-)}{","%1")
+    end
+  else
+    for option, str in pairs(importanttags) do
+      if opts[option:sub(2)] then
+        block = block..(str[1].."%f"):format(line.styleref[str[2]])
+      end
+    end
+    line.text = "{"..block.."}"..line.text
+  end
+  function resetti(before,rstyle,rest)
+    local styletab = styles[rstyle] or line.styleref -- if \\r[stylename] is not a real style, reverts to regular \r
+    local block = ""
+    for option, str in pairs(importanttags) do
+      if opts[option:sub(2)] and not rest:match(str[1].."[%-%d%.]+") then
+        block = block..(str[1].."%f"):format(styletab[str[2]])
+      end
+    end
+    return "{"..before..rstyle..block..rest.."}"
+  end
+  line.text = line.text:gsub("{([^}]*\\r)([^\\}]*)(.-)}",resetti)
 end
 
 function frame_by_frame(sub,accd,opts,clipopts)
   printmem("Start of main loop")
+  local dim = {x = accd.meta.res_x; y = accd.meta.res_y}
   local mocha = {}
   local clipa = {}
   if opts.linespath then
@@ -750,7 +784,7 @@ function frame_by_frame(sub,accd,opts,clipopts)
         clipa.start = currline.rstartf + clipopts.stframe - 1
       end
     end
-    ensuretags(currline,opts)
+    ensuretags(currline,opts,accd.styles,dim)
     currline.alpha = -datan(currline.ypos-mocha.ypos[mocha.start],currline.xpos-mocha.xpos[mocha.start])
     if opts.origin then currline.beta = -datan(currline.oypos-mocha.ypos[mocha.start],currline.oxpos-mocha.xpos[mocha.start]) end
     aegisub.log(0,"alpha: %g\n",currline.alpha)

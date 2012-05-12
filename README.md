@@ -5,13 +5,12 @@ This branch is not guaranteed to be stable at any time. If you want something th
 done:
 
  - independent clip motion
+ - multiple override block per line support
  - arbitrary start frame, rather than just first or last.
 
 todo:
 
- - multiple override block per line support
- - add the clip stuff to the config
- - autostart mocha via command line for love and peace (may not actually happen, as the command window opened by lua may block aegisub-motion (and therefore aegisub) until mocha is closed, which would be fairly undesirable)
+ - rewrite the config stuff to actually work
 
 regressions:
 
@@ -21,3 +20,4 @@ regressions:
 scrapped ideas:
 
  - manual save (entirely incompatable with the current token system)
+ - autostart mocha via command line for love and peace (too lazy to investigate feasibility for not.)
