@@ -272,10 +272,18 @@ function readconf(conf,guitab)
   local cf = io.open(conf,'r')
   if cf then
     aegisub.log(5,"Reading config file...\n")
+    local thesection
     for line in cf:lines() do
-      local key, val = line:splitconf()
-      aegisub.log(5,"Read: %s -> %s\n", key, tostring(val:tobool()))
-      valtab[key] = val:tobool()
+      local section = line:match("#(%w+)")
+      if section then
+        valtab[section] = {}
+        thesection = section
+        aegisub.log(5,"Section: %s\n",thesection)
+      else
+        local key, val = line:splitconf()
+        aegisub.log(5,"Read: %s -> %s\n", key, tostring(val:tobool()))
+        valtab[thesection][key:gsub("^ +","")] = val:tobool()
+      end
     end
     cf:close()
     convertfromconf(valtab,guitab)
@@ -286,12 +294,16 @@ function readconf(conf,guitab)
 end
 
 function convertfromconf(valtab,guitab)
-  for i,v in pairs(guiconf) do
-    if valtab[v] ~= nil and guitab[v] ~= nil then
-      aegisub.log(5,"Set: %s <- %s\n", v, tostring(valtab[v]))
-      guitab[v].value = valtab[v]
-    else
-      aegisub.log(5,"%s unset (nil value)\n", v)
+  aegisub.log(5,"%s\n",table.tostring(guitab))
+  for section,tab in pairs(valtab) do
+    for ident,value in pairs(tab) do
+      if section == "global" then
+        aegisub.log(5,"Set: global.%s = %s\n",ident,tostring(value))
+        guitab[section][ident] = value
+      else
+        aegisub.log(5,"Set: gui.%s.%s = %s\n",section,ident,tostring(value))
+        guitab[section][ident].value = value
+      end
     end
   end
 end
@@ -314,6 +326,22 @@ function writeconf(conf,options)
   end
   cf:close()
   return true
+end
+
+function configscope()
+  local cf
+  if tostring(config_file):match("^[A-Z]:\\") or tostring(config_file):match("^/") or not config_file then
+    return config_file
+  else
+    cf = io.open(aegisub.decode_path("?script/"..config_file))
+    if not cf then
+      cf = aegisub.decode_path("?user/"..config_file)
+    else
+      cf:close()
+      cf = aegisub.decode_path("?script/"..config_file)
+    end
+    return cf
+  end
 end
 
 function string:splitconf()
@@ -420,39 +448,14 @@ function information(sub, sel)
   return accd
 end
 
-function localconfig(cf_name)
-  local cf
-  if not (cf_name:match("^[A-Z]:\\") or cf_name:match("^/")) then
-    cf = io.open(aegisub.decode_path("?script/"..cf_name))
-    if not cf then
-      cf = aegisub.decode_path("?user/"..cf_name)
-    else
-      cf:close()
-      cf = aegisub.decode_path("?script/"..cf_name)
-    end
-  else
-    cf = cf_name
-  end
-  return cf
-end
-
 function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   aegisub.progress.title("Selecting Gerbils")
   local accd = preprocessing(sub,sel)
   gui.main.stframe.min = -accd.totframes; gui.main.stframe.max = accd.totframes;
   gui.clip.stframe.min = -accd.totframes; gui.clip.stframe.max = accd.totframes;
-  for k,v in pairs(global) do
-    gui.main[k] = {}
-  end
-  if config_file then
-    local cf = localconfig(config_file)
-    if not readconf(cf,gui.main) then aegisub.log(0,"Failed to read config!") end
-    for k,v in pairs(global) do -- this isn't necessarily the right object to loop over
-      if gui.main[k].value ~= nil then -- protect our global variables a bit
-        global[k] = gui.main[k].value 
-      end
-      gui.main[k] = nil -- set to nil so dialog.display doesn't throw a hissy fit
-    end
+  local conf = configscope()
+  if conf then
+    if not readconf(conf,{ ['main'] = gui.main; ['clip'] = gui.clip; ['global'] = global }) then aegisub.log(0,"Failed to read config!") end
   end
   if global.autocopy then
     local paste = clipboard.get() or "" -- if nothing on the clipboard then returns nil
@@ -787,7 +790,6 @@ function frame_by_frame(sub,accd,opts,clipopts)
     ensuretags(currline,opts,accd.styles,dim)
     currline.alpha = -datan(currline.ypos-mocha.ypos[mocha.start],currline.xpos-mocha.xpos[mocha.start])
     if opts.origin then currline.beta = -datan(currline.oypos-mocha.ypos[mocha.start],currline.oxpos-mocha.xpos[mocha.start]) end
-    aegisub.log(0,"alpha: %g\n",currline.alpha)
     local orgtext = currline.text -- tables are passed as references.
     for x = currline.rendf,currline.rstartf,-1 do -- new inner loop structure
       printmem("Inner loop")
@@ -1065,6 +1067,28 @@ function string:split(sep) -- borrowed from the lua-users wiki (single character
   return fields
 end
 
+function table.tostring(t)
+  if type(t) ~= 'table' then
+    return tostring(t)
+  else
+    local s = ''
+    local i = 1
+    while t[i] ~= nil do
+      if #s ~= 0 then s = s..', ' end
+      s = s..table.tostring(t[i])
+      i = i+1
+    end
+    for k, v in pairs(t) do
+      if type(k) ~= 'number' or k > i then
+        if #s ~= 0 then s = s..', ' end
+        local key = type(k) == 'string' and k or '['..table.tostring(k)..']'
+        s = s..key..'='..table.tostring(v)
+      end
+    end
+    return '{'..s..'}'
+  end
+end
+
 function isvideo() -- a very rudimentary (but hopefully efficient) check to see if there is a video loaded.
   local l = aegisub.video_size() and true or false -- and forces boolean conversion?
   if l then
@@ -1194,25 +1218,15 @@ end
 
 function confmaker()
   local valtab = {}
-  local cf = config_file
-  if not (cf:match("^[A-Z]:\\") or cf:match("^/")) then
-    aegisub.log(5,"herp\n")
-    cf = io.open(aegisub.decode_path("?script/"..config_file))
-    if not cf then
-      cf = aegisub.decode_path("?user/"..config_file)
-    else
-      cf:close()
-      cf = aegisub.decode_path("?script/"..config_file)
-    end
-  end
-  if not readconf(cf,gui.conf) then aegisub.log(0,"Config read failed!") end
+  local conf = configscope()
+  if not readconf(conf,gui.conf) then aegisub.log(0,"Config read failed!\n") end
   gui.conf.enccom.value = encpre[gui.conf.encoder.value] or gui.conf.enccom.value
   local button, config = aegisub.dialog.display(gui.conf)
   if button then 
   for k,v in pairs(config) do
     aegisub.log(5,"config.%s = %s\n",tostring(k),tostring(v))
   end
-  writeconf(cf,config) end
+  writeconf(conf,config) end
 end --Adobe After Effects 6.0 Keyframe Data
 
 if config_file then aegisub.register_macro("Motion Data - Config", "Macro for full config editing.", confmaker, isvideo) end
@@ -1255,35 +1269,16 @@ end
 -- #{encbin} #{input} #{prefix} #{index} #{output} #{startf} #{lenf} #{endf} #{startt} #{lent} #{endt} #{nl}
 function getvideoname(sub)
   for x = 1,#sub do
-    if sub[x].class == "info" then
-      if sub[x].key == "Video File" then
-        local video = sub[x].value:sub(2)
-        return video
-      end
+    if sub[x].key == "Video File" then
+      return sub[x].value:sub(2)
     end
   end
 end
 
 function trimnthings(sub,sel)
-  local cf
-  if config_file then
-    if not (config_file:match("^[A-Z]:\\") or config_file:match("^/")) then
-      cf = io.open(aegisub.decode_path("?script/"..config_file))
-      if not cf then
-        cf = aegisub.decode_path("?user/"..config_file)
-      else
-        cf:close()
-        cf = aegisub.decode_path("?script/"..config_file)
-      end
-    else
-      cf = config_file
-    end
-    local gtab = {}
-    for k,v in pairs(global) do gtab[k] = {} end
-    if not readconf(cf,gtab) then aegisub.log(0,"Failed to read config!") end
-    for k,v in pairs(gtab) do if v.value ~= nil then global[k] = v.value end end
-    --global.enccom = encpre[global.encoder] or gtab[enccom]
-    gtab = nil
+  local conf = configscope()
+  if conf then
+    if not readconf(cf,gtab) then aegisub.log(0,"Failed to read config!\n") end
   end
   local tokens = {}
   tokens.encbin = global.encbin
@@ -1295,7 +1290,7 @@ function trimnthings(sub,sel)
   tokens.input = aegisub.decode_path("?video")..vid
   tokens.index = vid:match("(.+)%.[^%.]+$")
   tokens.output = tokens.index -- huh.
-  if not global.gui_trim then 
+  if not global.gui_trim then
     writeandencode(tokens)
   else
     someguiorsmth(tokens)
