@@ -227,20 +227,26 @@ alltags = {
 }
 
 importanttags = { -- scale_x, scale_y, outline, shadow, angle
-  ['xscale'] = {"\\fscx", "scale_x"};
-  ['yscale'] = {"\\fscy", "scale_y"};
-  ['_border'] = {"\\bord", "outline"};
-  ['_shadow'] = {"\\shad", "shadow"};
+  ['xscale']    = {"\\fscx", "scale_x"};
+  ['yscale']    = {"\\fscy", "scale_y"};
+  ['_border']   = {"\\bord", "outline"};
+  ['_shadow']   = {"\\shad", "shadow"};
   ['_rotation'] = {"\\frz", "angle"};
 }
 
 guiconf = {
-  "sortd",
-  "position", "origin", "clip", "posround",
-  "scale", "border", "shadow", "sclround",
-  "rotation", "rotround",
-  "relative", "stframe",
-  "vsfscale", "export", --"linear", 
+  main = {
+    "sortd",
+    "position", "origin", "clip", "posround",
+    "scale", "border", "shadow", "sclround",
+    "rotation", "rotround",
+    "relative", "stframe",
+    "vsfscale", "export",--"linear", 
+  },
+  clip = {
+    "position","scale","rotation",
+    "relative","stframe",
+  },
 }
 
 for k,v in pairs(global) do table.insert(guiconf,k) end
@@ -308,20 +314,29 @@ function convertfromconf(valtab,guitab)
   end
 end
 
-function writeconf(conf,options)
+function writeconf(conf,optab)
   local cf = io.open(conf,'w+')
-  local configlines = {}
   if not cf then 
-    aegisub.log(0,'Config write failed! Check that %s exists and has write permission.\n',config_file)
+    aegisub.log(0,'Config write failed! Check that %s exists and has write permission.\n',cf)
     return nil
   end
-  for i,v in pairs(guiconf) do
-    if options[v] ~= nil then
-      aegisub.log(5,"Write: %s:%s -> conf\n",v,tostring(options[v]))
-      table.insert(configlines,string.format("%s:%s\n",v,tostring(options[v])))
+  local configlines = {}
+  for section,tab in pairs(optab) do
+    table.insert(configlines,("#%s\n"):format(section))
+    if section == "global" then
+      for ident,value in pairs(tab) do
+        table.insert(configlines,("  %s:%s\n"):format(ident,tostring(value)))
+      end
+    else
+      for i, field in ipairs(guiconf[section]) do
+        if tab[field] ~= nil then -- (e.g. when clipconf == {}, don't overwrite all the config with "nil")
+          table.insert(configlines,("  %s:%s\n"):format(field,tostring(tab[field])))
+        end
+      end
     end
   end
   for i,v in ipairs(configlines) do
+    aegisub.log(5,"Write: %s -> configuration file\n",v:gsub("^ +",""))
     cf:write(v)
   end
   cf:close()
@@ -476,21 +491,19 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   end
   if button == "Go" then
     local clipconf = clipconf or {} -- solve indexing errors
+    for i,field in ipairs(guiconf.clip) do
+      if clipconf[field] == nil then clipconf[field] = gui.clip[field].value end
+    end 
     if config.stframe == 0 then config.stframe = 1 end
     if clipconf.stframe == 0 then clipconf.stframe = 1 end
     if config.linespath == "" then config.linespath = false end
-    if clipconf.clippath == "" or clipconf.clippath == nil then clipconf.clippath = false else config.clip = false end -- set clip to false if clippath exists
-    if config.reverse then
-      aegisub.progress.title("slibreG gnicniM") -- BECAUSE ITS FUNNY GEDDIT
-    else
-      aegisub.progress.title("Mincing Gerbils")
-    end
+    if clipconf.clippath == "" or clipconf.clippath == nil then
+      clipconf.clippath = false
+    else config.clip = false end -- set clip to false if clippath exists
     if config.wconfig then
-      for k,v in pairs(global) do
-        config[k] = v
-      end
-      writeconf(cf,config)
+      writeconf(conf,{ ['main'] = config; ['clip'] = clipconf; ['global'] = global })
     end
+    aegisub.progress.title("Mincing Gerbils")
     printmem("Go")
     local newsel = frame_by_frame(sub,accd,config,clipconf)
     if munch(sub,newsel) then
@@ -504,7 +517,9 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
     aegisub.progress.title("Reformatting Gerbils")
     cleanup(sub,newsel,config)
   elseif button == "Export" then
-    export(accd,parse_input(config.linespath,accd.meta.res_x,accd.meta.res_y,config),config)
+    local mochatab = {}
+    parse_input(config.linespath,mochatab,accd.meta.res_x,accd.meta.res_y)
+    export(accd,mochatab,config)
   elseif button == "Cancel" then
     init_input(sub,sel) -- this is extremely unideal as it reruns all of the information gathering functions as well.
   else
@@ -758,7 +773,7 @@ function frame_by_frame(sub,accd,opts,clipopts)
     currline.rendf = currline.endframe - accd.startframe -- end frame of line relative to start frame of tracked data
     local maths, mathsanswer = nil, nil -- create references without allocation? idk how this works.
     local clipme = false
-    if clipa and currline.clip then
+    if opts.clip and currline.clip then
       clipme = true -- use this in the inner loop because it only needs to be calculated once per line.
     end
     currline.effect = "aa-mou"..currline.effect
@@ -780,7 +795,7 @@ function frame_by_frame(sub,accd,opts,clipopts)
         mocha.start = currline.rstartf + opts.stframe - 1
       end
     end
-    if clipopts.relative and clipa then
+    if clipopts.relative and clipme then
       if clipopts.stframe < 0 then
         clipa.start = currline.rendf + clipopts.stframe + 1
       else
@@ -1118,7 +1133,7 @@ function export(accd,mocha,opts)
   -- open files
   local eff = accd.lines[1].effect:gsub("^aa-mou","",1)
   if eff == "" then eff = nil end
-  local name = eff or accd.lines[1].actor or accd.vn or "Untitled"
+  local name = eff or accd.lines[1].actor or "Untitled"
   for k,v in pairs(fnames) do
     local it = 0
     repeat
