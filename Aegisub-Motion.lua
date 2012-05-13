@@ -87,7 +87,7 @@ gui.main = { -- todo: change these to be more descriptive.
   linespath = { class = "textbox"; name = "linespath"; hint = "Paste data or the path to a file containing it. No quotes or escapes.";
                 x = 0; y = 1; height = 4; width = 10;},
   pref      = { class = "textbox"; name = "pref"; hint = "The prefix";
-                x = 0; y = 14; height = 3; width = 10;},
+                x = 0; y = 14; height = 3; width = 10; hint = "The directory any generated files will be written to."},
   preflabel = { class = "label"; label = "                  Files will be written to this directory.";
                 x = 0; y = 13; height = 1; width = 10;},
   datalabel = { class = "label"; label = "                       Paste data or enter a filepath.";
@@ -97,39 +97,39 @@ gui.main = { -- todo: change these to be more descriptive.
   rndlabel  = { class = "label"; label = "Rounding";
                 x = 7; y = 6; height = 1; width = 3;},
   position  = { class = "checkbox"; name = "position"; value = true; label = "Position";
-                x = 0; y = 7; height = 1; width = 2;},
+                x = 0; y = 7; height = 1; width = 2; hint = "Apply position data to the selected lines."},
   origin    = { class = "checkbox"; name = "origin"; value = false; label = "Origin";
-                x = 2; y = 7; height = 1; width = 2;},
+                x = 2; y = 7; height = 1; width = 2; hint = "Move the origin along with the position."},
   clip      = { class = "checkbox"; name = "clip"; value = false; label = "Clip";
-                x = 4; y = 7; height = 1; width = 2;},
+                x = 4; y = 7; height = 1; width = 2; hint = "Move clip along with the position (note: will also be scaled and rotated if those options are selected)."},
   scale     = { class = "checkbox"; name = "scale"; value = true; label = "Scale";
-                x = 0; y = 8; height = 1; width = 2;},
+                x = 0; y = 8; height = 1; width = 2; hint = "Apply scaling data to the selected lines."},
   border    = { class = "checkbox"; name = "border"; value = true; label = "Border";
-                x = 2; y = 8; height = 1; width = 2;},
+                x = 2; y = 8; height = 1; width = 2; hint = "Scale border with the line (only if Scale is also selected)."},
   shadow    = { class = "checkbox"; name = "shadow"; value = true; label = "Shadow";
-                x = 4; y = 8; height = 1; width = 2;},
+                x = 4; y = 8; height = 1; width = 2; hint = "Scale shadow with the line (only if Scale is also selected)."},
   rotation  = { class = "checkbox"; name = "rotation"; value = false; label = "Rotation";
-                x = 0; y = 9; height = 1; width = 3;},
+                x = 0; y = 9; height = 1; width = 3; hint = "Apply rotation data to the selected lines."},
   posround  = { class = "intedit"; name = "posround"; value = 2; min = 0; max = 5;
-                x = 7; y = 7; height = 1; width = 3;},
+                x = 7; y = 7; height = 1; width = 3; hint = "How many decimal places of accuracy the resulting positions should have."},
   sclround  = { class = "intedit"; name = "sclround"; value = 2; min = 0; max = 5;
-                x = 7; y = 8; height = 1; width = 3;},
+                x = 7; y = 8; height = 1; width = 3; hint = "How many decimal places of accuracy the resulting scales should have (also applied to border and shadow)."},
   rotround  = { class = "intedit"; name = "rotround"; value = 2; min = 0; max = 5;
-                x = 7; y = 9; height = 1; width = 3;},
+                x = 7; y = 9; height = 1; width = 3; hint = "How many decimal places of accuracy the resulting rotations should have."},
   wconfig   = { class = "checkbox"; name = "wconfig"; value = false; label = "Write config";
-                x = 0; y = 11; height = 1; width = 4;},
+                x = 0; y = 11; height = 1; width = 4; hint = "Write current settings to the configuration file."},
   relative  = { class = "checkbox"; name = "relative"; value = true; label = "Relative";
-                x = 4; y = 11; height = 1; width = 3;},
+                x = 4; y = 11; height = 1; width = 3; hint = "Start frame should be relative to the line's start time rather than to the start time of all selected lines"},
   stframe   = { class = "intedit"; name = "stframe"; value = 1;
-                x = 7; y = 11; height = 1; width = 3;},
+                x = 7; y = 11; height = 1; width = 3; hint = "Frame used as the starting point for the tracking data. \"-1\" corresponds to the last frame."},
   vsfscale  = { class = "checkbox"; name = "vsfscale"; value = false; label = "VSfilter scaling";
-                x = 0; y = 12; height = 1; width = 3;},
+                x = 0; y = 12; height = 1; width = 3; hint = "Use staged transforms to approximate noninteger scale values for vsfilter."},
   --[[linear    = { class = "checkbox"; name = "linear"; value = false; label = "Linear";
                 x = 4; y = 12; height = 1; width = 2;},--]] -- broken because I deleted the code for it because restructured loop
   export    = { class = "checkbox"; name = "export"; value = false; label = "Export";
-                x = 8; y = 12; height = 1; width = 2;},
+                x = 8; y = 12; height = 1; width = 2; hint = "Write files for plotting data with gnuplot"},
   sortd     = { class = "dropdown"; name = "sortd"; hint = "Sort lines by"; value = "Default"; items = {"Default", "Time"};
-                x = 5; y = 5; width = 4; height = 1;}, 
+                x = 5; y = 5; width = 4; height = 1; hint = "The order to sort the lines after they have been tracked."}, 
   sortlabel = { class = "label"; name = "sortlabel"; label = "      Sort Method:";
                 x = 1; y = 5; width = 4; height = 1;},
 }
@@ -177,24 +177,27 @@ gui.conf = table.copy_deep(gui.main)
 gui.conf.clippath, gui.conf.linespath, gui.conf.wconfig = nil
 gui.conf.encbin, gui.conf.pref = table.copy(gui.conf.pref), nil
 gui.conf.encbin.value, gui.conf.encbin.name = global.encbin, "encbin"
+gui.conf.encbin.hint = "The full path to the encoder binary (unless it's in your PATH)"
 gui.conf.datalabel.label = "       Enter the path to your prefix here (include trailing slash)."
 gui.conf.preflabel.label = "First box: path to encoder binary; second box: encoder command."
 gui.conf.windows  = { class = "checkbox"; value = global.windows; label = "Windows"; name = "windows";
-                    x = 0; y = 21; height = 1; width = 3;}
+                    x = 0; y = 21; height = 1; width = 3; hint = "Check this if you are running this on windows."}
 gui.conf.gui_trim = { class = "checkbox"; value = global.gui_trim; label = "Enable trim GUI"; name = "gui_trim";
-                    x = 3; y = 21; height = 1; width = 4;}
+                    x = 3; y = 21; height = 1; width = 4; hint = "Set whether or not the trim gui should appear."}
 gui.conf.gnupauto = { class = "checkbox"; value = global.gui_expo; label = "Autoplot exports"; name = "gnupauto";
-                    x = 7; y = 21; height = 1; width = 3;}
+                    x = 7; y = 21; height = 1; width = 3; hint = "Will attempt to automatically plot with gnuplot on export (only works if it is in your PATH)"}
 gui.conf.enccom   = { class = "textbox"; value = global.enccom; name = "enccom";
-                    x = 0; y = 17; height = 4; width = 10;}
+                    x = 0; y = 17; height = 4; width = 10; hint = "The encoding command that will be used. If you change this, set the preset to \"custom\"."}
 gui.conf.prefix   = { class = "textbox"; value = global.prefix; name = "prefix";
-                    x = 0; y = 1; height = 4; width = 10;}
+                    x = 0; y = 1; height = 4; width = 10; hint = "The folder to which all generated files will be written."}
 gui.conf.encoder  = { class = "dropdown"; value = global.encoder; name = "encoder"; items = {"x264", "ffmpeg", "avs2yuv", "custom"};
-                    x = 0; y = 10; height = 1; width = 2;}
-gui.conf.autocopy = { class = "checkbox"; value = global.windows; label = "Autocopy"; name = "autocopy";
-                    x = 2; y = 10; height = 1; width = 3;}
-gui.conf.acfilter = { class = "checkbox"; value = global.windows; label = "Copy Filter"; name = "acfilter";
-                    x = 5; y = 10; height = 1; width = 3;}
+                    x = 0; y = 11; height = 1; width = 2; hint = "Choose one of the encoding command presets (set to custom if you have made any modifications to the defaults)"}
+gui.conf.delsourc = { class = "checkbox"; value = global.delsourc; label = "Delete"; name = "delsourc";
+                    x = 0; y = 10; height = 1; width = 2; hint = "Delete the source lines instead of commenting them out."}
+gui.conf.autocopy = { class = "checkbox"; value = global.autocopy; label = "Autocopy"; name = "autocopy";
+                    x = 2; y = 10; height = 1; width = 3; hint = "Automatically copy the contents of the clipboard into the tracking data box on script run."}
+gui.conf.acfilter = { class = "checkbox"; value = global.acfilter; label = "Copy Filter"; name = "acfilter";
+                    x = 5; y = 10; height = 1; width = 3; hint = "Only automatically copy the clipboard if it appears to contain tracking data."}
 
 alltags = {
   ['xscl']  = "\\fscx([%d%.]+)",
@@ -300,7 +303,7 @@ function readconf(conf,guitab)
 end
 
 function convertfromconf(valtab,guitab)
-  aegisub.log(5,"%s\n",table.tostring(guitab))
+  --aegisub.log(5,"%s\n",table.tostring(guitab))
   for section,tab in pairs(valtab) do
     for ident,value in pairs(tab) do
       if section == "global" then
@@ -336,7 +339,7 @@ function writeconf(conf,optab)
     end
   end
   for i,v in ipairs(configlines) do
-    aegisub.log(5,"Write: %s -> configuration file\n",v:gsub("^ +",""))
+    aegisub.log(5,"Write: %s -> config\n",v:gsub("^ +",""))
     cf:write(v)
   end
   cf:close()
@@ -493,7 +496,7 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
     local clipconf = clipconf or {} -- solve indexing errors
     for i,field in ipairs(guiconf.clip) do
       if clipconf[field] == nil then clipconf[field] = gui.clip[field].value end
-    end 
+    end
     if config.stframe == 0 then config.stframe = 1 end
     if clipconf.stframe == 0 then clipconf.stframe = 1 end
     if config.linespath == "" then config.linespath = false end
@@ -796,7 +799,7 @@ function frame_by_frame(sub,accd,opts,clipopts)
       end
     end
     if clipopts.relative and clipme then
-      if clipopts.stframe < 0 then
+      if tonumber(clipopts.stframe) < 0 then
         clipa.start = currline.rendf + clipopts.stframe + 1
       else
         clipa.start = currline.rstartf + clipopts.stframe - 1
@@ -829,13 +832,14 @@ function frame_by_frame(sub,accd,opts,clipopts)
           currline.text = currline.text:gsub(pattern,function(a) return func(a,currline,mocha,opts,x) end)
         end
         if clipme then
-          currline.text = '{'..clippinate(currline,clipa,x)..'}\6'..currline.text
+          currline.text = currline.text:gsub("\\clip%(.-%)",function(a) return clippinate(currline,clipa,x) end,1)
         end
         currline.text = currline.text:gsub('\1',"")
       end
       sub.insert(currline.num+1,currline)
       currline.text = orgtext
     end
+    if global.delsourc then sub.delete(currline.num) end
   end
   for x = #sub,1,-1 do
     if tostring(sub[x].effect):match("^aa%-mou") then
@@ -1234,17 +1238,44 @@ end
 function confmaker()
   local valtab = {}
   local conf = configscope()
-  if not readconf(conf,gui.conf) then aegisub.log(0,"Config read failed!\n") end
-  gui.conf.enccom.value = encpre[gui.conf.encoder.value] or gui.conf.enccom.value
-  local button, config = aegisub.dialog.display(gui.conf)
-  if button then 
-  for k,v in pairs(config) do
-    aegisub.log(5,"config.%s = %s\n",tostring(k),tostring(v))
+  if not readconf(conf,{ ['main'] = gui.conf; ['clip'] = gui.clip; ['global'] = global }) then aegisub.log(0,"Config read failed!\n") end
+  for key, value in pairs(global) do
+    gui.conf[key].value = value
   end
-  writeconf(conf,config) end
-end --Adobe After Effects 6.0 Keyframe Data
+  local button, config = aegisub.dialog.display(gui.conf,{"Write","Write local","Clip...","Abort"})
+  local clipconf
+  if button == "Clip..." then
+    button, clipconf = aegisub.dialog.display(gui.clip,{"Write","Write local","Cancel","Abort"})
+  end
+  if button == "Write" then
+    local clipconf = clipconf or {}
+    for key,value in pairs(global) do
+      global[key] = config[key]
+      config[key] = nil
+    end
+    for i,field in ipairs(guiconf.clip) do
+      if clipconf[field] == nil then clipconf[field] = gui.clip[field].value end
+    end 
+    writeconf(conf,{ ['main'] = config; ['clip'] = clipconf; ['global'] = global })
+  elseif button == "Write local" then
+    local clipconf = clipconf or {}
+    conf = aegisub.decode_path("?script/")..config_file
+    for key,value in pairs(global) do
+      global[key] = config[key]
+      config[key] = nil
+    end
+    for i,field in ipairs(guiconf.clip) do
+      if clipconf[field] == nil then clipconf[field] = gui.clip[field].value end
+    end
+    writeconf(conf,{ ['main'] = config; ['clip'] = clipconf; ['global'] = global })
+  elseif button == "Cancel" then
+    confmaker()
+  else
+    aegisub.cancel()
+  end
+end
 
-if config_file then aegisub.register_macro("Motion Data - Config", "Macro for full config editing.", confmaker, isvideo) end
+if config_file then aegisub.register_macro("Motion Data - Config", "Full config management.", confmaker, isvideo) end
 
 gui.t = {
   vidlabel = { class = "label"; label = "The path to the loaded video";
