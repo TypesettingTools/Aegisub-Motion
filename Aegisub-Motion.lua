@@ -71,15 +71,7 @@ script_description = "A set of tools for simplifying the process of creating and
 script_author = "torque"
 script_version = "2.0.0.0.0.0" -- no, I have no idea how this versioning system works either.
 require "karaskel"
-for k,v in pairs(aegisub) do
-  dpath = false
-  if k == "file_name" then
-    dpath = true
-    break
-  end
-end
-if not dpath then error("Aegisub 3.0.0 or better is required.") end
-dpath = nil
+if not aegisub.file_name then error("Aegisub 3.0.0 or better is required.") end
 require "clipboard"
 
 gui = {} -- I'm really beginning to think this shouldn't be a global variable
