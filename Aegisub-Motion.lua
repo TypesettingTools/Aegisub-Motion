@@ -288,6 +288,8 @@ function readconf(conf,guitab)
         valtab[section] = {}
         thesection = section
         aegisub.log(5,"Section: %s\n",thesection)
+      elseif section == nil then
+        return nil
       else
         local key, val = line:splitconf()
         aegisub.log(5,"Read: %s -> %s\n", key, tostring(val:tobool()))
@@ -304,14 +306,14 @@ end
 
 function convertfromconf(valtab,guitab)
   --aegisub.log(5,"%s\n",table.tostring(guitab))
-  for section,tab in pairs(valtab) do
-    for ident,value in pairs(tab) do
+  for section,sectab in pairs(guitab) do
+    for ident,value in pairs(valtab[section]) do
       if section == "global" then
         aegisub.log(5,"Set: global.%s = %s\n",ident,tostring(value))
-        guitab[section][ident] = value
+        sectab[ident] = value
       else
         aegisub.log(5,"Set: gui.%s.%s = %s\n",section,ident,tostring(value))
-        guitab[section][ident].value = value
+        sectab[ident].value = value
       end
     end
   end
@@ -473,7 +475,7 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   gui.clip.stframe.min = -accd.totframes; gui.clip.stframe.max = accd.totframes;
   local conf = configscope()
   if conf then
-    if not readconf(conf,{ ['main'] = gui.main; ['clip'] = gui.clip; ['global'] = global }) then aegisub.log(0,"Failed to read config!") end
+    if not readconf(conf,{ ['main'] = gui.main; ['clip'] = gui.clip; ['global'] = global }) then aegisub.log(0,"Failed to read config!\n") end
   end
   if global.autocopy then
     local paste = clipboard.get() or "" -- if nothing on the clipboard then returns nil
@@ -1324,7 +1326,7 @@ end
 function trimnthings(sub,sel)
   local conf = configscope()
   if conf then
-    if not readconf(cf,gtab) then aegisub.log(0,"Failed to read config!\n") end
+    if not readconf(conf,{ ['global'] = global }) then aegisub.log(0,"Failed to read config!\n") end
   end
   local tokens = {}
   tokens.encbin = global.encbin
