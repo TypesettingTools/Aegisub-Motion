@@ -280,7 +280,7 @@ function readconf(conf,guitab)
         valtab[section] = {}
         thesection = section
         aegisub.log(5,"Section: %s\n",thesection)
-      elseif section == nil then
+      elseif thesection == nil then
         return nil
       else
         local key, val = line:splitconf()
