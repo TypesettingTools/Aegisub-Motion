@@ -301,10 +301,10 @@ function convertfromconf(valtab,guitab)
   for section,sectab in pairs(guitab) do
     for ident,value in pairs(valtab[section]) do
       if section == "global" then
-        aegisub.log(5,"Set: global.%s = %s\n",ident,tostring(value))
+        aegisub.log(5,"Set: global.%s = %s (%s)\n",ident,tostring(value),type(value))
         sectab[ident] = value
       else
-        aegisub.log(5,"Set: gui.%s.%s = %s\n",section,ident,tostring(value))
+        aegisub.log(5,"Set: gui.%s.%s = %s (%s)\n",section,ident,tostring(value),type(value))
         sectab[ident].value = value
       end
     end
@@ -362,7 +362,9 @@ function string:splitconf()
 end
 
 function string:tobool()
-  return ({['true'] = true, ['false'] = false})[self] or self
+  local bool = ({['true'] = true, ['false'] = false})[self]
+  if bool ~= nil then return bool
+    else return self; end
 end
 
 function preprocessing(sub, sel)
@@ -1364,7 +1366,7 @@ function writeandencode(tokens)
     assert(sh,"Encoding command could not be written. Check your prefix.") -- to solve the 250 byte limit, we write to a self-deleting batch file.
     sh:write(global.enccom:gsub("#(%b{})",ReplaceTokens)..'\ndel %0')
     sh:close()
-    os.execute(string.format("cd %q & %q",global.prefix,"encode.bat"))
+    os.execute(('""%s%s""'):format(global.prefix,"encode.bat")) -- double quotes makes it work on different drives too, apparently?
   else -- nfi what to do on lunix
     os.execute(global.enccom:gsub("#(%b{})",ReplaceTokens))
   end
