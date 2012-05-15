@@ -1,6 +1,8 @@
 ﻿## Aegisub-Motion.lua ##
 
-[*NOTE: AEGISUB-MOTION NO LONGER SUPPORTS AEGISUB 2.1.x. IF YOU NEED IT, THIS VERSION DOES*][oldver]
+[**Note: This version does not support 2.1.x. Click here for the last version that does.**][oldver]
+
+**Note 2: Due to changes in the config file format, you'll need to regenerate yours. It won't be loaded otherwise.** 
 
 This version has a few notable changes from the previous one:
 
