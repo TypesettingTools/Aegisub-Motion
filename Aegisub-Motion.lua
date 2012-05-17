@@ -116,8 +116,8 @@ gui.main = { -- todo: change these to be more descriptive.
                 x = 7; y = 11; height = 1; width = 3; hint = "Frame used as the starting point for the tracking data. \"-1\" corresponds to the last frame."},
   vsfscale  = { class = "checkbox"; name = "vsfscale"; value = false; label = "VSfilter scaling";
                 x = 0; y = 12; height = 1; width = 3; hint = "Use staged transforms to approximate noninteger scale values for vsfilter."},
-  --[[linear    = { class = "checkbox"; name = "linear"; value = false; label = "Linear";
-                x = 4; y = 12; height = 1; width = 2;},--]] -- broken because I deleted the code for it because restructured loop
+  linear    = { class = "checkbox"; name = "linear"; value = false; label = "Linear";
+                x = 4; y = 12; height = 1; width = 2; hint = "Use transforms and \\move to create a linear transition, instead of frame-by-frame."},
   export    = { class = "checkbox"; name = "export"; value = false; label = "Export";
                 x = 8; y = 12; height = 1; width = 2; hint = "Write files for plotting data with gnuplot"},
   sortd     = { class = "dropdown"; name = "sortd"; hint = "Sort lines by"; value = "Default"; items = {"Default", "Time"};
@@ -658,12 +658,12 @@ function ensuretags(line,opts,styles,dim)
   if line.margin_r ~= 0 then line._r = line.margin_r else line._r = line.styleref.margin_r end
   line.ali = line.text:match("\\an([1-9])") or line.styleref.align
   line.xpos,line.ypos = line.text:match("\\pos%(([%-%d%.]+),([%-%d%.]+)%)")
-  line.oxpos,line.oypos = line.text:match("\\org%(([%-%d%.]+),([%-%d%.]+)%)")
   if not line.xpos then -- insert position into line if not present.
     line.xpos = fix.xpos[line.ali%3+1](dim.x,line._l,line._r)
     line.ypos = fix.ypos[math.ceil(line.ali/3)](dim.y,line._v)
     line.text = (("{\\pos(%d,%d)}"):format(line.xpos,line.ypos)..line.text):gsub("^({.-)}{","%1")
   end
+  line.oxpos,line.oypos = line.text:match("\\org%(([%-%d%.]+),([%-%d%.]+)%)") or line.xpos,line.ypos
   local mergedtext = line.text:gsub("}{","")
   local startblock = mergedtext:match("^{(.-)}")
   local block = ""
@@ -741,70 +741,63 @@ function frame_by_frame(sub,accd,opts,clipopts)
   local newlines = {} -- table to stick indices of tracked lines into for cleanup.
   local operations = {} -- create a table and put the necessary functions into it, which will save a lot of if operations in the inner loop. This was the most elegant solution I came up with.
   if opts.position then
-    operations["\\pos%(([%-%d%.]+,[%-%d%.]+)%)"] = possify
+    operations["(\\pos)%(([%-%d%.]+,[%-%d%.]+)%)"] = possify
     if opts.origin then
-      operations["\\org%(([%-%d%.]+,[%-%d%.]+)%)"] = orginate
+      operations["(\\org)%(([%-%d%.]+,[%-%d%.]+)%)"] = orginate
     end
   end
   if opts.scale then
     if opts.vsfscale then
       opts.sclround = 2
-      operations["\\fscx([%d%.]+)"] = VSxscalify
-      operations["\\fscy([%d%.]+)"] = VSyscalify
+      operations["(\\fscx)([%d%.]+)"] = VSxscalify
+      operations["(\\fscy)([%d%.]+)"] = VSyscalify
     else
-      operations["\\fscx([%d%.]+)"] = xscalify
-      operations["\\fscy([%d%.]+)"] = yscalify
+      operations["(\\fscx)([%d%.]+)"] = xscalify
+      operations["(\\fscy)([%d%.]+)"] = yscalify
     end
     if opts.border then
-      operations["\\bord([%d%.]+)"] = bordicate
+      operations["(\\bord)([%d%.]+)"] = bordicate
     end
     if opts.shadow then
-      operations["\\shad([%-%d%.]+)"] = shadinate
+      operations["(\\shad)([%-%d%.]+)"] = shadinate
     end
   end
   if opts.rotation then
-    operations["\\frz([%-%d%.]+)"] = rotate
+    operations["(\\frz)([%-%d%.]+)"] = rotate
   end
   printmem("End of table insertion")
-  for i,currline in ipairs(accd.lines) do
-    printmem("Outer loop")
-    currline.rstartf = currline.startframe - accd.startframe + 1 -- start frame of line relative to start frame of tracked data
-    currline.rendf = currline.endframe - accd.startframe -- end frame of line relative to start frame of tracked data
-    local maths, mathsanswer = nil, nil -- create references without allocation? idk how this works.
-    local clipme = false
-    if opts.clip and currline.clip then
-      clipme = true -- use this in the inner loop because it only needs to be calculated once per line.
+  local function linearmodo(currline)
+    local one = aegisub.ms_from_frame(aegisub.frame_from_ms(currline.start_time))
+    local two = aegisub.ms_from_frame(aegisub.frame_from_ms(currline.start_time)+1)
+    local red = currline.start_time
+    local blue = currline.end_time
+    local three = aegisub.ms_from_frame(aegisub.frame_from_ms(currline.end_time)-1)
+    local four = aegisub.ms_from_frame(aegisub.frame_from_ms(currline.end_time))
+    local maths = math.floor(one-red+(two-one)/2) -- this voodoo magic gets the time length (in ms) from the start of the first subtitle frame to the actual start of the line time.
+    local mathsanswer = math.floor(blue-red+three-blue+(four-three)/2) -- and this voodoo magic is the total length of the line plus the difference (which is negative) between the start of the last frame the line is on and the end time of the line.
+    if operations["(\\pos)%(([%-%d%.]+,[%-%d%.]+)%)"] then
+      -- do movement stuff here
+      operations["(\\pos)%(([%-%d%.]+,[%-%d%.]+)%)"] = nil
     end
-    currline.effect = "aa-mou"..currline.effect
-    if opts.linear then
-      local one = aegisub.ms_from_frame(aegisub.frame_from_ms(currline.start_time))
-      local two = aegisub.ms_from_frame(aegisub.frame_from_ms(currline.start_time)+1)
-      local red = currline.start_time
-      local blue = currline.end_time
-      local three = aegisub.ms_from_frame(aegisub.frame_from_ms(currline.end_time)-1)
-      local four = aegisub.ms_from_frame(aegisub.frame_from_ms(currline.end_time))
-      maths = math.floor(one-red+(two-one)/2) -- this voodoo magic gets the time length (in ms) from the start of the first subtitle frame to the actual start of the line time.
-      local moremaths = three-blue+(four-three)/2 -- Could be more sane?
-      mathsanswer = math.floor(blue-red+moremaths) -- and this voodoo magic is the total length of the line plus the difference (which is negative) between the start of the last frame the line is on and the end time of the line.
+    for pattern,func in pairs(operations) do -- iterate through the necessary operations
+      if aegisub.progress.is_cancelled() then error("User cancelled") end
+      currline.text = currline.text:gsub(pattern,function(tag,val) 
+        local values = {}
+        for i,x in pairs({currline.rstartf,currline.rendf}) do
+          mocha.ratx = mocha.xscl[x]/mocha.xscl[mocha.start]
+          mocha.raty = mocha.yscl[x]/mocha.yscl[mocha.start]
+          mocha.xdiff = mocha.xpos[x]-mocha.xpos[mocha.start]
+          mocha.ydiff = mocha.ypos[x]-mocha.ypos[mocha.start]
+          mocha.zrotd = mocha.zrot[x]-mocha.zrot[mocha.start]
+          mocha.currx,mocha.curry = mocha.xpos[x],mocha.ypos[x]
+          table.insert(values,func(val,currline,mocha,opts))
+        end
+        return ("%s%g\\t(%i,%i,1,%s%g)"):format(tag,values[1],maths,mathsanswer,tag,values[2])
+      end)
+      sub[currline.num] = currline
     end
-    if opts.relative then
-      if opts.stframe < 0 then
-        mocha.start = currline.rendf + opts.stframe + 1
-      else
-        mocha.start = currline.rstartf + opts.stframe - 1
-      end
-    end
-    if clipopts.relative and clipme then
-      if tonumber(clipopts.stframe) < 0 then
-        clipa.start = currline.rendf + clipopts.stframe + 1
-      else
-        clipa.start = currline.rstartf + clipopts.stframe - 1
-      end
-    end
-    ensuretags(currline,opts,accd.styles,dim)
-    currline.alpha = -datan(currline.ypos-mocha.ypos[mocha.start],currline.xpos-mocha.xpos[mocha.start])
-    if opts.origin then currline.beta = -datan(currline.oypos-mocha.ypos[mocha.start],currline.oxpos-mocha.xpos[mocha.start]) end
-    local orgtext = currline.text -- tables are passed as references.
+  end
+  local function nonlinearmodo(currline)
     for x = currline.rendf,currline.rstartf,-1 do -- new inner loop structure
       printmem("Inner loop")
       aegisub.progress.title(string.format("Processing frame %g/%g",x,currline.rendf-currline.rstartf+1))
@@ -823,9 +816,10 @@ function frame_by_frame(sub,accd,opts,clipopts)
         mocha.xdiff = mocha.xpos[x]-mocha.xpos[mocha.start]
         mocha.ydiff = mocha.ypos[x]-mocha.ypos[mocha.start]
         mocha.zrotd = mocha.zrot[x]-mocha.zrot[mocha.start]
+        mocha.currx,mocha.curry = mocha.xpos[x],mocha.ypos[x]
         for pattern,func in pairs(operations) do -- iterate through the necessary operations
           if aegisub.progress.is_cancelled() then error("User cancelled") end
-          currline.text = currline.text:gsub(pattern,function(a) return func(a,currline,mocha,opts,x) end)
+          currline.text = currline.text:gsub(pattern,function(tag,val) return tag..func(val,currline,mocha,opts) end)
         end
         if clipme then
           currline.text = currline.text:gsub("\\clip%(.-%)",function(a) return clippinate(currline,clipa,x) end,1)
@@ -837,6 +831,39 @@ function frame_by_frame(sub,accd,opts,clipopts)
     end
     if global.delsourc then sub.delete(currline.num) end
   end
+  local how2proceed = nonlinearmodo
+  if opts.linear then
+    how2proceed = linearmodo
+  end
+  for i,currline in ipairs(accd.lines) do
+    printmem("Outer loop")
+    currline.rstartf = currline.startframe - accd.startframe + 1 -- start frame of line relative to start frame of tracked data
+    currline.rendf = currline.endframe - accd.startframe -- end frame of line relative to start frame of tracked data
+    local clipme = false
+    if opts.clip and currline.clip then
+      clipme = true -- use this in the inner loop because it only needs to be calculated once per line.
+    end
+    currline.effect = "aa-mou"..currline.effect
+    if opts.relative then
+      if opts.stframe < 0 then
+        mocha.start = currline.rendf + opts.stframe + 1
+      else
+        mocha.start = currline.rstartf + opts.stframe - 1
+      end
+    end
+    if clipopts.relative and clipme then
+      if tonumber(clipopts.stframe) < 0 then
+        clipa.start = currline.rendf + clipopts.stframe + 1
+      else
+        clipa.start = currline.rstartf + clipopts.stframe - 1
+      end
+    end
+    ensuretags(currline,opts,accd.styles,dim)
+    currline.alpha = -datan(currline.ypos-mocha.ypos[mocha.start],currline.xpos-mocha.xpos[mocha.start])
+    if opts.origin then currline.beta = -datan(currline.oypos-mocha.ypos[mocha.start],currline.oxpos-mocha.xpos[mocha.start]) end
+    local orgtext = currline.text -- tables are passed as references.
+    how2proceed(currline)
+  end
   for x = #sub,1,-1 do
     if tostring(sub[x].effect):match("^aa%-mou") then
       aegisub.log(5,"I choose you, %d!\n",x)
@@ -846,30 +873,27 @@ function frame_by_frame(sub,accd,opts,clipopts)
   return newlines -- yeah mang
 end
 
-function possify(pos,line,mocha,opts,iter)
+function possify(pos,line,mocha,opts)
   local oxpos,oypos = pos:match("([%-%d%.]+),([%-%d%.]+)")
-  local xpos = (tonumber(oxpos) + mocha.xdiff)*mocha.ratx
-  local ypos = (tonumber(oypos) + mocha.ydiff)*mocha.raty
-  xpos = xpos + (1 - mocha.ratx)*mocha.xpos[iter]
-  ypos = ypos + (1 - mocha.raty)*mocha.ypos[iter]
-  local r = math.sqrt((xpos - mocha.xpos[iter])^2+(ypos - mocha.ypos[iter])^2)
-  xpos = mocha.xpos[iter] + r*dcos(line.alpha + mocha.zrotd)
-  ypos = mocha.ypos[iter] - r*dsin(line.alpha + mocha.zrotd)
+  local xpos,ypos = makexypos(tonumber(oxpos),tonumber(oypos),line.alpha,mocha)
   aegisub.log(5,"Position: (%f,%f) -> (%f,%f)\n",oxpos,oypos,xpos,ypos)
-  return string.format("\\pos(%g,%g)",round(xpos,opts.posround),round(ypos,opts.posround))
+  return ("(%g,%g)"):format(round(xpos,opts.posround),round(ypos,opts.posround))
 end
 
-function orginate(opos,line,mocha,opts,iter)
+function makexypos(xpos,ypos,alpha,mocha)
+  local xpos = (xpos + mocha.xdiff)*mocha.ratx + (1 - mocha.ratx)*mocha.currx
+  local ypos = (ypos + mocha.ydiff)*mocha.raty + (1 - mocha.raty)*mocha.curry
+  local r = math.sqrt((xpos - mocha.currx)^2+(ypos - mocha.curry)^2)
+  xpos = mocha.currx + r*dcos(alpha + mocha.zrotd)
+  ypos = mocha.curry - r*dsin(alpha + mocha.zrotd)
+  return xpos,ypos
+end
+
+function orginate(opos,line,mocha,opts)
   local oxpos,oypos = opos:match("([%-%d%.]+),([%-%d%.]+)")
-  local xpos = (tonumber(oxpos) + mocha.xdiff)*mocha.ratx
-  local ypos = (tonumber(oypos) + mocha.ydiff)*mocha.raty
-  xpos = xpos + (1 - mocha.ratx)*mocha.xpos[iter]
-  ypos = ypos + (1 - mocha.raty)*mocha.ypos[iter]
-  local r = math.sqrt((xpos - mocha.xpos[iter])^2+(ypos - mocha.ypos[iter])^2)
-  xpos = mocha.xpos[iter] + r*dcos(line.beta + mocha.zrotd)
-  ypos = mocha.ypos[iter] - r*dsin(line.beta + mocha.zrotd)
+  local xpos,ypos = makexypos(tonumber(oxpos),tonumber(oypos),line.alpha,mocha)
   aegisub.log(5,"Position: (%f,%f) -> (%f,%f)\n",oxpos,oypos,xpos,ypos)
-  return string.format("\\org(%g,%g)",round(xpos,opts.posround),round(ypos,opts.posround))
+  return ("(%g,%g)"):format(round(xpos,opts.posround),round(ypos,opts.posround))
 end
 
 function clippinate(line,clipa,iter)
@@ -905,7 +929,7 @@ function clippinate(line,clipa,iter)
 end
 
 function transformate(line,trans)
-  local t_s = trans[1] - line.time_delta -- well, that was easy
+  local t_s = trans[1] - line.time_delta
   local t_e = trans[2] - line.time_delta
   aegisub.log(5,"Transform: %d,%d -> %d,%d\n",trans[1],trans[2],t_s,t_e)
   return line.text:gsub("\\t%b()","\\"..string.char(1)..string.format("t(%d,%d,%g,%s)",t_s,t_e,trans[3],trans[4]),1)
@@ -914,7 +938,7 @@ end
 function xscalify(xscale,line,mocha,opts)
   local xscl = xscale*mocha.ratx
   aegisub.log(5,"X Scale: %f -> %f\n",xscale,xscl)
-  return string.format("\\fscx%g",round(xscl,opts.sclround))
+  return round(xscl,opts.sclround)
 end
 
 function VSxscalify(xscale,line,mocha,opts)
@@ -922,13 +946,13 @@ function VSxscalify(xscale,line,mocha,opts)
   local xlowend, xhighend, xdecimal = math.floor(xscl),math.ceil(xscl),xscl%1*(10^opts.sclround)
   local xstart, xend = -xdecimal, (10^opts.sclround)-xdecimal
   aegisub.log(5,"X Scale: %f -> %f\n",xscale,xscl)
-  return string.format("\\fscx%d\\t(%d,%d,\\fscx%d)",xlowend,xstart,xend,xhighend)
+  return ("%d\\t(%d,%d,\\fscx%d)"):format(xlowend,xstart,xend,xhighend)
 end
 
 function yscalify(yscale,line,mocha,opts)
   local yscl = yscale*mocha.ratx
   aegisub.log(5,"Y Scale: %f -> %f\n",yscale,yscl)
-  return string.format("\\fscy%g",round(yscl,opts.sclround))
+  return round(yscl,opts.sclround)
 end
 
 function VSyscalify(yscale,line,mocha,opts)
@@ -936,25 +960,25 @@ function VSyscalify(yscale,line,mocha,opts)
   local ylowend, yhighend, ydecimal = math.floor(yscl),math.ceil(yscl),yscl%1*(10^opts.sclround)
   local ystart, yend = -ydecimal, (10^opts.sclround)-ydecimal
   aegisub.log(5,"y Scale: %f -> %f\n",yscale,yscl)
-  return string.format("\\fscy%d\\t(%d,%d,\\fscy%d)",ylowend,ystart,yend,yhighend)
+  return ("%d\\t(%d,%d,\\fscy%d)"):format(ylowend,ystart,yend,yhighend)
 end
 
 function bordicate(bord,line,mocha,opts)
   local nbord = bord*mocha.ratx
   aegisub.log(5,"Border: %f -> %f\n",bord,nbord)
-  return string.format("\\bord%g",round(nbord,opts.sclround))
+  return round(nbord,opts.sclround)
 end
 
 function shadinate(shad,line,mocha,opts)
   local nshad = shad*mocha.ratx
   aegisub.log(5,"Shadow: %f -> %f\n",shad,nshad)
-  return string.format("\\shad%g",round(nshad,opts.sclround))
+  return round(nshad,opts.sclround)
 end
 
 function rotate(rot,line,mocha,opts)
   local zrot = rot + mocha.zrotd
   aegisub.log(5,"ZRotation: -> %f\n",zrot)
-  return string.format("\\frz%g",round(zrot,opts.rotround)) -- copypasta
+  return round(zrot,opts.rotround)
 end
 
 function munch(sub,sel)
