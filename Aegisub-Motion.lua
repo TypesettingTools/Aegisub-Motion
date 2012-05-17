@@ -775,9 +775,18 @@ function frame_by_frame(sub,accd,opts,clipopts)
     local four = aegisub.ms_from_frame(aegisub.frame_from_ms(currline.end_time))
     local maths = math.floor(one-red+(two-one)/2) -- this voodoo magic gets the time length (in ms) from the start of the first subtitle frame to the actual start of the line time.
     local mathsanswer = math.floor(blue-red+three-blue+(four-three)/2) -- and this voodoo magic is the total length of the line plus the difference (which is negative) between the start of the last frame the line is on and the end time of the line.
-    if operations["(\\pos)%(([%-%d%.]+,[%-%d%.]+)%)"] then
-      -- do movement stuff here
-      operations["(\\pos)%(([%-%d%.]+,[%-%d%.]+)%)"] = nil
+    local posmatch = "(\\pos)%(([%-%d%.]+,[%-%d%.]+)%)"
+    if operations[posmatch] then
+      currline.text = currline.text:gsub(posmatch,function(tag,val)
+        local exes, whys = {}, {}
+        for i,x in pairs({currline.rstartf,currline.rendf}) do
+          local x,y = val:match("([%-%d%.]+),([%-%d%.]+)")
+          x,y = makexypos(tonumber(x),tonumber(y),currline.alpha,mocha)
+          table.insert(exes,round(x,opts.posround)); table.insert(whys,round(y,opts.posround))
+        end
+        return ("\\move(%g,%g,%g,%g,%d,%d)"):format(exes[1],whys[1],exes[2],whys[2],maths,mathsanswer)
+      end)
+      operations[posmatch] = nil
     end
     for pattern,func in pairs(operations) do -- iterate through the necessary operations
       if aegisub.progress.is_cancelled() then error("User cancelled") end
@@ -792,7 +801,7 @@ function frame_by_frame(sub,accd,opts,clipopts)
           mocha.currx,mocha.curry = mocha.xpos[x],mocha.ypos[x]
           table.insert(values,func(val,currline,mocha,opts))
         end
-        return ("%s%g\\t(%i,%i,1,%s%g)"):format(tag,values[1],maths,mathsanswer,tag,values[2])
+        return ("%s%g\\t(%d,%d,1,%s%g)"):format(tag,values[1],maths,mathsanswer,tag,values[2])
       end)
       sub[currline.num] = currline
     end
