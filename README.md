@@ -1,8 +1,9 @@
 ﻿## Aegisub-Motion.lua ##
 
-[**Note: This version does not support Aegisub 2.1.x. Click here for the last version that does.**][oldver]
+**Important things to consider if you're updating:**
 
-**Note 2: Due to changes in the config file format, you'll need to regenerate yours. It won't be loaded otherwise.** 
+ - [This version does not support Aegisub 2.1.x. Click here for the last version that does.][oldver]
+ - Due to changes in the config file format, you'll have to regenerate it, or it won't be loaded.
 
 This version has a few notable changes from the previous one:
 
@@ -10,11 +11,7 @@ This version has a few notable changes from the previous one:
  - Multiple override block per line support
  - Apply data from an arbitrary start frame
 
-There is, to my knowledge, only one regression:
-
- - Linear mode no longer exists
-
-I'll fix this when I have the time.
+With the reintroduction of linear mode, there are now no known regressions. I guess I should start writing the documentation.
 
 ### Usage ###
 
