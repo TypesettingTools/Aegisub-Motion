@@ -3,7 +3,7 @@
         it in the aegisub userdata directory (%APPDATA%/Aegisub or ~/.aegisub). This allows different
         settings (prefix, etc) per-project if you desire. If you don't trust any of this crazy shit,
         then config_file = false will disable all config related operations.]=]--
-config_file = "aegisub-motion.conf" -- e.g. C:\\path\\to the\\a-mo.conf or /home/path to/the/aegi-moti.conf
+config_file = "aegisub-motion.conf"
   --[=[ YOU ARE LEGALLY BOUND AND GAGGED BY THE TERMS AND CONDITIONS OF THE LICENSE,
         EVEN IF YOU HAVEN'T READ THEM. ]=]--
       
@@ -64,6 +64,15 @@ INALIABLE RIGHTS:
     for the FORESEEABLE FUTURE. Should it raise ANY QUESTIONS, THE USER is welcome to
     JUST GO AHEAD AND JUMP OFF OF A BRIDGE because his or her stupidity is OBVIOUSLY
     INCURABLE.
+ 10. THE USER must understand the difference between a COPYRIGHT LICENSE and an END-USER
+    LICENSE AGREEMENT. COPYRIGHT LICENSES are THE THINGS that get put ON TOP of A PIECE
+    OF CODE that tell people that YOU ARE NOT LEGALLY ALLOWED TO REDISTRIBUTE THIS FILE
+    UNLESS YOU HAVE RECENTLY CASTRATED YOURSELF WITH A SPORK and even then only under
+    SPECIFIC CIRCUMSTANCES. END-USER LICENSE AGREEMENTS are THE UNREADABLE WALLS OF
+    LEGALESE that HUMONGOUS, PROFITABLE CORPORATIONS pay LEGIONS OF LEGAL PERSONELLE to
+    develop that tell you that YOU ARE NOT LEGALLY ALLOWED TO USE THE SOFTWARE YOU JUST
+    INSTALLED UNLESS YOU WILLINGLY CONSIGN YOUR ENTIRE ESTATE TO SAID CORPORATION IN
+    YOUR LAST WILL AND TESTAMENT.
   ]=]--
 
 script_name = "Aegisub-Motion"
@@ -222,11 +231,11 @@ alltags = {
 }
 
 importanttags = { -- scale_x, scale_y, outline, shadow, angle
-  ['xscale']    = {"\\fscx", "scale_x"};
-  ['yscale']    = {"\\fscy", "scale_y"};
-  ['_border']   = {"\\bord", "outline"};
-  ['_shadow']   = {"\\shad", "shadow"};
-  ['_rotation'] = {"\\frz", "angle"};
+  ['\\fscx'] = {{"scale","scale"}, "scale_x"};
+  ['\\fscy'] = {{"scale","scale"}, "scale_y"};
+  ['\\bord'] = {{"border","scale"}, "outline"};
+  ['\\shad'] = {{"shadow","scale"}, "shadow"};
+  ['\\frz']  = {{"rotation","rotation"}, "angle"};
 }
 
 guiconf = {
@@ -236,7 +245,7 @@ guiconf = {
     "scale", "border", "shadow", "sclround",
     "rotation", "rotround",
     "relative", "stframe",
-    "vsfscale", "export",--"linear", 
+    "vsfscale", "export", "linear", 
   },
   clip = {
     "position","scale","rotation",
@@ -664,22 +673,23 @@ function ensuretags(line,opts,styles,dim)
     line.text = (("{\\pos(%d,%d)}"):format(line.xpos,line.ypos)..line.text):gsub("^({.-)}{","%1")
   end
   line.oxpos,line.oypos = line.text:match("\\org%(([%-%d%.]+),([%-%d%.]+)%)") or line.xpos,line.ypos
+  line.origindx,line.origindy = line.xpos - line.oxpos, line.ypos - line.oypos 
   local mergedtext = line.text:gsub("}{","")
   local startblock = mergedtext:match("^{(.-)}")
   local block = ""
   if startblock then
-    for option, str in pairs(importanttags) do
-      if opts[option:sub(2)] and not startblock:match(str[1].."[%-%d%.]+") then
-        block = block..(str[1].."%f"):format(line.styleref[str[2]])
+    for tag, str in pairs(importanttags) do
+      if opts[str[1][1]] and opts[str[1][2]] and not startblock:match(tag.."[%-%d%.]+") then
+        block = block..(tag.."%f"):format(line.styleref[str[2]])
       end
     end
     if block:len() > 0 then
       line.text = ("{"..block.."}"..line.text):gsub("^({.-)}{","%1")
     end
   else
-    for option, str in pairs(importanttags) do
-      if opts[option:sub(2)] then
-        block = block..(str[1].."%f"):format(line.styleref[str[2]])
+    for tag, str in pairs(importanttags) do
+      if opts[str[1][1]] and opts[str[1][2]] then
+        block = block..(tag.."%f"):format(line.styleref[str[2]])
       end
     end
     line.text = "{"..block.."}"..line.text
@@ -687,9 +697,9 @@ function ensuretags(line,opts,styles,dim)
   function resetti(before,rstyle,rest)
     local styletab = styles[rstyle] or line.styleref -- if \\r[stylename] is not a real style, reverts to regular \r
     local block = ""
-    for option, str in pairs(importanttags) do
-      if opts[option:sub(2)] and not rest:match(str[1].."[%-%d%.]+") then
-        block = block..(str[1].."%f"):format(styletab[str[2]])
+    for tag, str in pairs(importanttags) do
+      if opts[str[1][1]] and opts[str[1][2]] and not startblock:match(tag.."[%-%d%.]+") then
+        block = block..(tag.."%f"):format(styletab[str[2]])
       end
     end
     return "{"..before..rstyle..block..rest.."}"
@@ -780,11 +790,19 @@ function frame_by_frame(sub,accd,opts,clipopts)
       currline.text = currline.text:gsub(posmatch,function(tag,val)
         local exes, whys = {}, {}
         for i,x in pairs({currline.rstartf,currline.rendf}) do
-          local x,y = val:match("([%-%d%.]+),([%-%d%.]+)")
-          x,y = makexypos(tonumber(x),tonumber(y),currline.alpha,mocha)
-          table.insert(exes,round(x,opts.posround)); table.insert(whys,round(y,opts.posround))
+          local cx,cy = val:match("([%-%d%.]+),([%-%d%.]+)")
+          mocha.ratx = mocha.xscl[x]/mocha.xscl[mocha.start]
+          mocha.raty = mocha.yscl[x]/mocha.yscl[mocha.start]
+          mocha.xdiff = mocha.xpos[x]-mocha.xpos[mocha.start]
+          mocha.ydiff = mocha.ypos[x]-mocha.ypos[mocha.start]
+          mocha.zrotd = mocha.zrot[x]-mocha.zrot[mocha.start]
+          mocha.currx,mocha.curry = mocha.xpos[x],mocha.ypos[x]
+          cx,cy = makexypos(tonumber(cx),tonumber(cy),currline.alpha,mocha)
+          table.insert(exes,round(cx,opts.posround)); table.insert(whys,round(cy,opts.posround))
         end
-        return ("\\move(%g,%g,%g,%g,%d,%d)"):format(exes[1],whys[1],exes[2],whys[2],maths,mathsanswer)
+        local s = ("\\move(%g,%g,%g,%g,%d,%d)"):format(exes[1],whys[1],exes[2],whys[2],maths,mathsanswer)
+        aegisub.log(5,"%s\n",s)
+        return s
       end)
       operations[posmatch] = nil
     end
@@ -803,8 +821,8 @@ function frame_by_frame(sub,accd,opts,clipopts)
         end
         return ("%s%g\\t(%d,%d,1,%s%g)"):format(tag,values[1],maths,mathsanswer,tag,values[2])
       end)
-      sub[currline.num] = currline
     end
+    sub[currline.num] = currline
   end
   local function nonlinearmodo(currline)
     for x = currline.rendf,currline.rstartf,-1 do -- new inner loop structure
@@ -836,7 +854,7 @@ function frame_by_frame(sub,accd,opts,clipopts)
         currline.text = currline.text:gsub('\1',"")
       end
       sub.insert(currline.num+1,currline)
-      currline.text = orgtext
+      currline.text = currline.orgtext
     end
     if global.delsourc then sub.delete(currline.num) end
   end
@@ -870,7 +888,7 @@ function frame_by_frame(sub,accd,opts,clipopts)
     ensuretags(currline,opts,accd.styles,dim)
     currline.alpha = -datan(currline.ypos-mocha.ypos[mocha.start],currline.xpos-mocha.xpos[mocha.start])
     if opts.origin then currline.beta = -datan(currline.oypos-mocha.ypos[mocha.start],currline.oxpos-mocha.xpos[mocha.start]) end
-    local orgtext = currline.text -- tables are passed as references.
+    currline.orgtext = currline.text -- tables are passed as references.
     how2proceed(currline)
   end
   for x = #sub,1,-1 do
