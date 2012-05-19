@@ -71,7 +71,7 @@ Many bugs have been reported by various users, and if you've reported something 
 
 I'm typically available as `torque` on `irc.rizon.net`. Feel free to PM me with suggestions, requests or questions.
 
-[oldver]: https://github.com/torque/Aegisub-Motion/tree/master
+[oldver]: https://github.com/torque/Aegisub-Motion/tree/legacy
 [aegwin]: http://plorkyeran.com/aegisub/
 [mocha]: http://www.imagineersystems.com/
 [gnuplot]: http://www.gnuplot.info/
