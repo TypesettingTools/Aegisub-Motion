@@ -133,12 +133,16 @@ gui.main = { -- todo: change these to be more descriptive.
                 x = 5; y = 5; width = 4; height = 1; hint = "The order to sort the lines after they have been tracked."}, 
   sortlabel = { class = "label"; name = "sortlabel"; label = "      Sort Method:";
                 x = 1; y = 5; width = 4; height = 1;},
+  xconst    = { class = "checkbox"; name = "xconst"; value = false; label = "Fixed X";
+                x = 0; y = 10; width = 2; height = 1; hint = "Force x-position to be the same across all frames"},
+  yconst    = { class = "checkbox"; name = "yconst"; value = false; label = "Fixed Y";
+                x = 2; y = 10; width = 2; height = 1; hint = "Force y-position to be the same across all frames"},
 }
 
 gui.clip = {
   clippath = { class = "textbox"; name = "clippath"; hint = "Paste data or the path to a file containing it. No quotes or escapes.";
                x = 0; y = 1; height = 4; width = 10;},
-  label    = { class = "label"; label = "               Paste data or enter a filepath.";
+  label    = { class = "label"; label = "                 Paste data or enter a filepath.";
                x = 0; y = 0; height = 1; width = 10;},
   position = { class = "checkbox"; name = "position"; value = true; label = "Position";
                x = 0; y = 6; height = 1; width = 3;},
@@ -150,6 +154,10 @@ gui.clip = {
                 x = 4; y = 6; height = 1; width = 3;},
   stframe   = { class = "intedit"; name = "stframe"; value = 1;
                 x = 7; y = 6; height = 1; width = 3;},
+  xconst    = { class = "checkbox"; name = "xconst"; value = false; label = "Fixed X";
+                x = 4; y = 8; width = 2; height = 1; hint = "Force x-position to be the same across all frames"},
+  yconst    = { class = "checkbox"; name = "yconst"; value = false; label = "Fixed Y";
+                x = 7; y = 8; width = 2; height = 1; hint = "Force y-position to be the same across all frames"},
 } -- entire inner loop needs to be rewritten to handle reverse independently.
 
 if config_file == "" then config_file = aegisub.decode_path("?user/aegisub-motion.conf") end
@@ -182,11 +190,11 @@ gui.conf.encbin.hint = "The full path to the encoder binary (unless it's in your
 gui.conf.datalabel.label = "       Enter the path to your prefix here (include trailing slash)."
 gui.conf.preflabel.label = "First box: path to encoder binary; second box: encoder command."
 gui.conf.windows  = { class = "checkbox"; value = global.windows; label = "Windows"; name = "windows";
-                    x = 0; y = 21; height = 1; width = 3; hint = "Check this if you are running this on windows."}
+                    x = 0; y = 22; height = 1; width = 3; hint = "Check this if you are running this on windows."}
 gui.conf.gui_trim = { class = "checkbox"; value = global.gui_trim; label = "Enable trim GUI"; name = "gui_trim";
-                    x = 3; y = 21; height = 1; width = 4; hint = "Set whether or not the trim gui should appear."}
+                    x = 3; y = 22; height = 1; width = 4; hint = "Set whether or not the trim gui should appear."}
 gui.conf.gnupauto = { class = "checkbox"; value = global.gui_expo; label = "Autoplot exports"; name = "gnupauto";
-                    x = 7; y = 21; height = 1; width = 3; hint = "Will attempt to automatically plot with gnuplot on export (only works if it is in your PATH)"}
+                    x = 7; y = 22; height = 1; width = 3; hint = "Will attempt to automatically plot with gnuplot on export (only works if it is in your PATH)"}
 gui.conf.enccom   = { class = "textbox"; value = global.enccom; name = "enccom";
                     x = 0; y = 17; height = 4; width = 10; hint = "The encoding command that will be used. If you change this, set the preset to \"custom\"."}
 gui.conf.prefix   = { class = "textbox"; value = global.prefix; name = "prefix";
@@ -194,11 +202,11 @@ gui.conf.prefix   = { class = "textbox"; value = global.prefix; name = "prefix";
 gui.conf.encoder  = { class = "dropdown"; value = global.encoder; name = "encoder"; items = {"x264", "ffmpeg", "avs2yuv", "custom"};
                     x = 0; y = 11; height = 1; width = 2; hint = "Choose one of the encoding command presets (set to custom if you have made any modifications to the defaults)"}
 gui.conf.delsourc = { class = "checkbox"; value = global.delsourc; label = "Delete"; name = "delsourc";
-                    x = 0; y = 10; height = 1; width = 2; hint = "Delete the source lines instead of commenting them out."}
+                    x = 0; y = 21; height = 1; width = 2; hint = "Delete the source lines instead of commenting them out."}
 gui.conf.autocopy = { class = "checkbox"; value = global.autocopy; label = "Autocopy"; name = "autocopy";
-                    x = 2; y = 10; height = 1; width = 3; hint = "Automatically copy the contents of the clipboard into the tracking data box on script run."}
+                    x = 3; y = 21; height = 1; width = 3; hint = "Automatically copy the contents of the clipboard into the tracking data box on script run."}
 gui.conf.acfilter = { class = "checkbox"; value = global.acfilter; label = "Copy Filter"; name = "acfilter";
-                    x = 5; y = 10; height = 1; width = 3; hint = "Only automatically copy the clipboard if it appears to contain tracking data."}
+                    x = 7; y = 21; height = 1; width = 3; hint = "Only automatically copy the clipboard if it appears to contain tracking data."}
 
 alltags = {
   ['xscl']  = "\\fscx([%d%.]+)",
@@ -245,11 +253,13 @@ guiconf = {
     "scale", "border", "shadow", "sclround",
     "rotation", "rotround",
     "relative", "stframe",
-    "vsfscale", "export", "linear", 
+    "vsfscale", "export", "linear",
+    "xconst", "yconst",
   },
   clip = {
     "position","scale","rotation",
     "relative","stframe",
+    "xconst", "yconst",
   },
 }
 
@@ -505,12 +515,15 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
     if config.stframe == 0 then config.stframe = 1 end
     if clipconf.stframe == 0 then clipconf.stframe = 1 end
     if config.linespath == "" then config.linespath = false end
-    if clipconf.clippath == "" or clipconf.clippath == nil then
-      clipconf.clippath = false
-    else config.clip = false end -- set clip to false if clippath exists
     if config.wconfig then
       writeconf(conf,{ ['main'] = config; ['clip'] = clipconf; ['global'] = global })
     end
+    if clipconf.clippath == "" or clipconf.clippath == nil then
+      clipconf.clippath = false
+    else config.clip = false end -- set clip to false if clippath exists
+    if config.clip or clipconf.clippath then config.linear = false end
+    if config.yconst and config.xconst then config.position = false end
+    if clipconf.yconst and clipconf.xconst then clipconf.position = false end
     aegisub.progress.title("Mincing Gerbils")
     printmem("Go")
     local newsel = frame_by_frame(sub,accd,config,clipconf)
@@ -641,13 +654,24 @@ function spoof_table(parsed_table,opts,len)
   parsed_table.yscl = parsed_table.yscl or {}
   parsed_table.zrot = parsed_table.zrot or {}
   if not opts.position then
-    for k = 1, len do
+    for k = 1,len do
       parsed_table.xpos[k] = 0
       parsed_table.ypos[k] = 0
     end
+  else
+    if opts.yconst then
+      for k = 1,len do
+        parsed_table.ypos[k] = 0
+      end
+    end
+    if opts.xconst then
+      for k = 1,len do
+        parsed_table.xpos[k] = 0
+      end
+    end
   end
   if not opts.scale then
-    for k = 1, len do
+    for k = 1,len do
       parsed_table.xscl[k] = 100
       parsed_table.yscl[k] = 100
     end
