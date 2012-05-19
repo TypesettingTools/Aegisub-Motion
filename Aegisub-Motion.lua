@@ -1,8 +1,9 @@
-﻿  --[=[ If a full path is provided, that config file will always be used. If a filename is provided,
+  --[=[ If a full path is provided, that config file will always be used. If a filename is provided,
         then we attempt to open that file in the script directory, and if that fails, then we open
         it in the aegisub userdata directory (%APPDATA%/Aegisub or ~/.aegisub). This allows different
-        settings (prefix, etc) per-project if you desire.]=]--
-config_file = "aegisub-motion.conf" -- e.g. C:\\path\\to the\\a-mo.conf or /home/path to/the/aegi-moti.conf
+        settings (prefix, etc) per-project if you desire. If you don't trust any of this crazy shit,
+        then config_file = false will disable all config related operations.]=]--
+config_file = "aegisub-motion.conf"
   --[=[ YOU ARE LEGALLY BOUND AND GAGGED BY THE TERMS AND CONDITIONS OF THE LICENSE,
         EVEN IF YOU HAVEN'T READ THEM. ]=]--
       
@@ -63,82 +64,111 @@ INALIABLE RIGHTS:
     for the FORESEEABLE FUTURE. Should it raise ANY QUESTIONS, THE USER is welcome to
     JUST GO AHEAD AND JUMP OFF OF A BRIDGE because his or her stupidity is OBVIOUSLY
     INCURABLE.
+ 10. THE USER must understand the difference between a COPYRIGHT LICENSE and an END-USER
+    LICENSE AGREEMENT. COPYRIGHT LICENSES are THE THINGS that get put ON TOP of A PIECE
+    OF CODE that tell people that YOU ARE NOT LEGALLY ALLOWED TO REDISTRIBUTE THIS FILE
+    UNLESS YOU HAVE RECENTLY CASTRATED YOURSELF WITH A SPORK and even then only under
+    SPECIFIC CIRCUMSTANCES. END-USER LICENSE AGREEMENTS are THE UNREADABLE WALLS OF
+    LEGALESE that HUMONGOUS, PROFITABLE CORPORATIONS pay LEGIONS OF LEGAL PERSONELLE to
+    develop that tell you that YOU ARE NOT LEGALLY ALLOWED TO USE THE SOFTWARE YOU JUST
+    INSTALLED UNLESS YOU WILLINGLY CONSIGN YOUR ENTIRE ESTATE TO SAID CORPORATION IN
+    YOUR LAST WILL AND TESTAMENT.
   ]=]--
 
 script_name = "Aegisub-Motion"
 script_description = "A set of tools for simplifying the process of creating and applying motion tracking data with Aegisub." -- and it might have memory issues. I think.
 script_author = "torque"
-script_version = "μοε-RC1" -- no, I have no idea how this versioning system works either.
+script_version = "2.0.0.0.0.0" -- no, I have no idea how this versioning system works either.
 require "karaskel"
+if not aegisub.file_name then error("Aegisub 3.0.0 or better is required.") end
+require "clipboard"
 
 gui = {} -- I'm really beginning to think this shouldn't be a global variable
 gui.main = { -- todo: change these to be more descriptive.
   linespath = { class = "textbox"; name = "linespath"; hint = "Paste data or the path to a file containing it. No quotes or escapes.";
                 x = 0; y = 1; height = 4; width = 10;},
   pref      = { class = "textbox"; name = "pref"; hint = "The prefix";
-                x = 0; y = 14; height = 3; width = 10;},
-  preflabel = { class = "label"; label = "                     Files will be written to this directory.";
+                x = 0; y = 14; height = 3; width = 10; hint = "The directory any generated files will be written to."},
+  preflabel = { class = "label"; label = "                  Files will be written to this directory.";
                 x = 0; y = 13; height = 1; width = 10;},
-  datalabel = { class = "label"; label = "                            Paste data or enter a filepath.";
+  datalabel = { class = "label"; label = "                       Paste data or enter a filepath.";
                 x = 0; y = 0; height = 1; width = 10;},
-  optlabel  = { class = "label"; label = "What tracking data should be applied?         Rounding";
-                x = 0; y = 6; height = 1; width = 10;},
+  optlabel  = { class = "label"; label = "Data to be applied:";
+                x = 0; y = 6; height = 1; width = 5;},
+  rndlabel  = { class = "label"; label = "Rounding";
+                x = 7; y = 6; height = 1; width = 3;},
   position  = { class = "checkbox"; name = "position"; value = true; label = "Position";
-                x = 0; y = 7; height = 1; width = 3;},
+                x = 0; y = 7; height = 1; width = 2; hint = "Apply position data to the selected lines."},
+  origin    = { class = "checkbox"; name = "origin"; value = false; label = "Origin";
+                x = 2; y = 7; height = 1; width = 2; hint = "Move the origin along with the position."},
   clip      = { class = "checkbox"; name = "clip"; value = false; label = "Clip";
-                x = 4; y = 7; height = 1; width = 2;},
+                x = 4; y = 7; height = 1; width = 2; hint = "Move clip along with the position (note: will also be scaled and rotated if those options are selected)."},
   scale     = { class = "checkbox"; name = "scale"; value = true; label = "Scale";
-                x = 0; y = 8; height = 1; width = 2;},
+                x = 0; y = 8; height = 1; width = 2; hint = "Apply scaling data to the selected lines."},
   border    = { class = "checkbox"; name = "border"; value = true; label = "Border";
-                x = 2; y = 8; height = 1; width = 2;},
+                x = 2; y = 8; height = 1; width = 2; hint = "Scale border with the line (only if Scale is also selected)."},
   shadow    = { class = "checkbox"; name = "shadow"; value = true; label = "Shadow";
-                x = 4; y = 8; height = 1; width = 2;},
+                x = 4; y = 8; height = 1; width = 2; hint = "Scale shadow with the line (only if Scale is also selected)."},
   rotation  = { class = "checkbox"; name = "rotation"; value = false; label = "Rotation";
-                x = 0; y = 9; height = 1; width = 3;},
+                x = 0; y = 9; height = 1; width = 3; hint = "Apply rotation data to the selected lines."},
   posround  = { class = "intedit"; name = "posround"; value = 2; min = 0; max = 5;
-                x = 7; y = 7; height = 1; width = 3;},
+                x = 7; y = 7; height = 1; width = 3; hint = "How many decimal places of accuracy the resulting positions should have."},
   sclround  = { class = "intedit"; name = "sclround"; value = 2; min = 0; max = 5;
-                x = 7; y = 8; height = 1; width = 3;},
+                x = 7; y = 8; height = 1; width = 3; hint = "How many decimal places of accuracy the resulting scales should have (also applied to border and shadow)."},
   rotround  = { class = "intedit"; name = "rotround"; value = 2; min = 0; max = 5;
-                x = 7; y = 9; height = 1; width = 3;},
+                x = 7; y = 9; height = 1; width = 3; hint = "How many decimal places of accuracy the resulting rotations should have."},
   wconfig   = { class = "checkbox"; name = "wconfig"; value = false; label = "Write config";
-                x = 0; y = 11; height = 1; width = 4;},
-  sizeratio = { class = "floatedit"; name = "sizeratio"; value = 1;
-                x = 7; y = 11; height = 1; width = 3;},
-  override  = { class = "checkbox"; name = "override"; value = 1;
-                x = 6; y = 11; height = 1; width = 1;},
+                x = 0; y = 11; height = 1; width = 4; hint = "Write current settings to the configuration file."},
+  relative  = { class = "checkbox"; name = "relative"; value = true; label = "Relative";
+                x = 4; y = 11; height = 1; width = 3; hint = "Start frame should be relative to the line's start time rather than to the start time of all selected lines"},
+  stframe   = { class = "intedit"; name = "stframe"; value = 1;
+                x = 7; y = 11; height = 1; width = 3; hint = "Frame used as the starting point for the tracking data. \"-1\" corresponds to the last frame."},
   vsfscale  = { class = "checkbox"; name = "vsfscale"; value = false; label = "VSfilter scaling";
-                x = 0; y = 12; height = 1; width = 3;},
+                x = 0; y = 12; height = 1; width = 3; hint = "Use staged transforms to approximate noninteger scale values for vsfilter."},
   linear    = { class = "checkbox"; name = "linear"; value = false; label = "Linear";
-                x = 4; y = 12; height = 1; width = 2;},
-  reverse   = { class = "checkbox"; name = "reverse"; value = false; label = "Reverse";
-                x = 6; y = 12; height = 1; width = 2;},
+                x = 4; y = 12; height = 1; width = 2; hint = "Use transforms and \\move to create a linear transition, instead of frame-by-frame."},
   export    = { class = "checkbox"; name = "export"; value = false; label = "Export";
-                x = 8; y = 12; height = 1; width = 2;},
+                x = 8; y = 12; height = 1; width = 2; hint = "Write files for plotting data with gnuplot"},
   sortd     = { class = "dropdown"; name = "sortd"; hint = "Sort lines by"; value = "Default"; items = {"Default", "Time"};
-                x = 5; y = 5; width = 4; height = 1;}, 
+                x = 5; y = 5; width = 4; height = 1; hint = "The order to sort the lines after they have been tracked."}, 
   sortlabel = { class = "label"; name = "sortlabel"; label = "      Sort Method:";
                 x = 1; y = 5; width = 4; height = 1;},
+  xconst    = { class = "checkbox"; name = "xconst"; value = false; label = "Fixed X";
+                x = 0; y = 10; width = 2; height = 1; hint = "Force x-position to be the same across all frames"},
+  yconst    = { class = "checkbox"; name = "yconst"; value = false; label = "Fixed Y";
+                x = 2; y = 10; width = 2; height = 1; hint = "Force y-position to be the same across all frames"},
 }
 
-for k,v in pairs(aegisub) do
-  dpath = false
-  if k == "file_name" then
-    dpath = true
-    require "clipboard"
-    break
-  end
-end
+gui.clip = {
+  clippath = { class = "textbox"; name = "clippath"; hint = "Paste data or the path to a file containing it. No quotes or escapes.";
+               x = 0; y = 1; height = 4; width = 10;},
+  label    = { class = "label"; label = "                 Paste data or enter a filepath.";
+               x = 0; y = 0; height = 1; width = 10;},
+  position = { class = "checkbox"; name = "position"; value = true; label = "Position";
+               x = 0; y = 6; height = 1; width = 3;},
+  scale    = { class = "checkbox"; name = "scale"; value = true; label = "Scale";
+               x = 0; y = 7; height = 1; width = 2;},
+  rotation = { class = "checkbox"; name = "rotation"; value = false; label = "Rotation";
+               x = 0; y = 8; height = 1; width = 3;},
+  relative  = { class = "checkbox"; name = "relative"; value = true; label = "Relative";
+                x = 4; y = 6; height = 1; width = 3;},
+  stframe   = { class = "intedit"; name = "stframe"; value = 1;
+                x = 7; y = 6; height = 1; width = 3;},
+  xconst    = { class = "checkbox"; name = "xconst"; value = false; label = "Fixed X";
+                x = 4; y = 8; width = 2; height = 1; hint = "Force x-position to be the same across all frames"},
+  yconst    = { class = "checkbox"; name = "yconst"; value = false; label = "Fixed Y";
+                x = 7; y = 8; width = 2; height = 1; hint = "Force y-position to be the same across all frames"},
+} -- entire inner loop needs to be rewritten to handle reverse independently.
 
-if config_file == "" and dpath then config_file = aegisub.decode_path("?user/aegisub-motion.conf") end
+if config_file == "" then config_file = aegisub.decode_path("?user/aegisub-motion.conf") end
 
 encpre = {
-x264    = '"#{encbin}" --crf 16 --tune fastdecode -i 250 --fps 23.976 --sar 1:1 --index "#{prefix}#{index}.index" --seek #{startf} --frames #{lenf} -o "#{prefix}#{output}.mp4" "#{input}"',
-ffmpeg  = '"#{encbin}" -ss #{startt} -t #{lent} -sn -i "#{input}" "#{prefix}#{output}-%%05d.jpg"',
-avs2yuv = 'echo FFVideoSource("#{input}",cachefile="#{prefix}#{index}.index").trim(#{startf},#{endf}).ConvertToRGB.ImageWriter("#{prefix}#{output}.",type="jpg") > "#{prefix}encode.avs"#{nl}"#{encbin}" -o NUL "#{prefix}encode.avs"#{nl}del "#{prefix}encode.avs"',}
+x264    = '"#{encbin}" --crf 16 --tune fastdecode -i 250 --fps 23.976 --sar 1:1 --index "#{prefix}#{index}.index" --seek #{startf} --frames #{lenf} -o "#{prefix}#{output}[#{startf}-#{endf}].mp4" "#{input}"',
+ffmpeg  = '"#{encbin}" -ss #{startt} -t #{lent} -sn -i "#{input}" "#{prefix}#{output}[#{startf}-#{endf}]-%%05d.jpg"',
+avs2yuv = 'echo FFVideoSource("#{input}",cachefile="#{prefix}#{index}.index").trim(#{startf},#{endf}).ConvertToRGB.ImageWriter("#{prefix}#{output}[#{startf}-#{endf}].",type="png") > "#{prefix}encode.avs"#{nl}"#{encbin}" -o NUL "#{prefix}encode.avs"#{nl}del "#{prefix}encode.avs"',}
 
 global = {
-  windows  = true,
+  windows  = true, -- try to use windows style paths
   prefix   = "",
   encoder  = "x264",
   encbin   = "",
@@ -146,76 +176,91 @@ global = {
   gnupauto = false,
   autocopy = true,
   acfilter = true,
+  delsourc = false, 
   -- encoder presets
 }
 
 global.enccom = encpre[global.encoder] or ""
 
-header = {
-  ['xscl'] = "scale_x",
-  ['yscl'] = "scale_y",
-  ['ali']  = "align",
-  ['zrot'] = "angle",
-  ['bord'] = "outline",
-  ['shad'] = "shadow",
-  ['_v']   = "margin_t",
-  ['_l']   = "margin_l",
-  ['_r']   = "margin_r",
-  ['fs']   = "fontsize",
-  ['fn']   = "fontname",
-}
-
-patterns = {
-  ['xscl']    = "\\fscx([%d%.]+)",
-  ['yscl']    = "\\fscy([%d%.]+)",
-  ['ali']     = "\\an([1-9])",
-  ['zrot']    = "\\frz?([%-%d%.]+)",
-  ['bord']    = "\\bord([%d%.]+)",
-  ['xbord']   = "\\xbord([%d%.]+)",
-  ['ybord']   = "\\ybord([%d%.]+)",
-  ['shad']    = "\\shad([%-%d%.])",
-  ['xshad']   = "\\xshad([%-%d%.]+)",
-  ['yshad']   = "\\yshad([%-%d%.]+)",
-  ['fs']      = "\\fs([%d%.]+)",  
-}
+gui.conf = table.copy_deep(gui.main)
+gui.conf.clippath, gui.conf.linespath, gui.conf.wconfig = nil
+gui.conf.encbin, gui.conf.pref = table.copy(gui.conf.pref), nil
+gui.conf.encbin.value, gui.conf.encbin.name = global.encbin, "encbin"
+gui.conf.encbin.hint = "The full path to the encoder binary (unless it's in your PATH)"
+gui.conf.datalabel.label = "       Enter the path to your prefix here (include trailing slash)."
+gui.conf.preflabel.label = "First box: path to encoder binary; second box: encoder command."
+gui.conf.windows  = { class = "checkbox"; value = global.windows; label = "Windows"; name = "windows";
+                    x = 0; y = 22; height = 1; width = 3; hint = "Check this if you are running this on windows."}
+gui.conf.gui_trim = { class = "checkbox"; value = global.gui_trim; label = "Enable trim GUI"; name = "gui_trim";
+                    x = 3; y = 22; height = 1; width = 4; hint = "Set whether or not the trim gui should appear."}
+gui.conf.gnupauto = { class = "checkbox"; value = global.gui_expo; label = "Autoplot exports"; name = "gnupauto";
+                    x = 7; y = 22; height = 1; width = 3; hint = "Will attempt to automatically plot with gnuplot on export (only works if it is in your PATH)"}
+gui.conf.enccom   = { class = "textbox"; value = global.enccom; name = "enccom";
+                    x = 0; y = 17; height = 4; width = 10; hint = "The encoding command that will be used. If you change this, set the preset to \"custom\"."}
+gui.conf.prefix   = { class = "textbox"; value = global.prefix; name = "prefix";
+                    x = 0; y = 1; height = 4; width = 10; hint = "The folder to which all generated files will be written."}
+gui.conf.encoder  = { class = "dropdown"; value = global.encoder; name = "encoder"; items = {"x264", "ffmpeg", "avs2yuv", "custom"};
+                    x = 0; y = 11; height = 1; width = 2; hint = "Choose one of the encoding command presets (set to custom if you have made any modifications to the defaults)"}
+gui.conf.delsourc = { class = "checkbox"; value = global.delsourc; label = "Delete"; name = "delsourc";
+                    x = 0; y = 21; height = 1; width = 2; hint = "Delete the source lines instead of commenting them out."}
+gui.conf.autocopy = { class = "checkbox"; value = global.autocopy; label = "Autocopy"; name = "autocopy";
+                    x = 3; y = 21; height = 1; width = 3; hint = "Automatically copy the contents of the clipboard into the tracking data box on script run."}
+gui.conf.acfilter = { class = "checkbox"; value = global.acfilter; label = "Copy Filter"; name = "acfilter";
+                    x = 7; y = 21; height = 1; width = 3; hint = "Only automatically copy the clipboard if it appears to contain tracking data."}
 
 alltags = {
-  ['xscl']    = "\\fscx([%d%.]+)",
-  ['yscl']    = "\\fscy([%d%.]+)",
-  ['ali']     = "\\an([1-9])",
-  ['zrot']    = "\\frz?([%-%d%.]+)",
-  ['bord']    = "\\bord([%d%.]+)",
-  ['xbord']   = "\\xbord([%d%.]+)",
-  ['ybord']   = "\\ybord([%d%.]+)",
-  ['shad']    = "\\shad([%-%d%.])",
-  ['xshad']   = "\\xshad([%-%d%.]+)",
-  ['yshad']   = "\\yshad([%-%d%.]+)",
-  ['resetti'] = "\\r([^\\}]+)",
-  ['alpha']   = "\\alpha&H(%x%x)&",
-  ['l1a']     = "\\1a&H(%x%x)&",
-  ['l2a']     = "\\2a&H(%x%x)&",
-  ['l3a']     = "\\3a&H(%x%x)&",
-  ['l4a']     = "\\4a&H(%x%x)&",
-  ['l1c']     = "\\c&H(%x+)&",
-  ['l1c2']    = "\\1c&H(%x+)&",
-  ['l2c']     = "\\2c&H(%x+)&",
-  ['l3c']     = "\\3c&H(%x+)&",
-  ['l4c']     = "\\4c&H(%x+)&",
-  ['clip']    = "\\clip%((.-)%)",
-  ['iclip']   = "\\iclip%((.-)%)",
-  ['be']      = "\\be([%d%.]+)",
-  ['blur']    = "\\blur([%d%.]+)",
-  ['fax']     = "\\fax([%-%d%.]+)",
-  ['fay']     = "\\fay([%-%d%.]+)"
+  ['xscl']  = "\\fscx([%d%.]+)",
+  ['yscl']  = "\\fscy([%d%.]+)",
+  ['ali']   = "\\an([1-9])",
+  ['zrot']  = "\\frz?([%-%d%.]+)",
+  ['bord']  = "\\bord([%d%.]+)",
+  ['xbord'] = "\\xbord([%d%.]+)",
+  ['ybord'] = "\\ybord([%d%.]+)",
+  ['shad']  = "\\shad([%-%d%.]+)",
+  ['xshad'] = "\\xshad([%-%d%.]+)",
+  ['yshad'] = "\\yshad([%-%d%.]+)",
+  ['reset'] = "\\r([^\\}]*)",
+  ['alpha'] = "\\alpha&H(%x%x)&",
+  ['l1a']   = "\\1a&H(%x%x)&",
+  ['l2a']   = "\\2a&H(%x%x)&",
+  ['l3a']   = "\\3a&H(%x%x)&",
+  ['l4a']   = "\\4a&H(%x%x)&",
+  ['l1c']   = "\\c&H(%x+)&",
+  ['l1c2']  = "\\1c&H(%x+)&",
+  ['l2c']   = "\\2c&H(%x+)&",
+  ['l3c']   = "\\3c&H(%x+)&",
+  ['l4c']   = "\\4c&H(%x+)&",
+  ['clip']  = "\\clip%((.-)%)",
+  ['iclip'] = "\\iclip%((.-)%)",
+  ['be']    = "\\be([%d%.]+)",
+  ['blur']  = "\\blur([%d%.]+)",
+  ['fax']   = "\\fax([%-%d%.]+)",
+  ['fay']   = "\\fay([%-%d%.]+)"
+}
+
+importanttags = { -- scale_x, scale_y, outline, shadow, angle
+  ['\\fscx'] = {{"scale","scale"}, "scale_x"};
+  ['\\fscy'] = {{"scale","scale"}, "scale_y"};
+  ['\\bord'] = {{"border","scale"}, "outline"};
+  ['\\shad'] = {{"shadow","scale"}, "shadow"};
+  ['\\frz']  = {{"rotation","rotation"}, "angle"};
 }
 
 guiconf = {
-  "sortd",
-  "position", "clip", "posround",
-  "scale", "border", "shadow", "sclround",
-  "rotation", "rotround",
-  "sizeratio", "override",
-  "vsfscale", "linear", "reverse", "export",
+  main = {
+    "sortd",
+    "position", "origin", "clip", "posround",
+    "scale", "border", "shadow", "sclround",
+    "rotation", "rotround",
+    "relative", "stframe",
+    "vsfscale", "export", "linear",
+    "xconst", "yconst",
+  },
+  clip = {
+    "position","scale","rotation",
+    "relative","stframe",
+    "xconst", "yconst",
+  },
 }
 
 for k,v in pairs(global) do table.insert(guiconf,k) end
@@ -225,7 +270,7 @@ function dacos(a) return math.deg(math.acos(a)) end
 function dsin(a) return math.sin(math.rad(a)) end
 function dasin(a) return math.deg(math.asin(a)) end
 function dtan(a) return math.tan(math.rad(a)) end
-function datan(x,y) return math.deg(math.atan2(x,y)) end
+function datan(y,x) return math.deg(math.atan2(y,x)) end
 
 fix = {}
 
@@ -247,10 +292,20 @@ function readconf(conf,guitab)
   local cf = io.open(conf,'r')
   if cf then
     aegisub.log(5,"Reading config file...\n")
+    local thesection
     for line in cf:lines() do
-      local key, val = line:splitconf()
-      aegisub.log(5,"Read: %s -> %s\n", key, tostring(val:tobool()))
-      valtab[key] = val:tobool()
+      local section = line:match("#(%w+)")
+      if section then
+        valtab[section] = {}
+        thesection = section
+        aegisub.log(5,"Section: %s\n",thesection)
+      elseif thesection == nil then
+        return nil
+      else
+        local key, val = line:splitconf()
+        aegisub.log(5,"Read: %s -> %s\n", key, tostring(val:tobool()))
+        valtab[thesection][key:gsub("^ +","")] = val:tobool()
+      end
     end
     cf:close()
     convertfromconf(valtab,guitab)
@@ -261,34 +316,63 @@ function readconf(conf,guitab)
 end
 
 function convertfromconf(valtab,guitab)
-  for i,v in pairs(guiconf) do
-    if valtab[v] ~= nil and guitab[v] ~= nil then
-      aegisub.log(5,"Set: %s <- %s\n", v, tostring(valtab[v]))
-      guitab[v].value = valtab[v]
-    else
-      aegisub.log(5,"%s unset (nil value)\n", v)
+  --aegisub.log(5,"%s\n",table.tostring(guitab))
+  for section,sectab in pairs(guitab) do
+    for ident,value in pairs(valtab[section]) do
+      if section == "global" then
+        aegisub.log(5,"Set: global.%s = %s (%s)\n",ident,tostring(value),type(value))
+        sectab[ident] = value
+      else
+        aegisub.log(5,"Set: gui.%s.%s = %s (%s)\n",section,ident,tostring(value),type(value))
+        sectab[ident].value = value
+      end
     end
   end
 end
 
-function writeconf(conf,options)
+function writeconf(conf,optab)
   local cf = io.open(conf,'w+')
-  local configlines = {}
   if not cf then 
-    aegisub.log(0,'Config write failed! Check that %s exists and has write permission.\n',config_file)
+    aegisub.log(0,'Config write failed! Check that %s exists and has write permission.\n',cf)
     return nil
   end
-  for i,v in pairs(guiconf) do
-    if options[v] ~= nil then
-      aegisub.log(5,"Write: %s:%s -> conf\n",v,tostring(options[v]))
-      table.insert(configlines,string.format("%s:%s\n",v,tostring(options[v])))
+  local configlines = {}
+  for section,tab in pairs(optab) do
+    table.insert(configlines,("#%s\n"):format(section))
+    if section == "global" then
+      for ident,value in pairs(tab) do
+        table.insert(configlines,("  %s:%s\n"):format(ident,tostring(value)))
+      end
+    else
+      for i, field in ipairs(guiconf[section]) do
+        if tab[field] ~= nil then -- (e.g. when clipconf == {}, don't overwrite all the config with "nil")
+          table.insert(configlines,("  %s:%s\n"):format(field,tostring(tab[field])))
+        end
+      end
     end
   end
   for i,v in ipairs(configlines) do
+    aegisub.log(5,"Write: %s -> config\n",v:gsub("^ +",""))
     cf:write(v)
   end
   cf:close()
   return true
+end
+
+function configscope()
+  local cf
+  if tostring(config_file):match("^[A-Z]:\\") or tostring(config_file):match("^/") or not config_file then
+    return config_file
+  else
+    cf = io.open(aegisub.decode_path("?script/"..config_file))
+    if not cf then
+      cf = aegisub.decode_path("?user/"..config_file)
+    else
+      cf:close()
+      cf = aegisub.decode_path("?script/"..config_file)
+    end
+    return cf
+  end
 end
 
 function string:splitconf()
@@ -297,9 +381,9 @@ function string:splitconf()
 end
 
 function string:tobool()
-  if self == "true" then return true
-  elseif self == "false" then return false
-  else return self end
+  local bool = ({['true'] = true, ['false'] = false})[self]
+  if bool ~= nil then return bool
+    else return self; end
 end
 
 function preprocessing(sub, sel)
@@ -328,33 +412,9 @@ function preprocessing(sub, sel)
 end
 
 function getinfo(sub, line, num)
-  for k, v in pairs(header) do
-    line[k] = line.styleref[v]
-    aegisub.log(5,"Line %d: %s -> %s (from header)\n", num, v, tostring(line[k]))
-  end
-  if line.bord then line.xbord = tonumber(line.bord); line.ybord = tonumber(line.bord); end
-  if line.shad then line.xshad = tonumber(line.shad); line.yshad = tonumber(line.shad); end
-  if line.text:match("\\pos%([%-%d%.]+,[%-%d%.]+%)") then -- have to check now since default pos is calculated/given by karaskel
-    line.xpos, line.ypos = line.text:match("\\pos%(([%-%d%.]+),([%-%d%.]+)%)")
-    line.xorg, line.yorg = line.xpos, line.ypos
-    aegisub.log(5,"Line %d: pos -> (%f,%f)\n", num, line.xpos, line.ypos)
-  end
-  if line.text:match("\\org%(([%-%d%.]+),([%-%d%.]+)%)") then -- this should be more correctly handled now
-    line.xorg, line.yorg = line.text:match("\\org%(([%-%d%.]+),([%-%d%.]+)%)")
-    aegisub.log(5,"Line %d: org -> (%f,%f)\n", num, line.xorg, line.yorg)
-  end
   line.trans = {}
-  local a = line.text:match("%{(.-)}")
-  if a then
+  for a in line.text:gmatch("%{(.-)}") do
     aegisub.log(5,"Found a comment/override block in line %d: %s\n",num,a)
-    for k, v in pairs(patterns) do
-      local _ = a:match(v)
-      if _ then 
-        line[k] = tonumber(_)
-        aegisub.log(5,"Line %d: %s -> %s\n",num,k,tostring(_))
-      end
-    end
-    if a:match("\\fn([^\\}]+)") then line.fn = a:match("\\fn([^\\}]+)") end
     local function cconv(a,b,c,d,e)
       line.clips = a
       line.clip = string.format("m %d %d l %d %d %d %d %d %d",b,c,d,c,d,e,b,e)
@@ -363,27 +423,17 @@ function getinfo(sub, line, num)
     if not line.clip then
       line.clips, line.sclip, line.clip = a:match("\\(i?clip)%(([%d]*),?(.-)%)")
     end
-    if line.sclip == "" then line.sclip = false else line.sclip = tonumber(line.sclip) end
-    if line.clip then 
+    if line.clip then
+      line.sclip = tonumber(line.sclip) or false
       if line.sclip then aegisub.log(5,"Clip: \\%s(%s,%s)\n",line.clips,line.sclip,line.clip)
       else aegisub.log(5,"Clip: \\%s(%s)\n",line.clips,line.clip) end
     end -- because otherwise it crashes!
-    for b in line.text:gmatch("%{(.-)%}") do
-      for c in b:gmatch("\\t(%b())") do -- this will return an empty string for t_exp if no exponential factor is specified
-        t_start,t_end,t_exp,t_eff = c:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
-        if t_exp == "" then t_exp = 1 end -- set it to 1 because stuff and things
-        table.insert(line.trans,{tonumber(t_start),tonumber(t_end),tonumber(t_exp),t_eff})
-        aegisub.log(5,"Line %d: \\t(%g,%g,%g,%s) found\n",num,t_start,t_end,t_exp,t_eff)
-      end
+    for c in a:gmatch("\\t(%b())") do -- this will return an empty string for t_exp if no exponential factor is specified
+      t_start,t_end,t_exp,t_eff = c:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
+      t_exp = tonumber(t_exp) or 1 -- set to 1 if unspecified
+      table.insert(line.trans,{tonumber(t_start),tonumber(t_end),tonumber(t_exp),t_eff})
+      aegisub.log(5,"Line %d: \\t(%g,%g,%g,%s) found\n",num,t_start,t_end,t_exp,t_eff)
     end
-    -- have to run it again because of :reasons: related to bad programming
-    if line.bord then line.xbord = tonumber(line.bord); line.ybord = tonumber(line.bord); end
-    if line.shad then line.xshad = tonumber(line.shad); line.yshad = tonumber(line.shad); end
-    if line.margin_v ~= 0 then line._v = line.margin_v end
-    if line.margin_l ~= 0 then line._l = line.margin_l end
-    if line.margin_r ~= 0 then line._r = line.margin_r end
-  else
-    aegisub.log(5,"No comment/override block found in line %d\n",num)
   end
 end
 
@@ -400,51 +450,24 @@ function information(sub, sel)
   local accd = {}
   local _ = nil
   accd.meta, accd.styles = karaskel.collect_head(sub, false) -- dump everything I need later into the table so I don't have to pass o9k variables to the other functions
-  accd.vn = getvideoname(sub):gsub("[A-Z]:\\",""):gsub(".-[^\\]\\","")
   accd.lines = {}
   accd.endframe = aegisub.frame_from_ms(sub[sel[1]].end_time) -- get the end frame of the first selected line
   accd.startframe = aegisub.frame_from_ms(sub[sel[1]].start_time) -- get the start frame of the first selected line
-  accd.poserrs, accd.alignerrs = {}, {}
   local numlines = #sel
-  for i, v in pairs(sel) do -- burning cpu cycles like they were no thing
-    local opline = sub[v] -- these are different.
-    opline.num = v -- for inserting lines later
+  for i = #sel,1,-1 do -- burning cpu cycles like they were no thing
+    local opline = sub[sel[i]] -- these are different.
+    opline.num = sel[i] -- for inserting lines later
     karaskel.preproc_line(sub, accd.meta, accd.styles, opline) -- get linewidth/height and margins
     if not opline.effect then opline.effect = "" end
-    getinfo(sub, opline, v-strt)
-    opline.styleref.fontname = opline.fn
-    opline.styleref.fontsize = opline.fs
-    local ofsx,ofsy = opline.styleref.scale_x,opline.styleref.scale_y
-    opline.styleref.scale_y = 100
-    opline.styleref.scale_x = 100
-    opline.width, opline.height, opline.descent, opline.extlead = aegisub.text_extents(opline.styleref,opline.text_stripped)
-    opline.styleref.scale_x,opline.styleref.scale_y = ofsx,ofsy
-    if opline.margin_v ~= 0 then opline._v = opline.margin_v end
-    if opline.margin_l ~= 0 then opline._l = opline.margin_l end
-    if opline.margin_r ~= 0 then opline._r = opline.margin_r end
+    getinfo(sub, opline, opline.num-strt)
     opline.startframe, opline.endframe = aegisub.frame_from_ms(opline.start_time), aegisub.frame_from_ms(opline.end_time)
     if opline.comment then opline.is_comment = true else opline.is_comment = false end
-    if not opline.xpos then
-      aegisub.log(5,"Touching little boys\n")
-      opline.xpos = fix.xpos[opline.ali%3+1](accd.meta.res_x,opline._l,opline._r)
-      opline.ypos = fix.ypos[math.ceil(opline.ali/3)](accd.meta.res_y,opline._v)
-      aegisub.log(5,"Line %d: pos -> (%f,%f)\n", opline.num, opline.xpos, opline.ypos)
-    end
-    if opline.xorg then
-      local xd = opline.xpos - opline.xorg
-      local yd = opline.ypos - opline.yorg
-      local r = math.sqrt(xd^2+yd^2)
-      local alpha = datan(yd,xd)
-      opline.xpos = opline.xorg + r*dcos(alpha-opline.zrot)
-      opline.ypos = opline.yorg + r*dsin(alpha-opline.zrot)
-      opline.text = opline.text:gsub("\\org%(([%-%d%.]+),([%-%d%.]+)%)","")
-    end
     if opline.startframe < accd.startframe then -- make timings flexible. Number of frames total has to match the tracked data but
-      aegisub.log(5,"Line %d: startframe changed from %d to %d\n",v-strt,accd.startframe,opline.startframe)
+      aegisub.log(5,"Line %d: startframe changed from %d to %d\n",opline.num-strt,accd.startframe,opline.startframe)
       accd.startframe = opline.startframe
     end
     if opline.endframe > accd.endframe then -- individual lines can be shorter than the whole scene
-      aegisub.log(5,"Line %d: endframe changed from %d to %d\n",v-strt,accd.endframe,opline.endframe)
+      aegisub.log(5,"Line %d: endframe changed from %d to %d\n",opline.num-strt,accd.endframe,opline.endframe)
       accd.endframe = opline.endframe
     end
     if opline.endframe-opline.startframe>1 then
@@ -452,11 +475,6 @@ function information(sub, sel)
     end
   end
   local length = #accd.lines
-  local copy = {}
-  for i,v in ipairs(accd.lines) do
-    copy[length-i+1] = v
-  end
-  accd.lines = copy
   accd.totframes = accd.endframe - accd.startframe
   assert(#accd.lines>0,"You have to select at least one line that is longer than one frame long.") -- pro error checking
   printmem("End of preproc loop")
@@ -466,28 +484,14 @@ end
 function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   aegisub.progress.title("Selecting Gerbils")
   local accd = preprocessing(sub,sel)
-  for k,v in pairs(global) do
-    gui.main[k] = {}
+  gui.main.stframe.min = -accd.totframes; gui.main.stframe.max = accd.totframes;
+  gui.clip.stframe.min = -accd.totframes; gui.clip.stframe.max = accd.totframes;
+  local conf = configscope()
+  if conf then
+    if not readconf(conf,{ ['main'] = gui.main; ['clip'] = gui.clip; ['global'] = global }) then aegisub.log(0,"Failed to read config!\n") end
   end
-  local cf
-  if not (config_file:match("^[A-Z]:\\") or config_file:match("^/")) and dpath then
-    cf = io.open(aegisub.decode_path("?script/"..config_file))
-    if not cf then
-      cf = aegisub.decode_path("?user/"..config_file)
-    else
-      cf:close()
-      cf = aegisub.decode_path("?script/"..config_file)
-    end
-  else
-    cf = config_file
-  end
-  if not readconf(cf,gui.main) then aegisub.log(0,"Failed to read config!") end
-  for k,v in pairs(global) do
-    global[k] = gui.main[k].value
-    gui.main[k] = nil -- set to nil so dialog.display doesn't throw a hissy fit
-  end
-  if dpath and global.autocopy then
-    local paste = clipboard.get()
+  if global.autocopy then
+    local paste = clipboard.get() or "" -- if nothing on the clipboard then returns nil
     if global.acfilter then
       if paste:match("^Adobe After Effects 6.0 Keyframe Data") then
         gui.main.linespath.value = paste
@@ -498,22 +502,31 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   end
   gui.main.pref.value = global.prefix
   printmem("GUI startup")
-  local button, config = aegisub.dialog.display(gui.main, {"Go","Abort","Export"})
+  local button, config = aegisub.dialog.display(gui.main, {"Go","Clip...","Export","Abort"})
+  local clipconf
+  if button == "Clip..." then
+    button, clipconf = aegisub.dialog.display(gui.clip, {"Go","Cancel","Abort"})
+  end
   if button == "Go" then
+    local clipconf = clipconf or {} -- solve indexing errors
+    for i,field in ipairs(guiconf.clip) do
+      if clipconf[field] == nil then clipconf[field] = gui.clip[field].value end
+    end
+    if config.stframe == 0 then config.stframe = 1 end
+    if clipconf.stframe == 0 then clipconf.stframe = 1 end
     if config.linespath == "" then config.linespath = false end
-    if config.reverse then
-      aegisub.progress.title("slibreG gnicniM") -- BECAUSE ITS FUNNY GEDDIT
-    else
-      aegisub.progress.title("Mincing Gerbils")
-    end
     if config.wconfig then
-      for k,v in pairs(global) do
-        config[k] = v
-      end
-      writeconf(cf,config)
+      writeconf(conf,{ ['main'] = config; ['clip'] = clipconf; ['global'] = global })
     end
+    if clipconf.clippath == "" or clipconf.clippath == nil then
+      clipconf.clippath = false
+    else config.clip = false end -- set clip to false if clippath exists
+    if config.clip or clipconf.clippath then config.linear = false end
+    if config.yconst and config.xconst then config.position = false end
+    if clipconf.yconst and clipconf.xconst then clipconf.position = false end
+    aegisub.progress.title("Mincing Gerbils")
     printmem("Go")
-    local newsel = frame_by_frame(sub,accd,config)
+    local newsel = frame_by_frame(sub,accd,config,clipconf)
     if munch(sub,newsel) then
       newsel = {}
       for x = 1,#sub do
@@ -525,51 +538,54 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
     aegisub.progress.title("Reformatting Gerbils")
     cleanup(sub,newsel,config)
   elseif button == "Export" then
-    export(accd,parse_input(config.linespath,accd.meta.res_x,accd.meta.res_y,config),config)
+    local mochatab = {}
+    parse_input(config.linespath,mochatab,accd.meta.res_x,accd.meta.res_y)
+    export(accd,mochatab,config)
+  elseif button == "Cancel" then
+    init_input(sub,sel) -- this is extremely unideal as it reruns all of the information gathering functions as well.
   else
     aegisub.progress.task("ABORT")
-    if dpath then aegisub.cancel() end
+    aegisub.cancel()
   end
   aegisub.set_undo_point("Motion Data")
   printmem("Closing")
 end
 
-function parse_input(input,shx,shy,opts)
+function parse_input(mocha_table,input,shx,shy)
   printmem("Start of input parsing")
   local ftab = {}
   local sect, care = 0, 0
-  local mocha = {}
-  mocha.xpos, mocha.ypos, mocha.xscl, mocha.yscl, mocha.zrot = {}, {}, {}, {}, {}
-  local datams = io.open(input,"r")
+  mocha_table.xpos, mocha_table.ypos, mocha_table.xscl, mocha_table.yscl, mocha_table.zrot = {}, {}, {}, {}, {}
+  local datams = io.open(input,"r") -- a terrible idea? Doesn't seem to be so far.
+  local datastring = ""
   if datams then
     for line in datams:lines() do
       line = line:gsub("[\r\n]*","") -- FUCK YOU CRLF
+      datastring = datastring..line.."\n"
       table.insert(ftab,line) -- dump the lines from the file into a table.
     end 
     datams:close()
   else
     input = input:gsub("[\r]*","") -- SERIOUSLY FUCK THIS SHIT
+    datastring = input
     ftab = input:split("\n")
   end
   local xmult,ymult
-  if opts.override then
-    xmult, ymult = opts.sizeratio, opts.sizeratio
-  else
-    local sw, sh -- need to be declared outside for loop
-    for k,v in ipairs(ftab) do
-      if v:match("Source Width") then
-        sw = v:match("Source Width\t([0-9]+)")
-      end
-      if v:match("Source Height") then
-        sh = v:match("Source Height\t([0-9]+)")
-      end
-      if sw and sh then
-        break
-      end
+  local sw, sh -- need to be declared outside for loop
+  for k,v in ipairs(ftab) do
+    if v:match("Source Width") then
+      sw = v:match("Source Width\t([0-9]+)")
     end
-    xmult = shx/tonumber(sw)
-    ymult = shy/tonumber(sh)
+    if v:match("Source Height") then
+      sh = v:match("Source Height\t([0-9]+)")
+    end
+    if sw and sh then
+      break
+    end
   end
+  initmaxmin(mocha_table,datastring)
+  xmult = shx/tonumber(sw)
+  ymult = shy/tonumber(sh)
   for keys, valu in ipairs(ftab) do -- idk it might be more flexible now or something
     if valu == "Position" then
     sect = sect + 1
@@ -583,242 +599,323 @@ function parse_input(input,shx,shy,opts)
     if sect == 1 then
       if valu:match("%d") then
         val = valu:split("\t")
-        table.insert(mocha.xpos,tonumber(val[2])*xmult)
-        if not mocha.xmax then mocha.xmax = tonumber(val[2]) elseif tonumber(val[2]) > mocha.xmax then mocha.xmax = tonumber(val[2]) end
-        if not mocha.xmin then mocha.xmin = tonumber(val[2]) elseif tonumber(val[2]) < mocha.xmin then mocha.xmin = tonumber(val[2]) end
-        table.insert(mocha.ypos,tonumber(val[3])*ymult)
-        if not mocha.ymax then mocha.ymax = tonumber(val[3]) elseif tonumber(val[3]) > mocha.ymax then mocha.ymax = tonumber(val[3]) end
-        if not mocha.ymin then mocha.ymin = tonumber(val[3]) elseif tonumber(val[3]) < mocha.ymin then mocha.ymin = tonumber(val[3]) end
+        local x = tonumber(val[2])
+        table.insert(mocha_table.xpos,x*xmult)
+        if x > mocha_table.xmax then mocha_table.xmax = x
+        elseif x < mocha_table.xmin then mocha_table.xmin = x end
+        local y = tonumber(val[3])
+        table.insert(mocha_table.ypos,y*ymult)
+        if y > mocha_table.ymax then mocha_table.ymax = y
+        elseif y < mocha_table.ymin then mocha_table.ymin = y end
       end
     elseif sect <= 3 and sect >= 2 then
       if valu:match("%d") then
         val = valu:split("\t")
-        table.insert(mocha.xscl,tonumber(val[2]))
-        if not mocha.xsmax then mocha.xsmax = tonumber(val[2]) elseif tonumber(val[2]) > mocha.xsmax then mocha.xsmax = tonumber(val[2]) end
-        if not mocha.xsmin then mocha.xsmin = tonumber(val[2]) elseif tonumber(val[2]) < mocha.xsmin then mocha.xsmin = tonumber(val[2]) end
-        table.insert(mocha.yscl,tonumber(val[3]))
-        if not mocha.ysmax then mocha.ysmax = tonumber(val[3]) elseif tonumber(val[3]) > mocha.ysmax then mocha.ysmax = tonumber(val[3]) end
-        if not mocha.ysmin then mocha.ysmin = tonumber(val[3]) elseif tonumber(val[3]) < mocha.ysmin then mocha.ysmin = tonumber(val[3]) end
+        local xs = tonumber(val[2])
+        table.insert(mocha_table.xscl,xs)
+        if xs > mocha_table.xsmax then mocha_table.xsmax = xs
+        elseif xs < mocha_table.xsmin then mocha_table.xsmin = xs end
+        local ys = tonumber(val[3])
+        table.insert(mocha_table.yscl,ys)
+        if ys > mocha_table.ysmax then mocha_table.ysmax = ys
+        elseif ys < mocha_table.ysmin then mocha_table.ysmin = ys end
       end
     elseif sect <= 7 and sect >= 4 then
       if valu:match("%d") then
         val = valu:split("\t")
-        table.insert(mocha.zrot,-tonumber(val[2]))
-        if not mocha.rmax then mocha.rmax = -tonumber(val[2]) elseif -tonumber(val[2]) > mocha.rmax then mocha.rmax = -tonumber(val[2]) end
-        if not mocha.rmin then mocha.rmin = -tonumber(val[2]) elseif -tonumber(val[2]) < mocha.rmin then mocha.rmin = -tonumber(val[2]) end
+        local r = -tonumber(val[2])
+        table.insert(mocha_table.zrot,r)
+        if r > mocha_table.rmax then mocha_table.rmax = -r
+        elseif r < mocha_table.rmin then mocha_table.rmin = -r end
       end
     end
   end
-  mocha.flength = #mocha.xpos
-  assert(mocha.flength == #mocha.ypos and mocha.flength == #mocha.xscl and mocha.flength == #mocha.yscl and mocha.flength == #mocha.zrot,"The data is not internally equal length.") -- make sure all of the elements are the same length (because I don't trust my own code).
+  mocha_table.flength = #mocha_table.xpos
+  assert(mocha_table.flength == #mocha_table.ypos and mocha_table.flength == #mocha_table.xscl and mocha_table.flength == #mocha_table.yscl and mocha_table.flength == #mocha_table.zrot,"The data is not internally equal length.") -- make sure all of the elements are the same length (because I don't trust my own code).
   printmem("End of input parsing")
-  return mocha -- hurr durr
 end
 
-function frame_by_frame(sub,accd,opts)
+function initmaxmin(mocha_table,datastring)
+  mocha_table.xmax, mocha_table.ymax = datastring:match("Position\n\tFrame\tX pixels\tY pixels\tZ pixels\n\t%d+\t([%d%-%.]+)\t([%d%-%.]+)")
+  mocha_table.xsmax, mocha_table.ysmax = datastring:match("Scale\n\tFrame\tX percent\tY percent\tZ percent\n\t%d+\t([%d%-%.eE%+]+)\t([%d%-%.eE%+]+)") -- uses e notation, e.g. 6.65107e+41
+  mocha_table.rmax = datastring:match("Rotation\n\tFrame\tDegrees\n\t%d+\t([%d%-%.eE%+]+)")
+  mocha_table.xmax, mocha_table.xmin = tonumber(mocha_table.xmax), tonumber(mocha_table.xmax) -- probably a much better way to do this
+  mocha_table.ymax, mocha_table.ymin = tonumber(mocha_table.ymax), tonumber(mocha_table.ymax)
+  mocha_table.xsmax, mocha_table.xsmin = tonumber(mocha_table.xsmax), tonumber(mocha_table.xsmax)
+  mocha_table.ysmax, mocha_table.ysmin = tonumber(mocha_table.ysmax), tonumber(mocha_table.ysmax)
+  mocha_table.rmax, mocha_table.rmin = tonumber(mocha_table.rmax), tonumber(mocha_table.rmax)
+end
+
+function spoof_table(parsed_table,opts,len)
+  local len = len or #parsed_table.xpos
+  parsed_table.xpos = parsed_table.xpos or {}
+  parsed_table.ypos = parsed_table.ypos or {}
+  parsed_table.xscl = parsed_table.xscl or {}
+  parsed_table.yscl = parsed_table.yscl or {}
+  parsed_table.zrot = parsed_table.zrot or {}
+  if not opts.position then
+    for k = 1,len do
+      parsed_table.xpos[k] = 0
+      parsed_table.ypos[k] = 0
+    end
+  else
+    if opts.yconst then
+      for k = 1,len do
+        parsed_table.ypos[k] = 0
+      end
+    end
+    if opts.xconst then
+      for k = 1,len do
+        parsed_table.xpos[k] = 0
+      end
+    end
+  end
+  if not opts.scale then
+    for k = 1,len do
+      parsed_table.xscl[k] = 100
+      parsed_table.yscl[k] = 100
+    end
+  end
+  if not opts.rotation then
+    for k = 1,len do
+      parsed_table.zrot[k] = 0
+    end
+  end
+  parsed_table.s = 1
+  if opts.reverse then parsed_table.s = parsed_table.flength end
+end
+
+function ensuretags(line,opts,styles,dim)
+  if line.margin_v ~= 0 then line._v = line.margin_v else line._v = line.styleref.margin_v end
+  if line.margin_l ~= 0 then line._l = line.margin_l else line._l = line.styleref.margin_l end
+  if line.margin_r ~= 0 then line._r = line.margin_r else line._r = line.styleref.margin_r end
+  line.ali = line.text:match("\\an([1-9])") or line.styleref.align
+  line.xpos,line.ypos = line.text:match("\\pos%(([%-%d%.]+),([%-%d%.]+)%)")
+  if not line.xpos then -- insert position into line if not present.
+    line.xpos = fix.xpos[line.ali%3+1](dim.x,line._l,line._r)
+    line.ypos = fix.ypos[math.ceil(line.ali/3)](dim.y,line._v)
+    line.text = (("{\\pos(%d,%d)}"):format(line.xpos,line.ypos)..line.text):gsub("^({.-)}{","%1")
+  end
+  line.oxpos,line.oypos = line.text:match("\\org%(([%-%d%.]+),([%-%d%.]+)%)") or line.xpos,line.ypos
+  line.origindx,line.origindy = line.xpos - line.oxpos, line.ypos - line.oypos 
+  local mergedtext = line.text:gsub("}{","")
+  local startblock = mergedtext:match("^{(.-)}")
+  local block = ""
+  if startblock then
+    for tag, str in pairs(importanttags) do
+      if opts[str[1][1]] and opts[str[1][2]] and not startblock:match(tag.."[%-%d%.]+") then
+        block = block..(tag.."%f"):format(line.styleref[str[2]])
+      end
+    end
+    if block:len() > 0 then
+      line.text = ("{"..block.."}"..line.text):gsub("^({.-)}{","%1")
+    end
+  else
+    for tag, str in pairs(importanttags) do
+      if opts[str[1][1]] and opts[str[1][2]] then
+        block = block..(tag.."%f"):format(line.styleref[str[2]])
+      end
+    end
+    line.text = "{"..block.."}"..line.text
+  end
+  function resetti(before,rstyle,rest)
+    local styletab = styles[rstyle] or line.styleref -- if \\r[stylename] is not a real style, reverts to regular \r
+    local block = ""
+    for tag, str in pairs(importanttags) do
+      if opts[str[1][1]] and opts[str[1][2]] and not startblock:match(tag.."[%-%d%.]+") then
+        block = block..(tag.."%f"):format(styletab[str[2]])
+      end
+    end
+    return "{"..before..rstyle..block..rest.."}"
+  end
+  line.text = line.text:gsub("{([^}]*\\r)([^\\}]*)(.-)}",resetti)
+end
+
+function frame_by_frame(sub,accd,opts,clipopts)
   printmem("Start of main loop")
-  local mocha
-  local clipa
+  local dim = {x = accd.meta.res_x; y = accd.meta.res_y}
+  local mocha = {}
+  local clipa = {}
   if opts.linespath then
-    mocha = parse_input(opts.linespath,accd.meta.res_x,accd.meta.res_y,opts)
+    parse_input(mocha,opts.linespath,accd.meta.res_x,accd.meta.res_y)
     assert(accd.totframes==mocha.flength,string.format("Number of frames selected (%d) does not match parsed line tracking data length (%d).",accd.totframes,mocha.flength))
+    spoof_table(mocha,opts)
+    if not opts.relative then
+      if opts.stframe < 0 then
+        mocha.start = accd.totframes + opts.stframe + 1
+      else
+        mocha.start = opts.stframe
+      end
+    end
+    if opts.clip then clipa = mocha end
+  end
+  if clipopts.clippath then
+    parse_input(clipa,clipopts.clippath,accd.meta.res_x,accd.meta.res_y)
+    assert(accd.totframes==clipa.flength,string.format("Number of frames selected (%d) does not match parsed clip tracking data length (%d).",accd.totframes,clipa.flength))
+    opts.linear = false -- no linear mode with moving clip, sorry
+    opts.clip = true -- simplify things a bit
+    spoof_table(clipa,clipopts)
+    if not opts.linespath then spoof_table(mocha,opts,#clipa.xpos) end
+    if not clipopts.relative then
+      if clipopts.stframe < 0 then
+        clipa.start = accd.totframes + clipopts.stframe + 1
+      else
+        clipa.start = clipopts.stframe
+      end
+    end
   end
   if opts.export then export(accd,mocha,opts) end
-  mocha.s = 1
-  if opts.reverse then mocha.s = mocha.flength end
   for k,v in ipairs(accd.lines) do -- comment lines that were commented in the thingy
     local derp = sub[v.num]
     derp.comment = true
-    --derp.effect = "aa-mo2"..derp.effect
     sub[v.num] = derp
     if not v.is_comment then v.comment = false end
   end
   local _ = nil
-  local newlines = {} -- table to stick indicies of tracked lines into for cleanup.
-  if not opts.scale then
-    for k,d in ipairs(mocha.xscl) do
-      mocha.xscl[k] = 100 -- old method was wrong and didn't work.
-      mocha.yscl[k] = 100 -- so that yscl is changed too. 
-    end
-  end
-  if not opts.rotation then
-    for k,d in ipairs(mocha.zrot) do
-      mocha.zrot[k] = 0
-    end
-  end
-  local operations, eraser = {}, {} -- create a table and put the necessary functions into it, which will save a lot of if operations in the inner loop. This was the most elegant solution I came up with.
+  local newlines = {} -- table to stick indices of tracked lines into for cleanup.
+  local operations = {} -- create a table and put the necessary functions into it, which will save a lot of if operations in the inner loop. This was the most elegant solution I came up with.
   if opts.position then
-    if opts.clip then
-      table.insert(operations,posiclip)
-      table.insert(eraser,"\\i?clip%b()")
-    else
-      table.insert(operations,possify)
+    operations["(\\pos)%(([%-%d%.]+,[%-%d%.]+)%)"] = possify
+    if opts.origin then
+      operations["(\\org)%(([%-%d%.]+,[%-%d%.]+)%)"] = orginate
     end
-    table.insert(eraser,"\\\pos%([%-%d%.]+,[%-%d%.]+%)") -- \\\ because I DON'T FUCKING KNOW OKAY THAT'S JUST THE WAY IT WORKS
   end
   if opts.scale then
     if opts.vsfscale then
-      table.insert(operations,VScalify)
+      opts.sclround = 2
+      operations["(\\fscx)([%d%.]+)"] = VSxscalify
+      operations["(\\fscy)([%d%.]+)"] = VSyscalify
     else
-      table.insert(operations,scalify)
+      operations["(\\fscx)([%d%.]+)"] = xscalify
+      operations["(\\fscy)([%d%.]+)"] = yscalify
     end
-    table.insert(eraser,"\\fscx[%d%.]+")
-    table.insert(eraser,"\\fscy[%d%.]+")
     if opts.border then
-      table.insert(operations,bordicate)
-      table.insert(eraser,"\\xbord[%d%.]+")
-      table.insert(eraser,"\\ybord[%d%.]+")
-      table.insert(eraser,"\\bord[%d%.]+")
+      operations["(\\bord)([%d%.]+)"] = bordicate
     end
     if opts.shadow then
-      table.insert(operations,shadinate)
-      table.insert(eraser,"\\xshad[%-%d%.]+")
-      table.insert(eraser,"\\yshad[%-%d%.]+")
-      table.insert(eraser,"\\shad[%-%d%.]+")
+      operations["(\\shad)([%-%d%.]+)"] = shadinate
     end
-  end
-  if opts.vsfscale then
-    opts.sclround = 2
   end
   if opts.rotation then
-    table.insert(eraser,"\\org%([%-%d%.]+,[%-%d%.]+%)")
-    table.insert(operations,rotate)
-    table.insert(eraser,"\\frz[%-%d%.]+")
+    operations["(\\frz)([%-%d%.]+)"] = rotate
   end
   printmem("End of table insertion")
-  for i,v in ipairs(accd.lines) do
+  local function linearmodo(currline)
+    local one = aegisub.ms_from_frame(aegisub.frame_from_ms(currline.start_time))
+    local two = aegisub.ms_from_frame(aegisub.frame_from_ms(currline.start_time)+1)
+    local red = currline.start_time
+    local blue = currline.end_time
+    local three = aegisub.ms_from_frame(aegisub.frame_from_ms(currline.end_time)-1)
+    local four = aegisub.ms_from_frame(aegisub.frame_from_ms(currline.end_time))
+    local maths = math.floor(one-red+(two-one)/2) -- this voodoo magic gets the time length (in ms) from the start of the first subtitle frame to the actual start of the line time.
+    local mathsanswer = math.floor(blue-red+three-blue+(four-three)/2) -- and this voodoo magic is the total length of the line plus the difference (which is negative) between the start of the last frame the line is on and the end time of the line.
+    local posmatch = "(\\pos)%(([%-%d%.]+,[%-%d%.]+)%)"
+    if operations[posmatch] then
+      currline.text = currline.text:gsub(posmatch,function(tag,val)
+        local exes, whys = {}, {}
+        for i,x in pairs({currline.rstartf,currline.rendf}) do
+          local cx,cy = val:match("([%-%d%.]+),([%-%d%.]+)")
+          mocha.ratx = mocha.xscl[x]/mocha.xscl[mocha.start]
+          mocha.raty = mocha.yscl[x]/mocha.yscl[mocha.start]
+          mocha.xdiff = mocha.xpos[x]-mocha.xpos[mocha.start]
+          mocha.ydiff = mocha.ypos[x]-mocha.ypos[mocha.start]
+          mocha.zrotd = mocha.zrot[x]-mocha.zrot[mocha.start]
+          mocha.currx,mocha.curry = mocha.xpos[x],mocha.ypos[x]
+          cx,cy = makexypos(tonumber(cx),tonumber(cy),currline.alpha,mocha)
+          table.insert(exes,round(cx,opts.posround)); table.insert(whys,round(cy,opts.posround))
+        end
+        local s = ("\\move(%g,%g,%g,%g,%d,%d)"):format(exes[1],whys[1],exes[2],whys[2],maths,mathsanswer)
+        aegisub.log(5,"%s\n",s)
+        return s
+      end)
+      operations[posmatch] = nil
+    end
+    for pattern,func in pairs(operations) do -- iterate through the necessary operations
+      if aegisub.progress.is_cancelled() then error("User cancelled") end
+      currline.text = currline.text:gsub(pattern,function(tag,val) 
+        local values = {}
+        for i,x in pairs({currline.rstartf,currline.rendf}) do
+          mocha.ratx = mocha.xscl[x]/mocha.xscl[mocha.start]
+          mocha.raty = mocha.yscl[x]/mocha.yscl[mocha.start]
+          mocha.xdiff = mocha.xpos[x]-mocha.xpos[mocha.start]
+          mocha.ydiff = mocha.ypos[x]-mocha.ypos[mocha.start]
+          mocha.zrotd = mocha.zrot[x]-mocha.zrot[mocha.start]
+          mocha.currx,mocha.curry = mocha.xpos[x],mocha.ypos[x]
+          table.insert(values,func(val,currline,mocha,opts))
+        end
+        return ("%s%g\\t(%d,%d,1,%s%g)"):format(tag,values[1],maths,mathsanswer,tag,values[2])
+      end)
+    end
+    sub[currline.num] = currline
+  end
+  local function nonlinearmodo(currline)
+    for x = currline.rendf,currline.rstartf,-1 do -- new inner loop structure
+      printmem("Inner loop")
+      aegisub.progress.title(string.format("Processing frame %g/%g",x,currline.rendf-currline.rstartf+1))
+      aegisub.progress.set((x-currline.rstartf)/(currline.rendf-currline.rstartf)*100)
+      if aegisub.progress.is_cancelled() then error("User cancelled") end
+      currline.start_time = aegisub.ms_from_frame(accd.startframe+x-1)
+      currline.end_time = aegisub.ms_from_frame(accd.startframe+x)
+      if not currline.is_comment then -- don't do any math for commented lines.
+        currline.time_delta = aegisub.ms_from_frame(accd.startframe+x-1) - aegisub.ms_from_frame(accd.startframe)
+        for vk,kv in ipairs(currline.trans) do
+          if aegisub.progress.is_cancelled() then error("User cancelled") end
+          currline.text = transformate(currline,kv)
+        end
+        mocha.ratx = mocha.xscl[x]/mocha.xscl[mocha.start] -- DIVISION IS SLOW
+        mocha.raty = mocha.yscl[x]/mocha.yscl[mocha.start]
+        mocha.xdiff = mocha.xpos[x]-mocha.xpos[mocha.start]
+        mocha.ydiff = mocha.ypos[x]-mocha.ypos[mocha.start]
+        mocha.zrotd = mocha.zrot[x]-mocha.zrot[mocha.start]
+        mocha.currx,mocha.curry = mocha.xpos[x],mocha.ypos[x]
+        for pattern,func in pairs(operations) do -- iterate through the necessary operations
+          if aegisub.progress.is_cancelled() then error("User cancelled") end
+          currline.text = currline.text:gsub(pattern,function(tag,val) return tag..func(val,currline,mocha,opts) end)
+        end
+        if clipme then
+          currline.text = currline.text:gsub("\\clip%(.-%)",function(a) return clippinate(currline,clipa,x) end,1)
+        end
+        currline.text = currline.text:gsub('\1',"")
+      end
+      sub.insert(currline.num+1,currline)
+      currline.text = currline.orgtext
+    end
+    if global.delsourc then sub.delete(currline.num) end
+  end
+  local how2proceed = nonlinearmodo
+  if opts.linear then
+    how2proceed = linearmodo
+  end
+  for i,currline in ipairs(accd.lines) do
     printmem("Outer loop")
-    local rstartf = v.startframe - accd.startframe + 1 -- start frame of line relative to start frame of tracked data
-    local rendf = v.endframe - accd.startframe -- end frame of line relative to start frame of tracked data
-    local maths, mathsanswer = nil, nil -- create references without allocation? idk how this works.
-    v.effect = "aa-mou"..v.effect
-    if opts.linear then
-      local one = aegisub.ms_from_frame(aegisub.frame_from_ms(v.start_time))
-      local two = aegisub.ms_from_frame(aegisub.frame_from_ms(v.start_time)+1)
-      local red = v.start_time
-      local blue = v.end_time
-      local three = aegisub.ms_from_frame(aegisub.frame_from_ms(v.end_time)-1)
-      local four = aegisub.ms_from_frame(aegisub.frame_from_ms(v.end_time))
-      maths = math.floor(one-red+(two-one)/2) -- this voodoo magic gets the time length (in ms) from the start of the first subtitle frame to the actual start of the line time.
-      local moremaths = three-blue+(four-three)/2
-      mathsanswer = math.floor(blue-red+moremaths) -- and this voodoo magic is the total length of the line plus the difference (which is negative) between the start of the last frame the line is on and the end time of the line.
+    currline.rstartf = currline.startframe - accd.startframe + 1 -- start frame of line relative to start frame of tracked data
+    currline.rendf = currline.endframe - accd.startframe -- end frame of line relative to start frame of tracked data
+    local clipme = false
+    if opts.clip and currline.clip then
+      clipme = true -- use this in the inner loop because it only needs to be calculated once per line.
     end
-    if opts.reverse then
-      rstartf, rendf = rendf, rstartf -- reverse them to set the differences
-    end
-    if opts.rotation then
-      v.zrotd = mocha.zrot[rstartf] - v.zrot -- idr there was something silly about this
-    end
-    if v.xpos and opts.position then
-      v.xdiff, v.ydiff = mocha.xpos[rstartf] - v.xpos, mocha.ypos[rstartf] - v.ypos
-    end
-    for ie, ei in pairs(eraser) do -- have to do it before inserting our new values (also before setting the orgline)
-      v.text = v.text:gsub(ei,"")
-    end
-    local orgtext = v.text -- tables are passed as references.
-    if opts.position and not v.xpos then -- I don't think I need this any more
-      aegisub.log(1,"Line %d is being skipped because it is missing a \\pos() tag and you said to track position. Moron.",v.num) -- yeah that should do it.
-    else
-      if opts.reverse then -- reverse order
-        if opts.linear then
-          if not v.is_comment then
-            v.ratx, v.raty = mocha.xscl[rendf]/mocha.xscl[rstartf],mocha.yscl[rendf]/mocha.yscl[rstartf]
-            local tag = "{"
-            local trans = string.format("\\t(%d,%d,",maths,mathsanswer)
-            if opts.position then
-              tag = tag..string.format("\\move(%g,%g,%g,%g,%d,%d)",mocha.xpos[rendf]-v.xdiff*v.ratx,mocha.ypos[rendf]-v.ydiff*v.raty,v.xpos,v.ypos,maths,mathsanswer)
-            end
-            local pre, rtrans = linearize(v,mocha,opts,rstartf,rendf)
-            if pre ~= "" then
-              tag = tag..pre..trans..rtrans..")}"..string.char(6)
-            else
-              tag = tag.."}"..string.char(6)
-            end
-            v.text = tag..v.text
-          end
-          sub[v.num] = v -- yep
-        else
-          rstartf, rendf = rendf, rstartf -- un-reverse them
-          for x = rstartf,rendf do
-            printmem("Inner loop")
-            aegisub.progress.title(string.format("Processing frame %g/%g",x-rstartf+1,rendf-rstartf+1))
-            aegisub.progress.set((x-rstartf)/(rendf-rstartf)*100)
-            if aegisub.progress.is_cancelled() then error("User cancelled") end
-            local iter = rendf-x+1 -- hm
-            v.start_time = aegisub.ms_from_frame(accd.startframe+iter-1)
-            v.end_time = aegisub.ms_from_frame(accd.startframe+iter)
-            if not v.is_comment then -- don't touch commented lines.
-              local tag = "{"
-              v.ratx = mocha.xscl[iter]/mocha.xscl[rendf] -- DIVISION IS SLOW
-              v.raty = mocha.yscl[iter]/mocha.yscl[rendf]
-              v.time_delta = aegisub.ms_from_frame(accd.startframe+iter-1) - aegisub.ms_from_frame(accd.startframe)
-              for vk,kv in ipairs(v.trans) do
-                if aegisub.progress.is_cancelled() then error("User cancelled") end
-                v.text = transformate(v,kv)
-              end
-              for vk,kv in ipairs(operations) do -- iterate through the necessary operations
-                if aegisub.progress.is_cancelled() then error("User cancelled") end
-                tag = tag..kv(v,mocha,opts,iter)
-              end
-              tag = tag.."}"..string.char(6)
-              v.text = v.text:gsub(string.char(1),"")
-              v.text = tag..v.text
-            end
-            sub.insert(v.num+1,v)
-            v.text = orgtext
-          end
-        end
-      else -- normal order
-        if opts.linear then
-          if not v.is_comment then
-            v.ratx, v.raty = mocha.xscl[rendf]/mocha.xscl[rstartf],mocha.yscl[rendf]/mocha.yscl[rstartf]
-            local tag = "{"
-            local trans = string.format("\\t(%d,%d,",maths,mathsanswer)
-            if opts.position then
-              tag = tag..string.format("\\move(%g,%g,%g,%g,%d,%d)",v.xpos,v.ypos,mocha.xpos[rendf]-v.xdiff*v.ratx,mocha.ypos[rendf]-v.ydiff*v.raty,maths,mathsanswer)
-            end
-            local pre, rtrans = linearize(v,mocha,opts,rstartf,rendf)
-            if pre ~= "" then
-              tag = tag..pre..trans..rtrans..")}"..string.char(6)
-            else
-              tag = tag.."}"..string.char(6)
-            end
-            v.text = tag..v.text
-          end
-          sub[v.num] = v -- yep
-        else
-          for x = rstartf,rendf do
-            printmem("Inner loop")
-            aegisub.progress.title(string.format("Processing frame %g/%g",x-rstartf+1,rendf-rstartf+1))
-            aegisub.progress.set((x-rstartf)/(rendf-rstartf)*100)
-            if aegisub.progress.is_cancelled() then error("User cancelled") end -- probably should have put this in here a long time ago
-            v.start_time = aegisub.ms_from_frame(accd.startframe+x-1)
-            v.end_time = aegisub.ms_from_frame(accd.startframe+x)
-            if not v.is_comment then
-              local tag = "{"
-              v.ratx = mocha.xscl[x]/mocha.xscl[rstartf] -- DIVISION IS SLOW
-              v.raty = mocha.yscl[x]/mocha.yscl[rstartf]
-              v.time_delta = aegisub.ms_from_frame(accd.startframe+x-1) - aegisub.ms_from_frame(accd.startframe)
-              for vk,kv in ipairs(v.trans) do
-                if aegisub.progress.is_cancelled() then error("User cancelled") end
-                v.text = transformate(v,kv)
-              end
-              for vk,kv in ipairs(operations) do -- iterate through the necessary operations
-                if aegisub.progress.is_cancelled() then error("User cancelled") end
-                tag = tag..kv(v,mocha,opts,x)
-              end
-              tag = tag.."}"..string.char(6)
-              v.text = v.text:gsub(string.char(1),"")
-              v.text = tag..v.text
-            end
-            sub.insert(v.num+x-rstartf+1,v)
-            v.text = orgtext
-          end
-        end
+    currline.effect = "aa-mou"..currline.effect
+    if opts.relative then
+      if opts.stframe < 0 then
+        mocha.start = currline.rendf + opts.stframe + 1
+      else
+        mocha.start = currline.rstartf + opts.stframe - 1
       end
     end
+    if clipopts.relative and clipme then
+      if tonumber(clipopts.stframe) < 0 then
+        clipa.start = currline.rendf + clipopts.stframe + 1
+      else
+        clipa.start = currline.rstartf + clipopts.stframe - 1
+      end
+    end
+    ensuretags(currline,opts,accd.styles,dim)
+    currline.alpha = -datan(currline.ypos-mocha.ypos[mocha.start],currline.xpos-mocha.xpos[mocha.start])
+    if opts.origin then currline.beta = -datan(currline.oypos-mocha.ypos[mocha.start],currline.oxpos-mocha.xpos[mocha.start]) end
+    currline.orgtext = currline.text -- tables are passed as references.
+    how2proceed(currline)
   end
-  for x = 1,#sub do
+  for x = #sub,1,-1 do
     if tostring(sub[x].effect):match("^aa%-mou") then
       aegisub.log(5,"I choose you, %d!\n",x)
       table.insert(newlines,x) -- seems to work as intended
@@ -827,170 +924,121 @@ function frame_by_frame(sub,accd,opts)
   return newlines -- yeah mang
 end
 
-function linearize(line,mocha,opts,rstartf,rendf)
-  local pre,trans = "",""
-  if opts.scale then
-    pre = pre..string.format("\\fscx%g\\fscy%g",round(line.xscl*line.ratx,opts.sclround),round(line.yscl*line.raty,opts.sclround))
-    trans = trans..string.format("\\fscx%g\\fscy%g",line.xscl,line.yscl)
-    if opts.border then
-      if line.xbord == line.ybord then
-        pre = pre..string.format("\\bord%g",round(line.xbord*line.ratx,opts.sclround))
-        trans = trans..string.format("\\bord%g",line.xbord)
-      else
-        pre = pre..string.format("\\xbord%g\\ybord%g",round(line.xbord*line.ratx,opts.sclround),round(line.ybord*line.raty,opts.sclround))
-        trans = trans..string.format("\\xbord%g\\ybord%g",line.xbord,line.ybord)
-      end
-    end
-    if opts.shadow then
-      if line.xbord == line.ybord then
-        pre = pre..string.format("\\shad%g",round(line.xshad*line.ratx,opts.sclround))
-        trans = trans..string.format("\\shad%g",line.xshad)
-      else
-        pre = pre..string.format("\\xshad%g\\yshad%g",round(line.xshad*line.ratx,opts.sclround),round(line.yshad*line.raty,opts.sclround))
-        trans = trans..string.format("\\xshad%g\\yshad%g",line.xshad,line.yshad)
-      end
-    end
-  end
-  if opts.rotation then
-    pre = pre..string.format("\\frz%g",round(mocha.zrot[rendf]-line.zrotd,opts.sclround)) -- not being able to move org might be a large issue
-    trans = trans..string.format("\\frz%g",mocha.zrot)
-  end
-  if opts.reverse then
-    return pre, trans
-  else
-    return trans, pre
-  end
+function possify(pos,line,mocha,opts)
+  local oxpos,oypos = pos:match("([%-%d%.]+),([%-%d%.]+)")
+  local xpos,ypos = makexypos(tonumber(oxpos),tonumber(oypos),line.alpha,mocha)
+  aegisub.log(5,"Position: (%f,%f) -> (%f,%f)\n",oxpos,oypos,xpos,ypos)
+  return ("(%g,%g)"):format(round(xpos,opts.posround),round(ypos,opts.posround))
 end
 
-function possify(line,mocha,opts,iter)
-  local xpos = mocha.xpos[iter]-(line.xdiff*line.ratx)
-  local ypos = mocha.ypos[iter]-(line.ydiff*line.raty)
-  local xd = xpos - mocha.xpos[iter]
-  local yd = ypos - mocha.ypos[iter]
-  local r = math.sqrt(xd^2+yd^2)
-  local alpha = datan(yd,xd) -- this should be a constant---move its calculation outside the inner loop, perhaps?
-  xpos = mocha.xpos[iter] + r*dcos(alpha-mocha.zrot[iter]+mocha.zrot[mocha.s])
-  ypos = mocha.ypos[iter] + r*dsin(alpha-mocha.zrot[iter]+mocha.zrot[mocha.s])
-  aegisub.log(5,"Position: (%f,%f) -> (%f,%f)\n",line.xpos,line.ypos,xpos,ypos)
-  local nf = string.format("%%.%df",opts.posround) -- new method of number formatting!
-  return "\\pos("..string.format(nf,xpos)..","..string.format(nf,ypos)..")"
+function makexypos(xpos,ypos,alpha,mocha)
+  local xpos = (xpos + mocha.xdiff)*mocha.ratx + (1 - mocha.ratx)*mocha.currx
+  local ypos = (ypos + mocha.ydiff)*mocha.raty + (1 - mocha.raty)*mocha.curry
+  local r = math.sqrt((xpos - mocha.currx)^2+(ypos - mocha.curry)^2)
+  xpos = mocha.currx + r*dcos(alpha + mocha.zrotd)
+  ypos = mocha.curry - r*dsin(alpha + mocha.zrotd)
+  return xpos,ypos
 end
 
-function posiclip(line,mocha,opts,iter)
-  local xpos = mocha.xpos[iter]-(line.xdiff*line.ratx)
-  local ypos = mocha.ypos[iter]-(line.ydiff*line.raty)
-  local xd = xpos - mocha.xpos[iter]
-  local yd = ypos - mocha.ypos[iter]
-  local r = math.sqrt(xd^2+yd^2)
-  local alpha = datan(yd,xd)
-  xpos = mocha.xpos[iter] + r*dcos(alpha-mocha.zrot[iter]+mocha.zrot[mocha.s])
-  ypos = mocha.ypos[iter] + r*dsin(alpha-mocha.zrot[iter]+mocha.zrot[mocha.s])
-  aegisub.log(5,"Position: (%f,%f) -> (%f,%f)\n",line.xpos,line.ypos,xpos,ypos)
-  local nf = string.format("%%.%df",opts.posround) -- new method of number formatting!
+function orginate(opos,line,mocha,opts)
+  local oxpos,oypos = opos:match("([%-%d%.]+),([%-%d%.]+)")
+  local xpos,ypos = makexypos(tonumber(oxpos),tonumber(oypos),line.alpha,mocha)
+  aegisub.log(5,"Position: (%f,%f) -> (%f,%f)\n",oxpos,oypos,xpos,ypos)
+  return ("(%g,%g)"):format(round(xpos,opts.posround),round(ypos,opts.posround))
+end
+
+function clippinate(line,clipa,iter)
+  local cx, cy = clipa.xpos[iter], clipa.ypos[iter]
+  local ratx, raty = clipa.xscl[iter]/clipa.xscl[clipa.start], clipa.yscl[iter]/clipa.yscl[clipa.start]
+  local diffrz = clipa.zrot[iter] - clipa.zrot[clipa.start]
+  aegisub.log(5,"cx: %f cy: %f\n",cx,cy)
+  aegisub.log(5,"rx: %f ry: %f\n",ratx,raty)
+  aegisub.log(5,"frz: %f\n",diffrz)
   local clip = ""
-  if line.clip then
-    local newvals = {}
-    local newclip = line.clip
-    local it = 0
-    local function xy(x,y)
-      local xo,yo = x,y
-      x = (tonumber(x) - line.xpos)*line.xscl*line.ratx/100
-      y = (tonumber(y) - line.ypos)*line.yscl*line.raty/100
-      local pr = math.sqrt(x^2+y^2)
-      local theta = datan(y,x)
-      x = xpos + pr*dcos(theta-mocha.zrot[iter]+mocha.zrot[mocha.s])
-      y = ypos + pr*dsin(theta-mocha.zrot[iter]+mocha.zrot[mocha.s])
-      aegisub.log(5,"Clip: %d %d -> %d %d\n",xo,yo,x,y)
-      if line.sclip then 
-        x = x*1024/(2^(line.sclip-1))
-        y = y*1024/(2^(line.sclip-1))
-      end
-      table.insert(newvals,round(x).." "..round(y))
-      it = it+1
-      return string.char(1)
-    end
-    newclip = newclip:gsub("([%.%d%-]+) ([%.%d%-]+)",xy)
-    local i = 0
-    local function ret(sub)
-      i = i+1
-      return newvals[i]
-    end
-    newclip = newclip:gsub(string.char(1),ret)
+  local function xy(x,y)
+    local xo,yo = x,y
+    x = (tonumber(x) - clipa.xpos[clipa.start])*ratx
+    y = (tonumber(y) - clipa.ypos[clipa.start])*raty
+    local r = math.sqrt(x^2+y^2)
+    local alpha = datan(y,x)
+    x = cx + r*dcos(alpha-diffrz)
+    y = cy + r*dsin(alpha-diffrz)
+    aegisub.log(5,"Clip: %d %d -> %d %d\n",xo,yo,x,y)
     if line.sclip then 
-      clip = string.format("\\%s(11,%s)",line.clips,newclip)
-    else
-      clip = string.format("\\%s(%s)",line.clips,newclip)
+      x = x*1024/(2^(line.sclip-1))
+      y = y*1024/(2^(line.sclip-1))
     end
+    return string.format("%d %d",round(x),round(y))
   end
-  return "\\pos("..string.format(nf,xpos)..","..string.format(nf,ypos)..")"..clip
+  clip = line.clip:gsub("([%.%d%-]+) ([%.%d%-]+)",xy)
+  if line.sclip then 
+    clip = string.format("\\%s(11,%s)",line.clips,clip)
+  else
+    clip = string.format("\\%s(%s)",line.clips,clip)
+  end
+  return clip
 end
 
 function transformate(line,trans)
-  local t_s = trans[1] - line.time_delta -- well, that was easy
+  local t_s = trans[1] - line.time_delta
   local t_e = trans[2] - line.time_delta
   aegisub.log(5,"Transform: %d,%d -> %d,%d\n",trans[1],trans[2],t_s,t_e)
   return line.text:gsub("\\t%b()","\\"..string.char(1)..string.format("t(%d,%d,%g,%s)",t_s,t_e,trans[3],trans[4]),1)
 end
 
-function scalify(line,mocha,opts)
-  local xscl = line.xscl*line.ratx
-  aegisub.log(5,"X Scale: %f -> %f\n",line.xscl,xscl)
-  local yscl = line.yscl*line.raty
-  aegisub.log(5,"Y Scale: %f -> %f\n",line.yscl,yscl)
-  return string.format("\\fscx%g\\fscy%g",round(xscl,opts.sclround),round(yscl,opts.sclround))
+function xscalify(xscale,line,mocha,opts)
+  local xscl = xscale*mocha.ratx
+  aegisub.log(5,"X Scale: %f -> %f\n",xscale,xscl)
+  return round(xscl,opts.sclround)
 end
 
-function bordicate(line,mocha,opts)
-  local xbord = line.xbord*round(line.ratx,opts.sclround) -- round beforehand to minimize random float errors
-  local ybord = line.ybord*round(line.raty,opts.sclround) -- or maybe that's rly fucking dumb? idklol
-  if xbord == ybord then
-    aegisub.log(5,"Border: %f -> %f\n",line.xbord,xbord)
-    return string.format("\\bord%g",round(xbord,opts.sclround))
-  else
-    aegisub.log(5,"XBorder: %f -> %f\n",line.xbord,xbord)
-    aegisub.log(5,"YBorder: %f -> %f\n",line.ybord,ybord)
-    return string.format("\\xbord%g\\ybord%g",round(xbord,opts.sclround),round(ybord,opts.sclround))
-  end
+function VSxscalify(xscale,line,mocha,opts)
+  local xscl = round(xscale*mocha.ratx,opts.sclround)
+  local xlowend, xhighend, xdecimal = math.floor(xscl),math.ceil(xscl),xscl%1*(10^opts.sclround)
+  local xstart, xend = -xdecimal, (10^opts.sclround)-xdecimal
+  aegisub.log(5,"X Scale: %f -> %f\n",xscale,xscl)
+  return ("%d\\t(%d,%d,\\fscx%d)"):format(xlowend,xstart,xend,xhighend)
 end
 
-function shadinate(line,mocha,opts)
-  local xshad = line.xshad*round(line.ratx,opts.sclround) -- scale shadow the same way as everything else
-  local yshad = line.yshad*round(line.raty,opts.sclround) -- hope it turns out as desired
-  if xshad == yshad then
-    aegisub.log(5,"Shadow: %f -> %f\n",line.xshad,xshad)
-    return string.format("\\shad%g",round(xshad,opts.sclround))
-  else
-    aegisub.log(5,"XShadow: %f -> %f\n",line.xshad,xshad)
-    aegisub.log(5,"YShadow: %f -> %f\n",line.yshad,yshad)
-    return string.format("\\xshad%g\\yshad%g",round(xshad,opts.sclround),round(yshad,opts.sclround))
-  end
+function yscalify(yscale,line,mocha,opts)
+  local yscl = yscale*mocha.ratx
+  aegisub.log(5,"Y Scale: %f -> %f\n",yscale,yscl)
+  return round(yscl,opts.sclround)
 end
 
-function VScalify(line,mocha,opts)
-  local xscl = round(line.xscl*line.ratx,2)
-  local yscl = round(line.yscl*line.raty,2)
-  local xlowend, xhighend, xdecimal = math.floor(xscl),math.ceil(xscl),xscl%1*100
-  local xstart, xend = -xdecimal, 100-xdecimal
-  local ylowend, yhighend, ydecimal = math.floor(yscl),math.ceil(yscl),yscl%1*100
-  local ystart, yend = -ydecimal, 100-ydecimal
-  aegisub.log(5,"X Scale: %f -> %f\n",line.xscl,xscl)
-  aegisub.log(5,"X Scale: %f -> %f\n",line.xscl,xscl)
-  return string.format("\\fscx%d\\t(%d,%d,\\fscx%d)\\fscy%d\\t(%d,%d,\\fscy%d)",xlowend,xstart,xend,xhighend,ylowend,ystart,yend,yhighend)
+function VSyscalify(yscale,line,mocha,opts)
+  local yscl = round(yscale*mocha.raty,opts.sclround)
+  local ylowend, yhighend, ydecimal = math.floor(yscl),math.ceil(yscl),yscl%1*(10^opts.sclround)
+  local ystart, yend = -ydecimal, (10^opts.sclround)-ydecimal
+  aegisub.log(5,"y Scale: %f -> %f\n",yscale,yscl)
+  return ("%d\\t(%d,%d,\\fscy%d)"):format(ylowend,ystart,yend,yhighend)
 end
 
-function rotate(line,mocha,opts,iter)
-  local zrot = mocha.zrot[iter]-line.zrotd
+function bordicate(bord,line,mocha,opts)
+  local nbord = bord*mocha.ratx
+  aegisub.log(5,"Border: %f -> %f\n",bord,nbord)
+  return round(nbord,opts.sclround)
+end
+
+function shadinate(shad,line,mocha,opts)
+  local nshad = shad*mocha.ratx
+  aegisub.log(5,"Shadow: %f -> %f\n",shad,nshad)
+  return round(nshad,opts.sclround)
+end
+
+function rotate(rot,line,mocha,opts)
+  local zrot = rot + mocha.zrotd
   aegisub.log(5,"ZRotation: -> %f\n",zrot)
-  return string.format("\\frz%g",round(zrot,opts.rotround)) -- copypasta
+  return round(zrot,opts.rotround)
 end
 
 function munch(sub,sel)
   local changed = false
-  for i,v in ipairs(sel) do 
-    local num = sel[#sel-i+1]
+  for i,num in ipairs(sel) do
+    if aegisub.progress.is_cancelled() then error("User cancelled") end
     local l1 = sub[num-1]
     local l2 = sub[num]
-    if l1.text == l2.text then
+    if l1.text == l2.text and l1.effect == l2.effect then
       l1.end_time = l2.end_time
       sub[num-1]=l1
       sub.delete(num)
@@ -1109,16 +1157,34 @@ function string:split(sep) -- borrowed from the lua-users wiki (single character
   return fields
 end
 
+function table.tostring(t)
+  if type(t) ~= 'table' then
+    return tostring(t)
+  else
+    local s = ''
+    local i = 1
+    while t[i] ~= nil do
+      if #s ~= 0 then s = s..', ' end
+      s = s..table.tostring(t[i])
+      i = i+1
+    end
+    for k, v in pairs(t) do
+      if type(k) ~= 'number' or k > i then
+        if #s ~= 0 then s = s..', ' end
+        local key = type(k) == 'string' and k or '['..table.tostring(k)..']'
+        s = s..key..'='..table.tostring(v)
+      end
+    end
+    return '{'..s..'}'
+  end
+end
+
 function isvideo() -- a very rudimentary (but hopefully efficient) check to see if there is a video loaded.
   local l = aegisub.video_size() and true or false -- and forces boolean conversion?
-  if dpath then
-    if l then
-      return l
-    else
-      return l,"Validation failed: you don't have a video loaded."
-    end
-  else
+  if l then
     return l
+  else
+    return l,"Validation failed: you don't have a video loaded."
   end
 end
 
@@ -1142,7 +1208,7 @@ function export(accd,mocha,opts)
   -- open files
   local eff = accd.lines[1].effect:gsub("^aa-mou","",1)
   if eff == "" then eff = nil end
-  local name = eff or accd.lines[1].actor or accd.vn or "Untitled"
+  local name = eff or accd.lines[1].actor or "Untitled"
   for k,v in pairs(fnames) do
     local it = 0
     repeat
@@ -1241,51 +1307,46 @@ function export(accd,mocha,opts)
 end
 
 function confmaker()
-  local newgui = table.copy_deep(gui.main) -- OH JESUS CHRIST WHAT HAVE I DONE
-  newgui.linespath, newgui.wconfig = nil
-  newgui.encbin, newgui.pref = table.copy(newgui.pref), nil
-  newgui.encbin.value, newgui.encbin.name = global.encbin, "encbin"
-  newgui.datalabel.label = "       Enter the path to your prefix here (include trailing slash)."
-  newgui.preflabel.label = "First box: path to encoder binary; second box: encoder command."
-  newgui.windows  = { class = "checkbox"; value = global.windows; label = "Windows"; name = "windows";
-                      x = 0; y = 21; height = 1; width = 3;}
-  newgui.gui_trim = { class = "checkbox"; value = global.gui_trim; label = "Enable trim GUI"; name = "gui_trim";
-                      x = 3; y = 21; height = 1; width = 4;}
-  newgui.gnupauto = { class = "checkbox"; value = global.gui_expo; label = "Autoplot exports"; name = "gnupauto";
-                      x = 7; y = 21; height = 1; width = 3;}
-  newgui.enccom   = { class = "textbox"; value = global.enccom; name = "enccom";
-                      x = 0; y = 17; height = 4; width = 10;}
-  newgui.prefix   = { class = "textbox"; value = global.prefix; name = "prefix";
-                      x = 0; y = 1; height = 4; width = 10;}
-  newgui.encoder  = { class = "dropdown"; value = global.encoder; name = "encoder"; items = {"x264", "ffmpeg", "avs2yuv", "custom"};
-                      x = 0; y = 10; height = 1; width = 2;}
-  newgui.autocopy = { class = "checkbox"; value = global.windows; label = "Autocopy"; name = "autocopy";
-                      x = 2; y = 10; height = 1; width = 3;}
-  newgui.acfilter = { class = "checkbox"; value = global.windows; label = "Copy Filter"; name = "acfilter";
-                      x = 5; y = 10; height = 1; width = 3;}
   local valtab = {}
-  local cf = config_file
-  if not (cf:match("^[A-Z]:\\") or cf:match("^/")) and dpath then
-    aegisub.log(5,"herp\n")
-    cf = io.open(aegisub.decode_path("?script/"..config_file))
-    if not cf then
-      cf = aegisub.decode_path("?user/"..config_file)
-    else
-      cf:close()
-      cf = aegisub.decode_path("?script/"..config_file)
+  local conf = configscope()
+  if not readconf(conf,{ ['main'] = gui.conf; ['clip'] = gui.clip; ['global'] = global }) then aegisub.log(0,"Config read failed!\n") end
+  for key, value in pairs(global) do
+    gui.conf[key].value = value
+  end
+  local button, config = aegisub.dialog.display(gui.conf,{"Write","Write local","Clip...","Abort"})
+  local clipconf
+  if button == "Clip..." then
+    button, clipconf = aegisub.dialog.display(gui.clip,{"Write","Write local","Cancel","Abort"})
+  end
+  if button == "Write" then
+    local clipconf = clipconf or {}
+    for key,value in pairs(global) do
+      global[key] = config[key]
+      config[key] = nil
     end
+    for i,field in ipairs(guiconf.clip) do
+      if clipconf[field] == nil then clipconf[field] = gui.clip[field].value end
+    end 
+    writeconf(conf,{ ['main'] = config; ['clip'] = clipconf; ['global'] = global })
+  elseif button == "Write local" then
+    local clipconf = clipconf or {}
+    conf = aegisub.decode_path("?script/")..config_file
+    for key,value in pairs(global) do
+      global[key] = config[key]
+      config[key] = nil
+    end
+    for i,field in ipairs(guiconf.clip) do
+      if clipconf[field] == nil then clipconf[field] = gui.clip[field].value end
+    end
+    writeconf(conf,{ ['main'] = config; ['clip'] = clipconf; ['global'] = global })
+  elseif button == "Cancel" then
+    confmaker()
+  else
+    aegisub.cancel()
   end
-  if not readconf(cf,newgui) then aegisub.log(0,"Config read failed!") end
-  newgui.enccom.value = encpre[newgui.encoder.value] or newgui.enccom.value
-  local button, config = aegisub.dialog.display(newgui)
-  if button then 
-  for k,v in pairs(config) do
-    aegisub.log(0,"config.%s = %s\n",tostring(k),tostring(v))
-  end
-  writeconf(cf,config) end
-end --Adobe After Effects 6.0 Keyframe Data
+end
 
-aegisub.register_macro("Motion Data - Config", "Macro for full config editing.", confmaker, isvideo)
+if config_file then aegisub.register_macro("Motion Data - Config", "Full config management.", confmaker, isvideo) end
 
 gui.t = {
   vidlabel = { class = "label"; label = "The path to the loaded video";
@@ -1310,111 +1371,79 @@ gui.t = {
                x = 0; y = 7; height = 1; width = 30;},
 }
 
-function collecttrim(sub,sel,wc)
-  wc.startt, wc.endt = sub[sel[1]].start_time, sub[sel[1]].end_time
+function collecttrim(sub,sel,tokens)
+  tokens.startt, tokens.endt = sub[sel[1]].start_time, sub[sel[1]].end_time
   for i,v in ipairs(sel) do
     local l = sub[v]
     local lst, let = l.start_time, l.end_time
-    if lst < wc.startt then wc.startt = lst end
-    if let > wc.endt then wc.endt = let end
+    if lst < tokens.startt then tokens.startt = lst end
+    if let > tokens.endt then tokens.endt = let end
   end
-  wc.startf, wc.endf = aegisub.frame_from_ms(wc.startt), aegisub.frame_from_ms(wc.endt)-1
-  wc.lenf = wc.endf-wc.startf+1
-  wc.lent = wc.endt-wc.startt
+  tokens.startf, tokens.endf = aegisub.frame_from_ms(tokens.startt), aegisub.frame_from_ms(tokens.endt)-1
+  tokens.lenf = tokens.endf-tokens.startf+1
+  tokens.lent = tokens.endt-tokens.startt
 end
 -- #{encbin} #{input} #{prefix} #{index} #{output} #{startf} #{lenf} #{endf} #{startt} #{lent} #{endt} #{nl}
 function getvideoname(sub)
   for x = 1,#sub do
-    if sub[x].class == "info" then
-      if sub[x].key == "Video File" then
-        local video = sub[x].value:sub(2)
-        return video
-      end
+    if sub[x].key == "Video File" then
+      return sub[x].value:sub(2)
     end
   end
 end
 
 function trimnthings(sub,sel)
-  local cf
-  if not (config_file:match("^[A-Z]:\\") or config_file:match("^/")) and dpath then
-    cf = io.open(aegisub.decode_path("?script/"..config_file))
-    if not cf then
-      cf = aegisub.decode_path("?user/"..config_file)
-    else
-      cf:close()
-      cf = aegisub.decode_path("?script/"..config_file)
-    end
-  else
-    cf = config_file
+  local conf = configscope()
+  if conf then
+    if not readconf(conf,{ ['global'] = global }) then aegisub.log(0,"Failed to read config!\n") end
   end
-  local gtab = {}
-  for k,v in pairs(global) do gtab[k] = {} end
-  if not readconf(cf,gtab) then aegisub.log(0,"Failed to read config!") end
-  for k,v in pairs(gtab) do if v.value ~= nil then global[k] = v.value end end
-  --global.enccom = encpre[global.encoder] or gtab[enccom]
-  gtab = nil
-  local wildc = {}
-  wildc.encbin = global.encbin
-  wildc.prefix = global.prefix
-  wildc.nl = "\n"
-  collecttrim(sub,sel,wildc)
-  if dpath then
-    local vid = getvideoname(sub):gsub("[A-Z]:\\",""):gsub(".-[^\\]\\","")
-    assert(not vid:match("?dummy"), "No dummy videos allowed. Sorry.")
-    wildc.input = aegisub.decode_path("?video")..vid
-    wildc.index = vid:match("(.+)%.[^%.]+$")
-    wildc.output = wildc.index..'-'..wildc.startf.."-%d"
+  local tokens = {}
+  tokens.encbin = global.encbin
+  tokens.prefix = global.prefix
+  tokens.nl = "\n"
+  collecttrim(sub,sel,tokens)
+  local vid = getvideoname(sub):gsub("[A-Z]:\\",""):gsub(".-[^\\]\\","")
+  assert(not vid:match("?dummy"), "No dummy videos allowed. Sorry.")
+  tokens.input = aegisub.decode_path("?video")..vid
+  tokens.index = vid:match("(.+)%.[^%.]+$")
+  tokens.output = tokens.index -- huh.
+  if not global.gui_trim then
+    writeandencode(tokens)
   else
-    wildc.input = getvideoname(sub)
-    assert(not wildc.input:match("?dummy"), "No dummy videos allowed. Sorry.")
-    wildc.index = wildc.input:gsub("[A-Z]:\\",""):gsub(".-[^\\]\\",""):match("(.+)%.[^%.]+$")
-    wildc.output = wildc.index..'-'..wildc.startf.."-%d"
-  end
-  if dpath and not global.gui_trim then 
-    writeandencode(wildc)
-  else
-    someguiorsmth(wildc)
+    someguiorsmth(tokens)
   end
 end
 
-function someguiorsmth(wildc)
-  gui.t.input.value = wildc.input
-  gui.t.index.value = wildc.index
-  gui.t.startf.value = wildc.startf
-  gui.t.endf.value = wildc.endf
-  gui.t.output.value = wildc.output
+function someguiorsmth(tokens)
+  gui.t.input.value = tokens.input
+  gui.t.index.value = tokens.index
+  gui.t.startf.value = tokens.startf
+  gui.t.endf.value = tokens.endf
+  gui.t.output.value = tokens.output
   local button, opts = aegisub.dialog.display(gui.t)
   if button then
     for k,v in pairs(opts) do
-      wildc[k] = v
+      tokens[k] = v
     end
-    wildc.startt, wildc.endt = aegisub.ms_from_frame(wildc.startf), aegisub.ms_from_frame(wildc.endf)
-    wildc.lenf, wildc.lent = wildc.endf-wildc.startf, wildc.endt-wildc.startt
-    writeandencode(wildc)
+    tokens.startt, tokens.endt = aegisub.ms_from_frame(tokens.startf), aegisub.ms_from_frame(tokens.endf)
+    tokens.lenf, tokens.lent = tokens.endf-tokens.startf, tokens.endt-tokens.startt
+    writeandencode(tokens)
   end
 end
 
-function writeandencode(wildc)
-  local it = 0
-  wildc.startt, wildc.endt, wildc.lent = wildc.startt/1000, wildc.endt/1000, wildc.lent/1000
-  local function FormatWildCards(wc)
-    return wildc[wc:sub(2,-2)]
+function writeandencode(tokens)
+  tokens.startt, tokens.endt, tokens.lent = tokens.startt/1000, tokens.endt/1000, tokens.lent/1000
+  local function ReplaceTokens(token)
+    return tokens[token:sub(2,-2)]
   end
-  repeat
-    if aegisub.progress.is_cancelled() then error("User cancelled") end
-    it = it + 1
-    local n = string.format(wildc.output,it)
-    local f = io.open(n,'r')
-    if f then io.close(f); f = false else f = true; wildc.output = n end
-  until f == true -- crappypasta
   if global.windows then
     local sh = io.open(global.prefix.."encode.bat","w+")
     assert(sh,"Encoding command could not be written. Check your prefix.") -- to solve the 250 byte limit, we write to a self-deleting batch file.
-    sh:write(global.enccom:gsub("#(%b{})",FormatWildCards)..'\ndel %0')
+    sh:write(global.enccom:gsub("#(%b{})",ReplaceTokens)..'\ndel %0')
     sh:close()
-    os.execute(string.format("%q",global.prefix.."encode.bat"))
-  else -- nfi what to do on lunix: dunno if it will allow execution of a shell script without explicitly setting the permissions. "x264 `cat x264opts.txt`" perhaps
-    os.execute(global.encbin..' '..global.enccom..' --index "'..opts.index..'" --seek '..opts.startf..' --frames '..(opts.endf-opts.startf+1)..' -o "'..out..'" "'..opts.video..'"')
+    os.execute(('""%s%s""'):format(global.prefix,"encode.bat")) -- double quotes makes it work on different drives too, apparently?
+  else -- nfi what to do on lunix
+    os.execute(global.enccom:gsub("#(%b{})",ReplaceTokens))
   end
 end
 
