@@ -857,7 +857,7 @@ function frame_by_frame(sub,accd,opts,clipopts)
       currline.start_time = aegisub.ms_from_frame(accd.startframe+x-1)
       currline.end_time = aegisub.ms_from_frame(accd.startframe+x)
       if not currline.is_comment then -- don't do any math for commented lines.
-        currline.time_delta = aegisub.ms_from_frame(accd.startframe+x-1) - aegisub.ms_from_frame(accd.startframe)
+        currline.time_delta = currline.start_time - aegisub.ms_from_frame(accd.startframe)
         for vk,kv in ipairs(currline.trans) do
           if aegisub.progress.is_cancelled() then error("User cancelled") end
           currline.text = transformate(currline,kv)
@@ -1053,8 +1053,8 @@ function cleanup(sub, sel, opts) -- make into its own macro eventually.
   local linediff
   local function cleantrans(cont) -- internal function because that's the only way to pass the line difference to it
     local t_s, t_e, ex, eff = cont:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
-    if tonumber(t_e) <= 0 or tonumber(t_e) <= tonumber(t_s) then return string.format("%s",eff) end -- if the end time is less than or equal to zero, the transformation has finished. Replace it with only its contents.
-    if tonumber(t_s) > linediff then return "" end -- if the start time is greater than the length of the line, the transform has not yet started, and can be removed from the line.
+    if tonumber(t_e) <= 0 then return string.format("%s",eff) end -- if the end time is less than or equal to zero, the transformation has finished. Replace it with only its contents.
+    if tonumber(t_s) > linediff or tonumber(t_e) < tonumber(t_s) then return "" end -- if the start time is greater than the length of the line, the transform has not yet started, and can be removed from the line.
     if tonumber(ex) == 1 or ex == "" then return string.format("\\t(%s,%s,%s)",t_s,t_e,eff) end -- if the exponential factor is equal to 1 or isn't there, remove it (just makes it look cleaner)
     return string.format("\\t(%s,%s,%s,%s)",t_s,t_e,ex,eff) -- otherwise, return an untouched transform.
   end
