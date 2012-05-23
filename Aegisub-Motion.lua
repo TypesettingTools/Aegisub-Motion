@@ -97,8 +97,10 @@ gui.main = { -- todo: change these to be more descriptive.
                 x = 0; y = 6; height = 1; width = 5;},
   rndlabel  = { class = "label"; label = "Rounding";
                 x = 7; y = 6; height = 1; width = 3;},
-  position  = { class = "checkbox"; name = "position"; value = true; label = "Position";
-                x = 0; y = 7; height = 1; width = 2; hint = "Apply position data to the selected lines."},
+  xpos      = { class = "checkbox"; name = "xpos"; value = true; label = "x";
+                x = 0; y = 7; height = 1; width = 1; hint = "Apply x position data to the selected lines."},
+  ypos      = { class = "checkbox"; name = "ypos"; value = true; label = "y";
+                x = 1; y = 7; height = 1; width = 1; hint = "Apply y position data to the selected lines."},
   origin    = { class = "checkbox"; name = "origin"; value = false; label = "Origin";
                 x = 2; y = 7; height = 1; width = 2; hint = "Move the origin along with the position."},
   clip      = { class = "checkbox"; name = "clip"; value = false; label = "Clip";
@@ -133,10 +135,6 @@ gui.main = { -- todo: change these to be more descriptive.
                 x = 5; y = 5; width = 4; height = 1; hint = "The order to sort the lines after they have been tracked."}, 
   sortlabel = { class = "label"; name = "sortlabel"; label = "      Sort Method:";
                 x = 1; y = 5; width = 4; height = 1;},
-  xconst    = { class = "checkbox"; name = "xconst"; value = false; label = "Fixed X";
-                x = 0; y = 10; width = 2; height = 1; hint = "Force x-position to be the same across all frames"},
-  yconst    = { class = "checkbox"; name = "yconst"; value = false; label = "Fixed Y";
-                x = 2; y = 10; width = 2; height = 1; hint = "Force y-position to be the same across all frames"},
 }
 
 gui.clip = {
@@ -144,21 +142,19 @@ gui.clip = {
                x = 0; y = 1; height = 4; width = 10;},
   label    = { class = "label"; label = "                 Paste data or enter a filepath.";
                x = 0; y = 0; height = 1; width = 10;},
-  position = { class = "checkbox"; name = "position"; value = true; label = "Position";
-               x = 0; y = 6; height = 1; width = 3;},
+  xpos     = { class = "checkbox"; name = "xpos"; value = true; label = "x";
+                x = 0; y = 6; height = 1; width = 1; hint = "Apply x position data to the selected lines."},
+  ypos     = { class = "checkbox"; name = "ypos"; value = true; label = "y";
+                x = 1; y = 6; height = 1; width = 1; hint = "Apply y position data to the selected lines."},
   scale    = { class = "checkbox"; name = "scale"; value = true; label = "Scale";
                x = 0; y = 7; height = 1; width = 2;},
   rotation = { class = "checkbox"; name = "rotation"; value = false; label = "Rotation";
                x = 0; y = 8; height = 1; width = 3;},
-  relative  = { class = "checkbox"; name = "relative"; value = true; label = "Relative";
+  relative = { class = "checkbox"; name = "relative"; value = true; label = "Relative";
                 x = 4; y = 6; height = 1; width = 3;},
-  stframe   = { class = "intedit"; name = "stframe"; value = 1;
+  stframe  = { class = "intedit"; name = "stframe"; value = 1;
                 x = 7; y = 6; height = 1; width = 3;},
-  xconst    = { class = "checkbox"; name = "xconst"; value = false; label = "Fixed X";
-                x = 4; y = 8; width = 2; height = 1; hint = "Force x-position to be the same across all frames"},
-  yconst    = { class = "checkbox"; name = "yconst"; value = false; label = "Fixed Y";
-                x = 7; y = 8; width = 2; height = 1; hint = "Force y-position to be the same across all frames"},
-} -- entire inner loop needs to be rewritten to handle reverse independently.
+}
 
 if config_file == "" then config_file = aegisub.decode_path("?user/aegisub-motion.conf") end
 
@@ -249,17 +245,15 @@ importanttags = { -- scale_x, scale_y, outline, shadow, angle
 guiconf = {
   main = {
     "sortd",
-    "position", "origin", "clip", "posround",
+    "xpos", "ypos", "origin", "clip", "posround",
     "scale", "border", "shadow", "sclround",
     "rotation", "rotround",
     "relative", "stframe",
     "vsfscale", "export", "linear",
-    "xconst", "yconst",
   },
   clip = {
-    "position","scale","rotation",
+    "xpos", "ypos", "scale", "rotation",
     "relative","stframe",
-    "xconst", "yconst",
   },
 }
 
@@ -323,8 +317,10 @@ function convertfromconf(valtab,guitab)
         aegisub.log(5,"Set: global.%s = %s (%s)\n",ident,tostring(value),type(value))
         sectab[ident] = value
       else
-        aegisub.log(5,"Set: gui.%s.%s = %s (%s)\n",section,ident,tostring(value),type(value))
-        sectab[ident].value = value
+        if sectab[ident] then
+          aegisub.log(5,"Set: gui.%s.%s = %s (%s)\n",section,ident,tostring(value),type(value))
+          sectab[ident].value = value
+        end
       end
     end
   end
@@ -518,12 +514,14 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
     if config.wconfig then
       writeconf(conf,{ ['main'] = config; ['clip'] = clipconf; ['global'] = global })
     end
+    if config.xpos or config.ypos then config.position = true end
+    config.yconst = not config.ypos; config.xconst = not config.xpos
+    if clipconf.xpos or clipconf.ypos then clipconf.position = true end
+    clipconf.yconst = not clipconf.ypos; clipconf.xconst = not clipconf.xpos
     if clipconf.clippath == "" or clipconf.clippath == nil then
       clipconf.clippath = false
     else config.clip = false end -- set clip to false if clippath exists
     if config.clip or clipconf.clippath then config.linear = false end
-    if config.yconst and config.xconst then config.position = false end
-    if clipconf.yconst and clipconf.xconst then clipconf.position = false end
     aegisub.progress.title("Mincing Gerbils")
     printmem("Go")
     local newsel = frame_by_frame(sub,accd,config,clipconf)
