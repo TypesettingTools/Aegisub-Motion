@@ -781,21 +781,19 @@ function frame_by_frame(sub,accd,opts,clipopts)
   if opts.scale then
     if opts.vsfscale then
       opts.sclround = 2
-      operations["(\\fscx)([%d%.]+)"] = VSxscalify
-      operations["(\\fscy)([%d%.]+)"] = VSyscalify
+      operations["(\\fsc[xy])([%d%.]+)"] = VSscalify
     else
-      operations["(\\fscx)([%d%.]+)"] = xscalify
-      operations["(\\fscy)([%d%.]+)"] = yscalify
+      operations["(\\fsc[xy])([%d%.]+)"] = scalify
     end
     if opts.border then
-      operations["(\\bord)([%d%.]+)"] = bordicate
+      operations["(\\[xy]?bord)([%d%.]+)"] = scalify
     end
     if opts.shadow then
-      operations["(\\shad)([%-%d%.]+)"] = shadinate
+      operations["(\\[xy]?shad)([%-%d%.]+)"] = scalify
     end
   end
   if opts.rotation then
-    operations["(\\frz)([%-%d%.]+)"] = rotate
+    operations["(\\frz?)([%-%d%.]+)"] = rotate
   end
   printmem("End of table insertion")
   local function linearmodo(currline)
@@ -868,7 +866,7 @@ function frame_by_frame(sub,accd,opts,clipopts)
         mocha.currx,mocha.curry = mocha.xpos[x],mocha.ypos[x]
         for pattern,func in pairs(operations) do -- iterate through the necessary operations
           if aegisub.progress.is_cancelled() then error("User cancelled") end
-          currline.text = currline.text:gsub(pattern,function(tag,val) return tag..func(val,currline,mocha,opts) end)
+          currline.text = currline.text:gsub(pattern,function(tag,val) return tag..func(val,currline,mocha,opts,tag) end)
         end
         if clipme then
           currline.text = currline.text:gsub("\\clip%(.-%)",function(a) return clippinate(currline,clipa,x) end,1)
@@ -925,7 +923,7 @@ end
 function possify(pos,line,mocha,opts)
   local oxpos,oypos = pos:match("([%-%d%.]+),([%-%d%.]+)")
   local xpos,ypos = makexypos(tonumber(oxpos),tonumber(oypos),line.alpha,mocha)
-  aegisub.log(5,"Position: (%f,%f) -> (%f,%f)\n",oxpos,oypos,xpos,ypos)
+  aegisub.log(5,"pos: (%f,%f) -> (%f,%f)\n",oxpos,oypos,xpos,ypos)
   return ("(%g,%g)"):format(round(xpos,opts.posround),round(ypos,opts.posround))
 end
 
@@ -938,10 +936,10 @@ function makexypos(xpos,ypos,alpha,mocha)
   return xpos,ypos
 end
 
-function orginate(opos,line,mocha,opts)
+function orginate(opos,line,mocha,opts) -- this will be changed.
   local oxpos,oypos = opos:match("([%-%d%.]+),([%-%d%.]+)")
   local xpos,ypos = makexypos(tonumber(oxpos),tonumber(oypos),line.alpha,mocha)
-  aegisub.log(5,"Position: (%f,%f) -> (%f,%f)\n",oxpos,oypos,xpos,ypos)
+  aegisub.log(5,"org: (%f,%f) -> (%f,%f)\n",oxpos,oypos,xpos,ypos)
   return ("(%g,%g)"):format(round(xpos,opts.posround),round(ypos,opts.posround))
 end
 
@@ -984,49 +982,23 @@ function transformate(line,trans)
   return line.text:gsub("\\t%b()","\\"..string.char(1)..string.format("t(%d,%d,%g,%s)",t_s,t_e,trans[3],trans[4]),1)
 end
 
-function xscalify(xscale,line,mocha,opts)
-  local xscl = xscale*mocha.ratx
-  aegisub.log(5,"X Scale: %f -> %f\n",xscale,xscl)
-  return round(xscl,opts.sclround)
+function scalify(scale,line,mocha,opts,tag)
+  local newScale = scale*mocha.ratx -- sudden camelCase for no reason
+  aegisub.log(5,"%s: %f -> %f\n",tag:sub(2),scale,newScale)
+  return round(newScale,opts.sclround)
 end
 
-function VSxscalify(xscale,line,mocha,opts)
-  local xscl = round(xscale*mocha.ratx,opts.sclround)
-  local xlowend, xhighend, xdecimal = math.floor(xscl),math.ceil(xscl),xscl%1*(10^opts.sclround)
-  local xstart, xend = -xdecimal, (10^opts.sclround)-xdecimal
-  aegisub.log(5,"X Scale: %f -> %f\n",xscale,xscl)
-  return ("%d\\t(%d,%d,\\fscx%d)"):format(xlowend,xstart,xend,xhighend)
-end
-
-function yscalify(yscale,line,mocha,opts)
-  local yscl = yscale*mocha.ratx
-  aegisub.log(5,"Y Scale: %f -> %f\n",yscale,yscl)
-  return round(yscl,opts.sclround)
-end
-
-function VSyscalify(yscale,line,mocha,opts)
-  local yscl = round(yscale*mocha.raty,opts.sclround)
-  local ylowend, yhighend, ydecimal = math.floor(yscl),math.ceil(yscl),yscl%1*(10^opts.sclround)
-  local ystart, yend = -ydecimal, (10^opts.sclround)-ydecimal
-  aegisub.log(5,"y Scale: %f -> %f\n",yscale,yscl)
-  return ("%d\\t(%d,%d,\\fscy%d)"):format(ylowend,ystart,yend,yhighend)
-end
-
-function bordicate(bord,line,mocha,opts)
-  local nbord = bord*mocha.ratx
-  aegisub.log(5,"Border: %f -> %f\n",bord,nbord)
-  return round(nbord,opts.sclround)
-end
-
-function shadinate(shad,line,mocha,opts)
-  local nshad = shad*mocha.ratx
-  aegisub.log(5,"Shadow: %f -> %f\n",shad,nshad)
-  return round(nshad,opts.sclround)
+function VSscalify(scale,line,mocha,opts,tag)
+  local newScale = round(scale*mocha.ratx,opts.sclround)
+  local lowend, highend, decimal = math.floor(newScale),math.ceil(newScale),newScale%1*(10^opts.sclround)
+  local start, send = -decimal, (10^opts.sclround)-decimal
+  aegisub.log(5,"%s: %f -> %f\n",tag:sub(2),scale,newScale)
+  return ("%d\\t(%d,%d,%s%d)"):format(lowend,start,send,tag,highend)
 end
 
 function rotate(rot,line,mocha,opts)
   local zrot = rot + mocha.zrotd
-  aegisub.log(5,"ZRotation: -> %f\n",zrot)
+  aegisub.log(5,"frz: -> %f\n",zrot)
   return round(zrot,opts.rotround)
 end
 
