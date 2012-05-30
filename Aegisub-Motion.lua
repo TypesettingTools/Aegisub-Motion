@@ -235,10 +235,10 @@ alltags = {
 }
 
 importanttags = { -- scale_x, scale_y, outline, shadow, angle
-  ['\\fscx'] = {{"scale","scale"}, "scale_x"};
-  ['\\fscy'] = {{"scale","scale"}, "scale_y"};
-  ['\\bord'] = {{"border","scale"}, "outline"};
-  ['\\shad'] = {{"shadow","scale"}, "shadow"};
+  ['\\fscx'] = {{"scale","scale"}, "scale_x", 0};
+  ['\\fscy'] = {{"scale","scale"}, "scale_y", 0};
+  ['\\bord'] = {{"border","scale"}, "outline", 0};
+  ['\\shad'] = {{"shadow","scale"}, "shadow", 0};
   ['\\frz']  = {{"rotation","rotation"}, "angle"};
 }
 
@@ -702,7 +702,9 @@ function ensuretags(line,opts,styles,dim)
   if startblock then
     for tag, str in pairs(importanttags) do
       if opts[str[1][1]] and opts[str[1][2]] and not startblock:match(tag.."[%-%d%.]+") then
-        block = block..(tag.."%f"):format(line.styleref[str[2]])
+        if tonumber(line.styleref[str[2]]) ~= str[3] then 
+          block = block..(tag.."%g"):format(line.styleref[str[2]])
+        end
       end
     end
     if block:len() > 0 then
@@ -711,7 +713,9 @@ function ensuretags(line,opts,styles,dim)
   else
     for tag, str in pairs(importanttags) do
       if opts[str[1][1]] and opts[str[1][2]] then
-        block = block..(tag.."%f"):format(line.styleref[str[2]])
+        if tonumber(line.styleref[str[2]]) ~= str[3] then 
+          block = block..(tag.."%g"):format(line.styleref[str[2]])
+        end
       end
     end
     line.text = "{"..block.."}"..line.text
@@ -721,7 +725,9 @@ function ensuretags(line,opts,styles,dim)
     local block = ""
     for tag, str in pairs(importanttags) do
       if opts[str[1][1]] and opts[str[1][2]] and not startblock:match(tag.."[%-%d%.]+") then
-        block = block..(tag.."%f"):format(styletab[str[2]])
+        if tonumber(line.styleref[str[2]]) ~= str[3] then 
+          block = block..(tag.."%g"):format(styletab[str[2]])
+        end
       end
     end
     return "{"..before..rstyle..block..rest.."}"
