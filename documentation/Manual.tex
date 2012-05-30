@@ -6,6 +6,7 @@
 \usepackage[all]{hypcap}
 \usepackage{fancyhdr}
 \usepackage{fontspec} % using xelatex like a professional
+\usepackage{longtable}
 \defaultfontfeatures{Ligatures=TeX}
 \setsansfont[Scale=MatchLowercase]{Myriad Pro} % set sans font to Myriad Pro
 \setmonofont[Scale=MatchLowercase]{Consolas} % set fixed-width front to Consolas
@@ -17,6 +18,7 @@
 \title{Aegisub-Motion Manual}
 \author{}
 \date{\today}
+\renewcommand{\familydefault}{\sfdefault} % set default font to the default sans font
 \renewcommand{\arraystretch}{1.3} % increase vertical spacing in tables
 \begin{document}
   \maketitle
@@ -36,9 +38,8 @@
 
   %labeled picture
 
-  \begin{table}[th]
-    \centering
-    \begin{tabular}{|rlp{12cm}|}
+  \begin{center}
+    \begin{longtable}{rlp{11cm}}
       1 & Data & This is the tex box that the data is put in. It will accept either the path to a file or the raw data itself. By default, if the text on the clipboard contains the expected header, it will be copied in automatically when the interface runs. This feature can be disabled. \\
       2 & x \& y & These checkboxes specify which directions the position data should be applied. Their usage should be rather self explanatory: if only x is checked, then the resulting line will only move horizontally, and if only y is checked, the resulting line will only move vertically. This is useful in the case of perfectly horizontal or vertical motion that has acquired a bit of drift in the tracking process; however, under normal circumstances, both x and y should be checked. \\
       3 & Origin & The script does not handle perspective changes, but the goal of this is to preserve static {\tt\textbackslash{}frx} or {\tt\textbackslash{}fry} with a translating line by moving {\tt\textbackslash{}org} along with the position. Enabling it will automatically disable linear mode, as there is no way in ASS to translate the origin of a line. Note that it does not currently work properly if the line scales. This will hopefully be fixed in the future.\\
@@ -47,11 +48,15 @@
       6 & Scale & Defines whether or not the line should be scaled. By default, it will insert floating point scale values into the lines, which VSfilter does not work with. A VSfilter compatability mode exists, and you will probably want to use it, as many people still use VSfilter as their subtitle renderer. \\
       7 & Border & Defines whether or not border should be scaled with the line. Default is on. Will not apply if scale is not checked. \\
       8 & Shadow & Defines whether or not shadow should be scaled with the line. Default is on. Will not apply if scale is not checked. \\
-      9 & Rounding & Specifies the number of decimal places to which scale, border, and shadow data should be rounded. Its valid range is 0 to 5 decimal places, and the default is 2. \\
-    \end{tabular}
-    \caption{The main interface.}
-    \label{tab:main}
-  \end{table}
+      9 & Rounding & Specifies the number of decimal places to which scale, border, and shadow data should be rounded. Its valid range is 0 to 5, and the default is 2. \\
+      10 & Rotation & Defines whether or not rotation data should be applied to the selected lines. Default is off. \\
+      11 & Rounding & Specifies the number of decimal places to which rotation data should be rounded. Its valid range is 0 to 5, and the default is 2. \\
+      12 & Write Config & If this is set, the current configuration will be written to the config file when the macro is run. This is useful for quickly changing options without having to run the config macro.\\
+      13 & Start Frame & Aegisub-Motion supports applying tracking data from an arbitrary start frame within the frame range of the tracked data. Negative values count from the end so a value of -1 corresponds to the last frame, -2 corresponds to the second to last frame, and so on. Its valid range is from $-\mathrm{length}$ to $\mathrm{length}$, where $\mathrm{length}$ is the length of the selected set of lines in frames. 0 has the same result as 1---it corresponds to the first frame.\\
+      14 & Relative & Aegisub-Motion supports tracking lines of different lengths simultaneously. This option defines whether each line's start frame should be relative to its own start (or end) time (checked) or if it should be relative to the start time of all selected lines (unchecked). Its default is on, as this replicates the old behavior (when the option was named ``reverse''). \\
+      15 & VSfilter & VSfilter does not support floating point values to be set for {\tt\textbackslash{}fsc(xy)}. This option works around this issue by using staged transforms to represent intermediate scales, and is probably desired for normal usage. Its default is on---be warned that it increases the amount of computation required by the subtitle renderer, though.
+    \end{longtable}
+  \end{center}
 
   \section{Configuration}
   \emph{Aegisub-Motion attempts to read a configuration file every time one of its macros is executed. This config is used to override the hardcoded defaults on the user-end, for convenience. Aegisub-Motion can use per-project or global configuration files, which allows greater flexibility of use.}
