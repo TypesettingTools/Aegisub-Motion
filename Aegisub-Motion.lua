@@ -125,7 +125,7 @@ gui.main = { -- todo: change these to be more descriptive.
                 x = 4; y = 11; height = 1; width = 3; hint = "Start frame should be relative to the line's start time rather than to the start time of all selected lines"},
   stframe   = { class = "intedit"; name = "stframe"; value = 1;
                 x = 7; y = 11; height = 1; width = 3; hint = "Frame used as the starting point for the tracking data. \"-1\" corresponds to the last frame."},
-  vsfscale  = { class = "checkbox"; name = "vsfscale"; value = false; label = "VSfilter scaling";
+  vsfscale  = { class = "checkbox"; name = "vsfscale"; value = true; label = "VSfilter scaling";
                 x = 0; y = 12; height = 1; width = 3; hint = "Use staged transforms to approximate noninteger scale values for vsfilter."},
   linear    = { class = "checkbox"; name = "linear"; value = false; label = "Linear";
                 x = 4; y = 12; height = 1; width = 2; hint = "Use transforms and \\move to create a linear transition, instead of frame-by-frame."},
@@ -508,12 +508,12 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
     for i,field in ipairs(guiconf.clip) do
       if clipconf[field] == nil then clipconf[field] = gui.clip[field].value end
     end
-    if config.stframe == 0 then config.stframe = 1 end
-    if clipconf.stframe == 0 then clipconf.stframe = 1 end
     if config.linespath == "" then config.linespath = false end
     if config.wconfig then
       writeconf(conf,{ ['main'] = config; ['clip'] = clipconf; ['global'] = global })
     end
+    if config.stframe == 0 then config.stframe = 1 end
+    if clipconf.stframe == 0 then clipconf.stframe = 1 end
     if config.xpos or config.ypos then config.position = true end
     config.yconst = not config.ypos; config.xconst = not config.xpos
     if clipconf.xpos or clipconf.ypos then clipconf.position = true end
