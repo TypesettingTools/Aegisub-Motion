@@ -479,6 +479,7 @@ end
 
 function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
   aegisub.progress.title("Selecting Gerbils")
+  gui.main.linespath.value = "" -- clear it out
   local accd = preprocessing(sub,sel)
   gui.main.stframe.min = -accd.totframes; gui.main.stframe.max = accd.totframes;
   gui.clip.stframe.min = -accd.totframes; gui.clip.stframe.max = accd.totframes;
@@ -568,22 +569,14 @@ function parse_input(mocha_table,input,shx,shy)
     datastring = input
     ftab = input:split("\n")
   end
-  local xmult,ymult
-  local sw, sh -- need to be declared outside for loop
-  for k,v in ipairs(ftab) do
-    if v:match("Source Width") then
-      sw = v:match("Source Width\t([0-9]+)")
-    end
-    if v:match("Source Height") then
-      sh = v:match("Source Height\t([0-9]+)")
-    end
-    if sw and sh then
-      break
-    end
+  for _,pattern in ipairs({"Position","Scale","Rotation","Source Width\t%d+","Source Height\t%d+","Adobe After Effects 6.0 Keyframe Data"}) do
+    aegisub.log(0,pattern..'\n')
+    assert(datastring:match(pattern),"Parsing failed. Make sure your motion data is in the correct format.")
   end
-  initmaxmin(mocha_table,datastring)
-  xmult = shx/tonumber(sw)
-  ymult = shy/tonumber(sh)
+  local sw = datastring:match("Source Width\t([0-9]+)")
+  local sh = datastring:match("Source Height\t([0-9]+)")
+  local xmult = shx/tonumber(sw)
+  local ymult = shy/tonumber(sh)
   for keys, valu in ipairs(ftab) do -- idk it might be more flexible now or something
     if valu == "Position" then
     sect = sect + 1
@@ -597,51 +590,31 @@ function parse_input(mocha_table,input,shx,shy)
     if sect == 1 then
       if valu:match("%d") then
         val = valu:split("\t")
-        local x = tonumber(val[2])
-        table.insert(mocha_table.xpos,x*xmult)
-        if x > mocha_table.xmax then mocha_table.xmax = x
-        elseif x < mocha_table.xmin then mocha_table.xmin = x end
-        local y = tonumber(val[3])
-        table.insert(mocha_table.ypos,y*ymult)
-        if y > mocha_table.ymax then mocha_table.ymax = y
-        elseif y < mocha_table.ymin then mocha_table.ymin = y end
+        table.insert(mocha_table.xpos,tonumber(val[2])*xmult)
+        table.insert(mocha_table.ypos,tonumber(val[3])*ymult)
       end
     elseif sect <= 3 and sect >= 2 then
       if valu:match("%d") then
         val = valu:split("\t")
-        local xs = tonumber(val[2])
-        table.insert(mocha_table.xscl,xs)
-        if xs > mocha_table.xsmax then mocha_table.xsmax = xs
-        elseif xs < mocha_table.xsmin then mocha_table.xsmin = xs end
-        local ys = tonumber(val[3])
-        table.insert(mocha_table.yscl,ys)
-        if ys > mocha_table.ysmax then mocha_table.ysmax = ys
-        elseif ys < mocha_table.ysmin then mocha_table.ysmin = ys end
+        table.insert(mocha_table.xscl,tonumber(val[2]))
+        table.insert(mocha_table.yscl,tonumber(val[3]))
       end
     elseif sect <= 7 and sect >= 4 then
       if valu:match("%d") then
         val = valu:split("\t")
-        local r = -tonumber(val[2])
-        table.insert(mocha_table.zrot,r)
-        if r > mocha_table.rmax then mocha_table.rmax = -r
-        elseif r < mocha_table.rmin then mocha_table.rmin = -r end
+        table.insert(mocha_table.zrot,-tonumber(val[2]))
       end
     end
+  end
+  for prefix,field in pairs({x = "xpos", y = "ypos", xs = "xscl", ys = "yscl", r = "zrot"}) do
+    local dummytab = table.copy(mocha_table[field])
+    table.sort(dummytab)
+    mocha_table[prefix.."max"], mocha_table[prefix.."min"] = dummytab[#dummytab], dummytab[1]
+    aegisub.log(5,"%smax: %g; %smin: %g\n",prefix,mocha_table[prefix.."max"],prefix,mocha_table[prefix.."min"])
   end
   mocha_table.flength = #mocha_table.xpos
   assert(mocha_table.flength == #mocha_table.ypos and mocha_table.flength == #mocha_table.xscl and mocha_table.flength == #mocha_table.yscl and mocha_table.flength == #mocha_table.zrot,"The data is not internally equal length.") -- make sure all of the elements are the same length (because I don't trust my own code).
   printmem("End of input parsing")
-end
-
-function initmaxmin(mocha_table,datastring)
-  mocha_table.xmax, mocha_table.ymax = datastring:match("Position\n\tFrame\tX pixels\tY pixels\tZ pixels\n\t%d+\t([%d%-%.]+)\t([%d%-%.]+)")
-  mocha_table.xsmax, mocha_table.ysmax = datastring:match("Scale\n\tFrame\tX percent\tY percent\tZ percent\n\t%d+\t([%d%-%.eE%+]+)\t([%d%-%.eE%+]+)") -- uses e notation, e.g. 6.65107e+41
-  mocha_table.rmax = datastring:match("Rotation\n\tFrame\tDegrees\n\t%d+\t([%d%-%.eE%+]+)")
-  mocha_table.xmax, mocha_table.xmin = tonumber(mocha_table.xmax), tonumber(mocha_table.xmax) -- probably a much better way to do this
-  mocha_table.ymax, mocha_table.ymin = tonumber(mocha_table.ymax), tonumber(mocha_table.ymax)
-  mocha_table.xsmax, mocha_table.xsmin = tonumber(mocha_table.xsmax), tonumber(mocha_table.xsmax)
-  mocha_table.ysmax, mocha_table.ysmin = tonumber(mocha_table.ysmax), tonumber(mocha_table.ysmax)
-  mocha_table.rmax, mocha_table.rmin = tonumber(mocha_table.rmax), tonumber(mocha_table.rmax)
 end
 
 function spoof_table(parsed_table,opts,len)
