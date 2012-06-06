@@ -570,7 +570,6 @@ function parse_input(mocha_table,input,shx,shy)
     ftab = input:split("\n")
   end
   for _,pattern in ipairs({"Position","Scale","Rotation","Source Width\t%d+","Source Height\t%d+","Adobe After Effects 6.0 Keyframe Data"}) do
-    aegisub.log(0,pattern..'\n')
     assert(datastring:match(pattern),"Parsing failed. Make sure your motion data is in the correct format.")
   end
   local sw = datastring:match("Source Width\t([0-9]+)")
@@ -816,7 +815,7 @@ function frame_by_frame(sub,accd,opts,clipopts)
           mocha.ydiff = mocha.ypos[x]-mocha.ypos[mocha.start]
           mocha.zrotd = mocha.zrot[x]-mocha.zrot[mocha.start]
           mocha.currx,mocha.curry = mocha.xpos[x],mocha.ypos[x]
-          table.insert(values,func(val,currline,mocha,opts))
+          table.insert(values,func(val,currline,mocha,opts,tag))
         end
         return ("%s%g\\t(%d,%d,1,%s%g)"):format(tag,values[1],maths,mathsanswer,tag,values[2])
       end)
@@ -824,6 +823,7 @@ function frame_by_frame(sub,accd,opts,clipopts)
     sub[currline.num] = currline
   end
   local function nonlinearmodo(currline)
+    aegisub.log(0,table.tostring(clipa)..'\n')
     for x = currline.rendf,currline.rstartf,-1 do -- new inner loop structure
       printmem("Inner loop")
       aegisub.progress.title(string.format("Processing frame %g/%g",x,currline.rendf-currline.rstartf+1))
@@ -847,8 +847,8 @@ function frame_by_frame(sub,accd,opts,clipopts)
           if aegisub.progress.is_cancelled() then error("User cancelled") end
           currline.text = currline.text:gsub(pattern,function(tag,val) return tag..func(val,currline,mocha,opts,tag) end)
         end
-        if clipme then
-          currline.text = currline.text:gsub("\\clip%(.-%)",function(a) return clippinate(currline,clipa,x) end,1)
+        if clipa.clipme then
+          currline.text = currline.text:gsub("\\i?clip%b()",function(a) return clippinate(currline,clipa,x) end,1)
         end
         currline.text = currline.text:gsub('\1',"")
       end
@@ -865,9 +865,8 @@ function frame_by_frame(sub,accd,opts,clipopts)
     printmem("Outer loop")
     currline.rstartf = currline.startframe - accd.startframe + 1 -- start frame of line relative to start frame of tracked data
     currline.rendf = currline.endframe - accd.startframe -- end frame of line relative to start frame of tracked data
-    local clipme = false
     if opts.clip and currline.clip then
-      clipme = true -- use this in the inner loop because it only needs to be calculated once per line.
+      clipa.clipme = true
     end
     currline.effect = "aa-mou"..currline.effect
     if opts.relative then
@@ -877,7 +876,7 @@ function frame_by_frame(sub,accd,opts,clipopts)
         mocha.start = currline.rstartf + opts.stframe - 1
       end
     end
-    if clipopts.relative and clipme then
+    if clipopts.relative and clipa.clipme then
       if tonumber(clipopts.stframe) < 0 then
         clipa.start = currline.rendf + clipopts.stframe + 1
       else
