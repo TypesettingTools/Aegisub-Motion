@@ -757,7 +757,7 @@ function frame_by_frame(sub,accd,opts,clipopts)
     end
   end
   if opts.scale then
-    if opts.vsfscale then
+    if opts.vsfscale and not opts.linear then
       opts.sclround = 2
       operations["(\\fsc[xy])([%d%.]+)"] = VSscalify
     else
