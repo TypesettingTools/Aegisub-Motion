@@ -783,7 +783,7 @@ function frame_by_frame(sub,accd,opts,clipopts)
     local four = aegisub.ms_from_frame(aegisub.frame_from_ms(currline.end_time))
     local maths = math.floor(one-red+(two-one)/2) -- this voodoo magic gets the time length (in ms) from the start of the first subtitle frame to the actual start of the line time.
     local mathsanswer = math.floor(blue-red+three-blue+(four-three)/2) -- and this voodoo magic is the total length of the line plus the difference (which is negative) between the start of the last frame the line is on and the end time of the line.
-    local posmatch = "(\\pos)%(([%-%d%.]+,[%-%d%.]+)%)"
+    local posmatch, _ = "(\\pos)%(([%-%d%.]+,[%-%d%.]+)%)"
     if operations[posmatch] then
       currline.text = currline.text:gsub(posmatch,function(tag,val)
         local exes, whys = {}, {}
@@ -802,7 +802,7 @@ function frame_by_frame(sub,accd,opts,clipopts)
         aegisub.log(5,"%s\n",s)
         return s
       end)
-      operations[posmatch] = nil
+      _,operations[posmatch] = operations[posmatch],nil
     end
     for pattern,func in pairs(operations) do -- iterate through the necessary operations
       if aegisub.progress.is_cancelled() then error("User cancelled") end
@@ -821,6 +821,7 @@ function frame_by_frame(sub,accd,opts,clipopts)
       end)
     end
     sub[currline.num] = currline
+    operations[posmatch] = _
   end
   local function nonlinearmodo(currline)
     aegisub.log(0,table.tostring(clipa)..'\n')
