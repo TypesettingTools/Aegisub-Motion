@@ -161,7 +161,8 @@ if config_file == "" then config_file = aegisub.decode_path("?user/aegisub-motio
 encpre = {
 x264    = '"#{encbin}" --crf 16 --tune fastdecode -i 250 --fps 23.976 --sar 1:1 --index "#{prefix}#{index}.index" --seek #{startf} --frames #{lenf} -o "#{prefix}#{output}[#{startf}-#{endf}].mp4" "#{input}"',
 ffmpeg  = '"#{encbin}" -ss #{startt} -t #{lent} -sn -i "#{input}" "#{prefix}#{output}[#{startf}-#{endf}]-%%05d.jpg"',
-avs2yuv = 'echo FFVideoSource("#{input}",cachefile="#{prefix}#{index}.index").trim(#{startf},#{endf}).ConvertToRGB.ImageWriter("#{prefix}#{output}[#{startf}-#{endf}].",type="png") > "#{prefix}encode.avs"#{nl}"#{encbin}" -o NUL "#{prefix}encode.avs"#{nl}del "#{prefix}encode.avs"',}
+avs2yuv = 'echo FFVideoSource("#{input}",cachefile="#{prefix}#{index}.index").trim(#{startf},#{endf}).ConvertToRGB.ImageWriter("#{prefix}#{output}[#{startf}-#{endf}].",type="png").ConvertToYV12 > "#{prefix}encode.avs"#{nl}"#{encbin}" -o NUL "#{prefix}encode.avs"#{nl}del "#{prefix}encode.avs"',
+}
 
 global = {
   windows  = true, -- try to use windows style paths
@@ -352,6 +353,7 @@ function writeconf(conf,optab)
     cf:write(v)
   end
   cf:close()
+  aegisub.log(5,"Config written to %s\n",conf)
   return true
 end
 
@@ -1262,6 +1264,7 @@ function confmaker()
   for key, value in pairs(global) do
     gui.conf[key].value = value
   end
+  gui.conf.enccom.value = encpre[global.encoder] or gui.conf.enccom.value
   local button, config = aegisub.dialog.display(gui.conf,{"Write","Write local","Clip...","Abort"})
   local clipconf
   if button == "Clip..." then
