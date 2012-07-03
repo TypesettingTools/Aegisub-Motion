@@ -1,21 +1,19 @@
 ## Aegisub-Motion.lua ##
 
-**Important things to consider if you're updating:**
+**Important information**
 
- - [This version does not support Aegisub 2.1.x. Click here for the last version that does.][oldver]
- - Due to changes in the config file format, you'll have to regenerate it, or it won't be loaded.
+ - This script no longer supports Aegisub 2.1.x. [Click here for the last version that does.][oldver]
 
-This version has a few notable changes from the previous one:
+**TODO**
 
- - Independent clip motion
- - Multiple override block per line support
- - Apply data from an arbitrary start frame
-
-With the reintroduction of linear mode, there are now no known regressions. I guess I should start writing the documentation.
+ - Documentation. DOCUMENTATION, GOSH NIBLETS
+ - Make _all_ of the gnuplot related code a lot less terrible
+ - Remove random unnecessary code (there is still a lot, I bet!)
+ - Make UI separate from the backend code
 
 ### Usage ###
 
-Aegisub-Motion requires the 3.0.0 branch of Aegisub, currently trunk. While it is still under development, there are [windows binary snapshots][aegwin] available from one of the developers. These builds are typically quite stable nowadays. 3.0.0 has added a number of improvements/enhancements to the Aegisub-Automation interface that allow more flexibility, and Aegisub-Motion attempts to make use of a good number of them.
+Aegisub-Motion requires the 3.0.0 branch of Aegisub, currently trunk. While it is still under development, there are [Windows/OS X binary snapshots][aegplork] available from one of the developers. These builds are typically quite stable nowadays. 3.0.0 has added a number of improvements/enhancements to the Aegisub-Automation interface that allow more flexibility, and Aegisub-Motion attempts to make use of a good number of them.
 
 As stated above, no previous versions of Aegisub are supported any more (the script itself will simply refuse to load). If bugs in the old version are reported, I will fix them, but the new features will not end up being backported.
 
@@ -72,6 +70,6 @@ Many bugs have been reported by various users, and if you've reported something 
 I'm typically available as `torque` on `irc.rizon.net`. Feel free to PM me with suggestions, requests or questions.
 
 [oldver]: https://github.com/torque/Aegisub-Motion/tree/legacy
-[aegwin]: http://plorkyeran.com/aegisub/
+[aegplork]: http://plorkyeran.com/aegisub/
 [mocha]: http://www.imagineersystems.com/
 [gnuplot]: http://www.gnuplot.info/
