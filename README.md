@@ -13,11 +13,11 @@
 
 ### Usage ###
 
-Aegisub-Motion requires the 3.0.0 branch of Aegisub, currently trunk. While it is still under development, there are [Windows/OS X binary snapshots][aegplork] available from one of the developers. These builds are typically quite stable nowadays. 3.0.0 has added a number of improvements/enhancements to the Aegisub-Automation interface that allow more flexibility, and Aegisub-Motion attempts to make use of a good number of them.
+Aegisub-Motion requires the 3.0.0 branch of Aegisub, currently trunk. While it is still under development, there are [Windows/OS X binary snapshots][aegplork] available from one of the developers. The windows builds are typically quite stable nowadays, and the OS X ones are, um, better than they used to be (they're still pretty unstable, though). 3.0.0 has added a number of improvements/enhancements to the Aegisub-Automation interface that allow more flexibility, and Aegisub-Motion attempts to make use of a good number of them.
 
 As stated above, no previous versions of Aegisub are supported any more (the script itself will simply refuse to load). If bugs in the old version are reported, I will fix them, but the new features will not end up being backported.
 
-To use this script, you must first have tracked the motion in an external program. The recommended one is [Mocha][mocha], but any motion tracking software should work as long as the data is exported to the right format.
+To use this script, you must first have tracked the motion in an external program. The recommended one is [Mocha Pro][mocha], but any motion tracking software should work as long as the data is exported to the right format.
 
 The input motion data must be a specific variant of `Adobe After Effects 6.0 Keyframe Data`. For Mocha, export to `After Effects Transform Data [anchor point, position, scale and rotation](*.txt)`). The data format looks like this:
 
