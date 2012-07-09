@@ -82,6 +82,8 @@ script_version = "2.0.0.0.0.0" -- no, I have no idea how this versioning system 
 require "karaskel"
 if not aegisub.file_name then error("Aegisub 3.0.0 or better is required.") end
 require "clipboard"
+dcp = aegisub.decode_path
+winpaths = not dcp('?data'):match('/')
 
 gui = {} -- I'm really beginning to think this shouldn't be a global variable
 gui.main = { -- todo: change these to be more descriptive.
@@ -156,16 +158,15 @@ gui.clip = {
                 x = 7; y = 6; height = 1; width = 3;},
 }
 
-if config_file == "" then config_file = aegisub.decode_path("?user/aegisub-motion.conf") end
+if config_file == "" then config_file = dcp("?user/aegisub-motion.conf") end
 
 encpre = {
 x264    = '"#{encbin}" --crf 16 --tune fastdecode -i 250 --fps 23.976 --sar 1:1 --index "#{prefix}#{index}.index" --seek #{startf} --frames #{lenf} -o "#{prefix}#{output}[#{startf}-#{endf}].mp4" "#{input}"',
 ffmpeg  = '"#{encbin}" -ss #{startt} -t #{lent} -sn -i "#{input}" "#{prefix}#{output}[#{startf}-#{endf}]-%%05d.jpg"',
-avs2yuv = 'echo FFVideoSource("#{input}",cachefile="#{prefix}#{index}.index").trim(#{startf},#{endf}).ConvertToRGB.ImageWriter("#{prefix}#{output}[#{startf}-#{endf}].",type="png").ConvertToYV12 > "#{prefix}encode.avs"#{nl}"#{encbin}" -o NUL "#{prefix}encode.avs"#{nl}del "#{prefix}encode.avs"',
+avs2yuv = 'echo FFVideoSource("#{input}",cachefile="#{prefix}#{index}.index").trim(#{startf},#{endf}).ConvertToRGB.ImageWriter("#{prefix}#{output}-[#{startf}-#{endf}]\\",type="png").ConvertToYV12 > "#{prefix}encode.avs"#{nl}mkdir "#{prefix}#{output}-[#{startf}-#{endf}]"#{nl}"#{encbin}" -o NUL "#{prefix}encode.avs"#{nl}del "#{prefix}encode.avs"',
 }
 
 global = {
-  windows  = true, -- try to use windows style paths
   prefix   = "",
   encoder  = "x264",
   encbin   = "",
@@ -186,8 +187,6 @@ gui.conf.encbin.value, gui.conf.encbin.name = global.encbin, "encbin"
 gui.conf.encbin.hint = "The full path to the encoder binary (unless it's in your PATH)"
 gui.conf.datalabel.label = "       Enter the path to your prefix here (include trailing slash)."
 gui.conf.preflabel.label = "First box: path to encoder binary; second box: encoder command."
-gui.conf.windows  = { class = "checkbox"; value = global.windows; label = "Windows"; name = "windows";
-                    x = 0; y = 22; height = 1; width = 3; hint = "Check this if you are running this on windows."}
 gui.conf.gui_trim = { class = "checkbox"; value = global.gui_trim; label = "Enable trim GUI"; name = "gui_trim";
                     x = 3; y = 22; height = 1; width = 4; hint = "Set whether or not the trim gui should appear."}
 gui.conf.gnupauto = { class = "checkbox"; value = global.gui_expo; label = "Autoplot exports"; name = "gnupauto";
@@ -362,12 +361,12 @@ function configscope()
   if tostring(config_file):match("^[A-Z]:\\") or tostring(config_file):match("^/") or not config_file then
     return config_file
   else
-    cf = io.open(aegisub.decode_path("?script/"..config_file))
+    cf = io.open(dcp("?script/"..config_file))
     if not cf then
-      cf = aegisub.decode_path("?user/"..config_file)
+      cf = dcp("?user/"..config_file)
     else
       cf:close()
-      cf = aegisub.decode_path("?script/"..config_file)
+      cf = dcp("?script/"..config_file)
     end
     return cf
   end
@@ -539,8 +538,9 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
     aegisub.progress.title("Reformatting Gerbils")
     cleanup(sub,newsel,config)
   elseif button == "Export" then
+    if config.xpos or config.ypos then config.position = true end
     local mochatab = {}
-    parse_input(config.linespath,mochatab,accd.meta.res_x,accd.meta.res_y)
+    parse_input(mochatab,config.linespath,accd.meta.res_x,accd.meta.res_y)
     export(accd,mochatab,config)
   elseif button == "Cancel" then
     init_input(sub,sel) -- this is extremely unideal as it reruns all of the information gathering functions as well.
@@ -1155,7 +1155,7 @@ function export(accd,mocha,opts)
   if opts.rotation then
     fnames[6] = "%s T-rot %d-%d.txt"
   end
-  fnames[7] = "%s gnuplot-command %d-%d.txt"
+  fnames[7] = "gnuplot-command %d-%d.txt"
   -- open files
   local eff = accd.lines[1].effect:gsub("^aa-mou","",1)
   if eff == "" then eff = nil end
@@ -1262,7 +1262,7 @@ function confmaker()
   local conf = configscope()
   if not readconf(conf,{ ['main'] = gui.conf; ['clip'] = gui.clip; ['global'] = global }) then aegisub.log(0,"Config read failed!\n") end
   for key, value in pairs(global) do
-    gui.conf[key].value = value
+    if gui.conf[key] then gui.conf[key].value = value end
   end
   gui.conf.enccom.value = encpre[global.encoder] or gui.conf.enccom.value
   local button, config = aegisub.dialog.display(gui.conf,{"Write","Write local","Clip...","Abort"})
@@ -1282,7 +1282,7 @@ function confmaker()
     writeconf(conf,{ ['main'] = config; ['clip'] = clipconf; ['global'] = global })
   elseif button == "Write local" then
     local clipconf = clipconf or {}
-    conf = aegisub.decode_path("?script/")..config_file
+    conf = dcp("?script/")..config_file
     for key,value in pairs(global) do
       global[key] = config[key]
       config[key] = nil
@@ -1356,7 +1356,7 @@ function trimnthings(sub,sel)
   collecttrim(sub,sel,tokens)
   local vid = getvideoname(sub):gsub("[A-Z]:\\",""):gsub(".-[^\\]\\","")
   assert(not vid:match("?dummy"), "No dummy videos allowed. Sorry.")
-  tokens.input = aegisub.decode_path("?video")..vid
+  tokens.input = dcp("?video")..vid
   tokens.index = vid:match("(.+)%.[^%.]+$")
   tokens.output = tokens.index -- huh.
   if not global.gui_trim then
@@ -1388,7 +1388,7 @@ function writeandencode(tokens)
   local function ReplaceTokens(token)
     return tokens[token:sub(2,-2)]
   end
-  if global.windows then
+  if winpaths then
     local sh = io.open(global.prefix.."encode.bat","w+")
     assert(sh,"Encoding command could not be written. Check your prefix.") -- to solve the 250 byte limit, we write to a self-deleting batch file.
     sh:write(global.enccom:gsub("#(%b{})",ReplaceTokens)..'\ndel %0')
