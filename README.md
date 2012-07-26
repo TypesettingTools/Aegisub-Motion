@@ -63,7 +63,7 @@ Finally, it also supports exporting the tracking data into a format that is comp
 
 ### Troubleshooting ###
 
-If the script fails to load, it might be a problem on your end. Check it to make sure your browser hasn't inserted HTML tags into it. Otherwise, [tell me](#contact) simply notify me and I will fix it as soon as possible.
+If the script fails to load, it might be a problem on your end. Check it to make sure your browser hasn't inserted HTML tags into it. Otherwise, simply [notify me](#contact) and I will fix it as soon as possible.
 
 If the script crashes in mid-use and you can't get it to work, please provide me with a copy of your config, the lines to which you are applying the data, and a copy of the motion data. If I can reproduce the problem, I should be able to fix it. Just saying "I'M HAVING AN ERROR" is not very helpful.
 
@@ -76,7 +76,7 @@ Many bugs have been reported by various users, and if you've reported something 
 I'm typically available as `torque` on `irc.rizon.net`. Feel free to PM me with suggestions, requests or questions.
 
 [oldver]: https://github.com/torque/Aegisub-Motion/tree/legacy
-[docu]: wiki
+[docu]: Aegisub-Motion/wiki
 [aegplork]: http://plorkyeran.com/aegisub/
 [mocha]: http://www.imagineersystems.com/
 [gnuplot]: http://www.gnuplot.info/
