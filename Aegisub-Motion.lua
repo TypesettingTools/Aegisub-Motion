@@ -78,7 +78,7 @@ INALIABLE RIGHTS:
 script_name = "Aegisub-Motion"
 script_description = "A set of tools for simplifying the process of creating and applying motion tracking data with Aegisub." -- and it might have memory issues. I think.
 script_author = "torque"
-script_version = "2.0.0.0.0.0" -- no, I have no idea how this versioning system works either.
+script_version = "2.0.0.0.0.0-1" -- no, I have no idea how this versioning system works either.
 require "karaskel"
 if not aegisub.file_name then error("Aegisub 3.0.0 or better is required.") end
 require "clipboard"
@@ -170,7 +170,7 @@ avs2yuv = 'echo FFVideoSource("#{input}",cachefile="#{prefix}#{index}.index").tr
 }
 
 global = {
-  prefix   = "",
+  prefix   = dcp("?video"),
   encoder  = "x264",
   encbin   = "",
   gui_trim = true,
