@@ -83,7 +83,7 @@ require "karaskel"
 if not aegisub.file_name then error("Aegisub 3.0.0 or better is required.") end
 require "clipboard"
 dcp = aegisub.decode_path
-sc = sc
+sc = string.char
 winpaths = not dcp('?data'):match('/')
 
 gui = {} -- I'm really beginning to think this shouldn't be a global variable
