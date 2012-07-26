@@ -83,6 +83,7 @@ require "karaskel"
 if not aegisub.file_name then error("Aegisub 3.0.0 or better is required.") end
 require "clipboard"
 dcp = aegisub.decode_path
+sc = sc
 winpaths = not dcp('?data'):match('/')
 
 gui = {} -- I'm really beginning to think this shouldn't be a global variable
@@ -113,6 +114,8 @@ gui.main = { -- todo: change these to be more descriptive.
                 x = 2; y = 8; height = 1; width = 2; hint = "Scale border with the line (only if Scale is also selected)."},
   shadow    = { class = "checkbox"; name = "shadow"; value = true; label = "Shadow";
                 x = 4; y = 8; height = 1; width = 2; hint = "Scale shadow with the line (only if Scale is also selected)."},
+  blur      = { class = "checkbox"; name = "blur"; value = true; label = "Blur";
+                x = 4; y = 9; height = 1; width = 2; hint = "Scale blur with the line (only if Scale is also selected; does not scale \\be)."},
   rotation  = { class = "checkbox"; name = "rotation"; value = false; label = "Rotation";
                 x = 0; y = 9; height = 1; width = 3; hint = "Apply rotation data to the selected lines."},
   posround  = { class = "intedit"; name = "posround"; value = 2; min = 0; max = 5;
@@ -246,7 +249,7 @@ guiconf = {
   main = {
     "sortd",
     "xpos", "ypos", "origin", "clip", "posround",
-    "scale", "border", "shadow", "sclround",
+    "scale", "border", "shadow", "blur", "sclround",
     "rotation", "rotround",
     "relative", "stframe",
     "vsfscale", "export", "linear",
@@ -771,6 +774,9 @@ function frame_by_frame(sub,accd,opts,clipopts)
     if opts.shadow then
       operations["(\\[xy]?shad)([%-%d%.]+)"] = scalify
     end
+    if opts.blur then
+      operations["(\\blur)([%d%.]+)"] = scalify
+    end
   end
   if opts.rotation then
     operations["(\\frz?)([%-%d%.]+)"] = rotate
@@ -960,7 +966,7 @@ function transformate(line,trans)
   local t_s = trans[1] - line.time_delta
   local t_e = trans[2] - line.time_delta
   aegisub.log(5,"Transform: %d,%d -> %d,%d\n",trans[1],trans[2],t_s,t_e)
-  return line.text:gsub("\\t%b()","\\"..string.char(1)..string.format("t(%d,%d,%g,%s)",t_s,t_e,trans[3],trans[4]),1)
+  return line.text:gsub("\\t%b()","\\"..sc(1)..string.format("t(%d,%d,%g,%s)",t_s,t_e,trans[3],trans[4]),1)
 end
 
 function scalify(scale,line,mocha,opts,tag)
@@ -1015,34 +1021,30 @@ function cleanup(sub, sel, opts) -- make into its own macro eventually.
     local lnum = sel[#sel-i+1]
     local line = sub[lnum] -- iterate backwards (makes line deletion sane)
     linediff = line.end_time - line.start_time
-    line.text = line.text:gsub("}"..string.char(6).."{","") -- merge sequential override blocks if they are marked as being the ones we wrote
-    line.text = line.text:gsub(string.char(6),"") -- remove superfluous marker characters for when there is no override block at the beginning of the original line
+    line.text = line.text:gsub("}"..sc(6).."{","") -- merge sequential override blocks if they are marked as being the ones we wrote
+    line.text = line.text:gsub(sc(6),"") -- remove superfluous marker characters for when there is no override block at the beginning of the original line
     line.text = line.text:gsub("\\t(%b())",cleantrans) -- clean up transformations (remove transformations that have completed)
     line.text = line.text:gsub("{}","") -- I think this is irrelevant. But whatever.
     for a in line.text:gmatch("{(.-)}") do
       aegisub.progress.set(math.random(100)) -- professional progress bars
-      local trans = {}
-      repeat -- have to cut out transformations so their contents don't get detected as dups
-        if aegisub.progress.is_cancelled() then error("User cancelled") end
-        local low, high, trabs = a:find("(\\t%b())")
-        if low then
-          aegisub.log(5,"Cleanup: %s found\n",trabs)
-          a = a:gsub("\\t%b()",string.char(3),1) -- nngah
-          table.insert(trans,trabs)
-        end
-      until not low 
+      local transforms = {}
+      a = a:gsub("(\\t%b())", function(transform)
+          aegisub.log(5,"Cleanup: %s found\n",transform)
+          table.insert(transforms,transform)
+          return sc(3)
+        end)
       for k,v in pairs(alltags) do
         local _, num = a:gsub(v,"")
         --aegisub.log(5,"v: %s, num: %s, a: %s\n",v,num,a)
         a = a:gsub(v,"",num-1)
       end
-      for i,v in ipairs(trans) do
-        a = a:gsub(string.char(3),v,1)
+      for i,trans in ipairs(transforms) do
+        a = a:gsub(sc(3),trans,1)
       end
-      line.text = line.text:gsub("{.-}",string.char(1)..a..string.char(2),1) -- I think...
+      line.text = line.text:gsub("{.-}",sc(1)..a..sc(2),1) -- I think...
     end
-    line.text = line.text:gsub(string.char(1),"{")
-    line.text = line.text:gsub(string.char(2),"}")
+    line.text = line.text:gsub(sc(1),"{")
+    line.text = line.text:gsub(sc(2),"}")
     line.effect = line.effect:gsub("aa%-mou","",1)
     sub[lnum] = line
   end
@@ -1270,26 +1272,17 @@ function confmaker()
   if button == "Clip..." then
     button, clipconf = aegisub.dialog.display(gui.clip,{"Write","Write local","Cancel","Abort"})
   end
-  if button == "Write" then
+  if button:match("Write") then
     local clipconf = clipconf or {}
+    if button == "Write local" then conf = dcp("?script/"..config_file) end
     for key,value in pairs(global) do
       global[key] = config[key]
       config[key] = nil
     end
+    if global.enccom ~= encpre[global.encoder] then global.encoder = "custom" end -- automatically set to custom if command doesn't match
     for i,field in ipairs(guiconf.clip) do
       if clipconf[field] == nil then clipconf[field] = gui.clip[field].value end
     end 
-    writeconf(conf,{ ['main'] = config; ['clip'] = clipconf; ['global'] = global })
-  elseif button == "Write local" then
-    local clipconf = clipconf or {}
-    conf = dcp("?script/")..config_file
-    for key,value in pairs(global) do
-      global[key] = config[key]
-      config[key] = nil
-    end
-    for i,field in ipairs(guiconf.clip) do
-      if clipconf[field] == nil then clipconf[field] = gui.clip[field].value end
-    end
     writeconf(conf,{ ['main'] = config; ['clip'] = clipconf; ['global'] = global })
   elseif button == "Cancel" then
     confmaker()
@@ -1298,7 +1291,7 @@ function confmaker()
   end
 end
 
-if config_file then aegisub.register_macro("Motion Data - Config", "Full config management.", confmaker, isvideo) end
+if config_file then aegisub.register_macro("Motion Data - Config", "Full config management.", confmaker) end
 
 gui.t = {
   vidlabel = { class = "label"; label = "The path to the loaded video";
