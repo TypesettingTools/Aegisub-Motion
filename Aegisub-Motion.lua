@@ -582,42 +582,44 @@ function parse_input(mocha_table,input,shx,shy)
   local xmult = shx/tonumber(sw)
   local ymult = shy/tonumber(sh)
   for keys, valu in ipairs(ftab) do -- idk it might be more flexible now or something
-    if valu == "Position" then
-    sect = sect + 1
-    elseif valu == "Scale" then
-    sect = sect + 2
-    elseif valu == "Rotation" then
-    sect = sect + 4
-    elseif valu == nil then
-    sect = 0
-    end
-    if sect == 1 then
-      if valu:match("%d") then
-        val = valu:split("\t")
-        table.insert(mocha_table.xpos,tonumber(val[2])*xmult)
-        table.insert(mocha_table.ypos,tonumber(val[3])*ymult)
+    if not valu:match("^\t") then
+      if valu == "Position" then
+        sect = 1
+      elseif valu == "Scale" then
+        sect = sect + 2
+      elseif valu == "Rotation" then
+        sect = sect + 4
+      else
       end
-    elseif sect <= 3 and sect >= 2 then
-      if valu:match("%d") then
-        val = valu:split("\t")
-        table.insert(mocha_table.xscl,tonumber(val[2]))
-        table.insert(mocha_table.yscl,tonumber(val[3]))
-      end
-    elseif sect <= 7 and sect >= 4 then
-      if valu:match("%d") then
-        val = valu:split("\t")
-        table.insert(mocha_table.zrot,-tonumber(val[2]))
+    else
+      if sect == 1 then
+        if valu:match("%d") then
+          val = valu:split("\t")
+          table.insert(mocha_table.xpos,tonumber(val[2])*xmult)
+          table.insert(mocha_table.ypos,tonumber(val[3])*ymult)
+        end
+      elseif sect == 3 then
+        if valu:match("%d") then
+          val = valu:split("\t")
+          table.insert(mocha_table.xscl,tonumber(val[2]))
+          table.insert(mocha_table.yscl,tonumber(val[3]))
+        end
+      elseif sect == 7 then
+        if valu:match("%d") then
+          val = valu:split("\t")
+          table.insert(mocha_table.zrot,-tonumber(val[2]))
+        end
       end
     end
   end
+  mocha_table.flength = #mocha_table.xpos
+  assert(mocha_table.flength == #mocha_table.ypos and mocha_table.flength == #mocha_table.xscl and mocha_table.flength == #mocha_table.yscl and mocha_table.flength == #mocha_table.zrot,"The data was not parsed correctly (did you input the correct type?).") -- make sure all of the elements are the same length (because I don't trust my own code).
   for prefix,field in pairs({x = "xpos", y = "ypos", xs = "xscl", ys = "yscl", r = "zrot"}) do
     local dummytab = table.copy(mocha_table[field])
     table.sort(dummytab)
     mocha_table[prefix.."max"], mocha_table[prefix.."min"] = dummytab[#dummytab], dummytab[1]
     aegisub.log(5,"%smax: %g; %smin: %g\n",prefix,mocha_table[prefix.."max"],prefix,mocha_table[prefix.."min"])
   end
-  mocha_table.flength = #mocha_table.xpos
-  assert(mocha_table.flength == #mocha_table.ypos and mocha_table.flength == #mocha_table.xscl and mocha_table.flength == #mocha_table.yscl and mocha_table.flength == #mocha_table.zrot,"The data is not internally equal length.") -- make sure all of the elements are the same length (because I don't trust my own code).
   printmem("End of input parsing")
 end
 
@@ -1279,7 +1281,7 @@ function confmaker()
       global[key] = config[key]
       config[key] = nil
     end
-    if global.enccom ~= encpre[global.encoder] then global.encoder = "custom" end -- automatically set to custom if command doesn't match
+    --if global.enccom ~= encpre[global.encoder] then global.encoder = "custom" end -- automatically set to custom if command doesn't match
     for i,field in ipairs(guiconf.clip) do
       if clipconf[field] == nil then clipconf[field] = gui.clip[field].value end
     end 
