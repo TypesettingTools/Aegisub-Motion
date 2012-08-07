@@ -575,7 +575,7 @@ function parse_input(mocha_table,input,shx,shy)
     ftab = input:split("\n")
   end
   for _,pattern in ipairs({"Position","Scale","Rotation","Source Width\t%d+","Source Height\t%d+","Adobe After Effects 6.0 Keyframe Data"}) do
-    assert(datastring:match(pattern),"Parsing failed. Make sure your motion data is in the correct format.")
+    windowerr(datastring:match(pattern),'Error parsing data. "After Effects Transform Data [anchor point, position, scale and rotation]" expected.')
   end
   local sw = datastring:match("Source Width\t([0-9]+)")
   local sh = datastring:match("Source Height\t([0-9]+)")
@@ -613,7 +613,7 @@ function parse_input(mocha_table,input,shx,shy)
     end
   end
   mocha_table.flength = #mocha_table.xpos
-  assert(mocha_table.flength == #mocha_table.ypos and mocha_table.flength == #mocha_table.xscl and mocha_table.flength == #mocha_table.yscl and mocha_table.flength == #mocha_table.zrot,"The data was not parsed correctly (did you input the correct type?).") -- make sure all of the elements are the same length (because I don't trust my own code).
+  windowerr(mocha_table.flength == #mocha_table.ypos and mocha_table.flength == #mocha_table.xscl and mocha_table.flength == #mocha_table.yscl and mocha_table.flength == #mocha_table.zrot,'Error parsing data. "After Effects Transform Data [anchor point, position, scale and rotation]" expected.')
   for prefix,field in pairs({x = "xpos", y = "ypos", xs = "xscl", ys = "yscl", r = "zrot"}) do
     local dummytab = table.copy(mocha_table[field])
     table.sort(dummytab)
@@ -621,6 +621,13 @@ function parse_input(mocha_table,input,shx,shy)
     aegisub.log(5,"%smax: %g; %smin: %g\n",prefix,mocha_table[prefix.."max"],prefix,mocha_table[prefix.."min"])
   end
   printmem("End of input parsing")
+end
+
+function windowerr(bool, message)
+  if not bool then
+    aegisub.dialog.display({{class="label", label=message}},{"ok"})
+    error(message)
+  end
 end
 
 function spoof_table(parsed_table,opts,len)
