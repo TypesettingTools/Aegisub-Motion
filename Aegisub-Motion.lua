@@ -517,17 +517,20 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
     if config.wconfig then
       writeconf(conf,{ ['main'] = config; ['clip'] = clipconf; ['global'] = global })
     end
-    if config.stframe == 0 then config.stframe = 1 end
+    if config.stframe == 0 then config.stframe = 1 end -- TODO: fix this horrible clusterfuck
     if clipconf.stframe == 0 then clipconf.stframe = 1 end
     if config.xpos or config.ypos then config.position = true end
     config.yconst = not config.ypos; config.xconst = not config.xpos
     if clipconf.xpos or clipconf.ypos then clipconf.position = true end
-    clipconf.yconst = not clipconf.ypos; clipconf.xconst = not clipconf.xpos
+    clipconf.yconst = not clipconf.ypos; clipconf.xconst = not clipconf.xpos -- TODO: remove unnecessary logic inversion
     if clipconf.clippath == "" or clipconf.clippath == nil then
+      if not config.linespath then windowerr(false,"No tracking data was provided.") end
       clipconf.clippath = false
     else config.clip = false end -- set clip to false if clippath exists
-    if config.clip or clipconf.clippath then config.linear = false end
+    if config.clip then clipconf.stframe = config.stframe; config.linear = false end
+    if clipconf.clippath then config.linear = false end
     aegisub.progress.title("Mincing Gerbils")
+    aegisub.log(0,"conf.stframe = %s, clip.stframe = %s\n",tostring(config.stframe),tostring(clipconf.stframe))
     printmem("Go")
     local newsel = frame_by_frame(sub,accd,config,clipconf)
     if munch(sub,newsel) then
@@ -841,7 +844,6 @@ function frame_by_frame(sub,accd,opts,clipopts)
     operations[posmatch] = _
   end
   local function nonlinearmodo(currline)
-    aegisub.log(0,table.tostring(clipa)..'\n')
     for x = currline.rendf,currline.rstartf,-1 do -- new inner loop structure
       printmem("Inner loop")
       aegisub.progress.title(string.format("Processing frame %g/%g",x,currline.rendf-currline.rstartf+1))
