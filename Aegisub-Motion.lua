@@ -530,7 +530,6 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
     if config.clip then clipconf.stframe = config.stframe; config.linear = false end
     if clipconf.clippath then config.linear = false end
     aegisub.progress.title("Mincing Gerbils")
-    aegisub.log(0,"conf.stframe = %s, clip.stframe = %s\n",tostring(config.stframe),tostring(clipconf.stframe))
     printmem("Go")
     local newsel = frame_by_frame(sub,accd,config,clipconf)
     if munch(sub,newsel) then
