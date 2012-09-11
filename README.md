@@ -1,15 +1,15 @@
 ## Aegisub-Motion.lua ##
 
 **Important information**
+- Every time you update, you should delete and regenerate your configuration file(s).
+- This script no longer supports Aegisub 2.1.x. [Click here for the last version that does.][oldver]
 
- - This script no longer supports Aegisub 2.1.x. [Click here for the last version that does.][oldver]
+### [Documentation][docu] ###
 
 **TODO**
-
- - [Documentation][docu].
- - Make _all_ of the gnuplot related code a lot less terrible
- - Remove random unnecessary code (there is still a lot, I bet!)
- - Make UI separate from the backend code
+- Make _all_ of the gnuplot related code a lot less terrible
+- Remove random unnecessary code (there is still a lot, I bet!)
+- Make UI separate from the backend code
 
 ### Usage ###
 
