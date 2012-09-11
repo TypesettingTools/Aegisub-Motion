@@ -75,114 +75,120 @@ INALIABLE RIGHTS:
     YOUR LAST WILL AND TESTAMENT.
   ]=]--
 
+--[[ Global definitions for Aegisub. ]]--
 script_name = "Aegisub-Motion"
 script_description = "A set of tools for simplifying the process of creating and applying motion tracking data with Aegisub." -- and it might have memory issues. I think.
 script_author = "torque"
 script_version = "2.0.0.0.0.0-1" -- no, I have no idea how this versioning system works either.
+
+--[[ Include helper scripts. ]]--
 require "karaskel"
-if not aegisub.file_name then error("Aegisub 3.0.0 or better is required.") end
-require "clipboard"
+if not pcall(require, "clipboard") then error("Aegisub 3.0.0 or better is required.") end
+
+--[[ Alias commonly used functions with much shorter identifiers.
+     As an added bonus, this makes the code more confusing. ]]--
 dcp = aegisub.decode_path
 sc = string.char
+
+--[[ Detect whether to use *nix or Windows style paths. ]]--
 winpaths = not dcp('?data'):match('/')
 
-gui = {} -- I'm really beginning to think this shouldn't be a global variable
-gui.main = { -- todo: change these to be more descriptive.
-  linespath = { class = "textbox"; name = "linespath"; hint = "Paste data or the path to a file containing it. No quotes or escapes.";
-                x = 0; y = 1; height = 4; width = 10;},
-  pref      = { class = "textbox"; name = "pref"; hint = "The prefix";
-                x = 0; y = 14; height = 3; width = 10; hint = "The directory any generated files will be written to."},
-  preflabel = { class = "label"; label = "                  Files will be written to this directory.";
-                x = 0; y = 13; height = 1; width = 10;},
-  datalabel = { class = "label"; label = "                       Paste data or enter a filepath.";
-                x = 0; y = 0; height = 1; width = 10;},
-  optlabel  = { class = "label"; label = "Data to be applied:";
-                x = 0; y = 6; height = 1; width = 5;},
-  rndlabel  = { class = "label"; label = "Rounding";
-                x = 7; y = 6; height = 1; width = 3;},
-  xpos      = { class = "checkbox"; name = "xpos"; value = true; label = "x";
-                x = 0; y = 7; height = 1; width = 1; hint = "Apply x position data to the selected lines."},
-  ypos      = { class = "checkbox"; name = "ypos"; value = true; label = "y";
-                x = 1; y = 7; height = 1; width = 1; hint = "Apply y position data to the selected lines."},
-  origin    = { class = "checkbox"; name = "origin"; value = false; label = "Origin";
-                x = 2; y = 7; height = 1; width = 2; hint = "Move the origin along with the position."},
-  clip      = { class = "checkbox"; name = "clip"; value = false; label = "Clip";
-                x = 4; y = 7; height = 1; width = 2; hint = "Move clip along with the position (note: will also be scaled and rotated if those options are selected)."},
-  scale     = { class = "checkbox"; name = "scale"; value = true; label = "Scale";
-                x = 0; y = 8; height = 1; width = 2; hint = "Apply scaling data to the selected lines."},
-  border    = { class = "checkbox"; name = "border"; value = true; label = "Border";
-                x = 2; y = 8; height = 1; width = 2; hint = "Scale border with the line (only if Scale is also selected)."},
-  shadow    = { class = "checkbox"; name = "shadow"; value = true; label = "Shadow";
-                x = 4; y = 8; height = 1; width = 2; hint = "Scale shadow with the line (only if Scale is also selected)."},
-  blur      = { class = "checkbox"; name = "blur"; value = true; label = "Blur";
-                x = 4; y = 9; height = 1; width = 2; hint = "Scale blur with the line (only if Scale is also selected; does not scale \\be)."},
-  rotation  = { class = "checkbox"; name = "rotation"; value = false; label = "Rotation";
-                x = 0; y = 9; height = 1; width = 3; hint = "Apply rotation data to the selected lines."},
-  posround  = { class = "intedit"; name = "posround"; value = 2; min = 0; max = 5;
-                x = 7; y = 7; height = 1; width = 3; hint = "How many decimal places of accuracy the resulting positions should have."},
-  sclround  = { class = "intedit"; name = "sclround"; value = 2; min = 0; max = 5;
-                x = 7; y = 8; height = 1; width = 3; hint = "How many decimal places of accuracy the resulting scales should have (also applied to border and shadow)."},
-  rotround  = { class = "intedit"; name = "rotround"; value = 2; min = 0; max = 5;
-                x = 7; y = 9; height = 1; width = 3; hint = "How many decimal places of accuracy the resulting rotations should have."},
-  wconfig   = { class = "checkbox"; name = "wconfig"; value = false; label = "Write config";
-                x = 0; y = 11; height = 1; width = 4; hint = "Write current settings to the configuration file."},
-  relative  = { class = "checkbox"; name = "relative"; value = true; label = "Relative";
-                x = 4; y = 11; height = 1; width = 3; hint = "Start frame should be relative to the line's start time rather than to the start time of all selected lines"},
-  stframe   = { class = "intedit"; name = "stframe"; value = 1;
-                x = 7; y = 11; height = 1; width = 3; hint = "Frame used as the starting point for the tracking data. \"-1\" corresponds to the last frame."},
-  vsfscale  = { class = "checkbox"; name = "vsfscale"; value = true; label = "VSfilter scaling";
-                x = 0; y = 12; height = 1; width = 3; hint = "Use staged transforms to approximate noninteger scale values for vsfilter."},
-  linear    = { class = "checkbox"; name = "linear"; value = false; label = "Linear";
-                x = 4; y = 12; height = 1; width = 2; hint = "Use transforms and \\move to create a linear transition, instead of frame-by-frame."},
-  export    = { class = "checkbox"; name = "export"; value = false; label = "Export";
-                x = 8; y = 12; height = 1; width = 2; hint = "Write files for plotting data with gnuplot"},
-  sortd     = { class = "dropdown"; name = "sortd"; hint = "Sort lines by"; value = "Default"; items = {"Default", "Time"};
-                x = 5; y = 5; width = 4; height = 1; hint = "The order to sort the lines after they have been tracked."}, 
-  sortlabel = { class = "label"; name = "sortlabel"; label = "      Sort Method:";
-                x = 1; y = 5; width = 4; height = 1;},
+--[[ Set up interface tables. ]]--
+gui = {
+  main = {
+    linespath = { class = "textbox"; name = "linespath"; hint = "Paste data or the path to a file containing it. No quotes or escapes.";
+                  x = 0; y = 1; height = 4; width = 10;},
+    pref      = { class = "textbox"; name = "pref"; hint = "The prefix";
+                  x = 0; y = 14; height = 3; width = 10; hint = "The directory any generated files will be written to."},
+    preflabel = { class = "label"; label = "                  Files will be written to this directory.";
+                  x = 0; y = 13; height = 1; width = 10;},
+    datalabel = { class = "label"; label = "                       Paste data or enter a filepath.";
+                  x = 0; y = 0; height = 1; width = 10;},
+    optlabel  = { class = "label"; label = "Data to be applied:";
+                  x = 0; y = 6; height = 1; width = 5;},
+    rndlabel  = { class = "label"; label = "Rounding";
+                  x = 7; y = 6; height = 1; width = 3;},
+    xpos      = { class = "checkbox"; name = "xpos"; value = true; label = "x";
+                  x = 0; y = 7; height = 1; width = 1; hint = "Apply x position data to the selected lines."},
+    ypos      = { class = "checkbox"; name = "ypos"; value = true; label = "y";
+                  x = 1; y = 7; height = 1; width = 1; hint = "Apply y position data to the selected lines."},
+    origin    = { class = "checkbox"; name = "origin"; value = false; label = "Origin";
+                  x = 2; y = 7; height = 1; width = 2; hint = "Move the origin along with the position."},
+    clip      = { class = "checkbox"; name = "clip"; value = false; label = "Clip";
+                  x = 4; y = 7; height = 1; width = 2; hint = "Move clip along with the position (note: will also be scaled and rotated if those options are selected)."},
+    scale     = { class = "checkbox"; name = "scale"; value = true; label = "Scale";
+                  x = 0; y = 8; height = 1; width = 2; hint = "Apply scaling data to the selected lines."},
+    border    = { class = "checkbox"; name = "border"; value = true; label = "Border";
+                  x = 2; y = 8; height = 1; width = 2; hint = "Scale border with the line (only if Scale is also selected)."},
+    shadow    = { class = "checkbox"; name = "shadow"; value = true; label = "Shadow";
+                  x = 4; y = 8; height = 1; width = 2; hint = "Scale shadow with the line (only if Scale is also selected)."},
+    blur      = { class = "checkbox"; name = "blur"; value = true; label = "Blur";
+                  x = 4; y = 9; height = 1; width = 2; hint = "Scale blur with the line (only if Scale is also selected; does not scale \\be)."},
+    rotation  = { class = "checkbox"; name = "rotation"; value = false; label = "Rotation";
+                  x = 0; y = 9; height = 1; width = 3; hint = "Apply rotation data to the selected lines."},
+    posround  = { class = "intedit"; name = "posround"; value = 2; min = 0; max = 5;
+                  x = 7; y = 7; height = 1; width = 3; hint = "How many decimal places of accuracy the resulting positions should have."},
+    sclround  = { class = "intedit"; name = "sclround"; value = 2; min = 0; max = 5;
+                  x = 7; y = 8; height = 1; width = 3; hint = "How many decimal places of accuracy the resulting scales should have (also applied to border, shadow, and blur)."},
+    rotround  = { class = "intedit"; name = "rotround"; value = 2; min = 0; max = 5;
+                  x = 7; y = 9; height = 1; width = 3; hint = "How many decimal places of accuracy the resulting rotations should have."},
+    wconfig   = { class = "checkbox"; name = "wconfig"; value = false; label = "Write config";
+                  x = 0; y = 11; height = 1; width = 4; hint = "Write current settings to the configuration file."},
+    relative  = { class = "checkbox"; name = "relative"; value = true; label = "Relative";
+                  x = 4; y = 11; height = 1; width = 3; hint = "Start frame should be relative to the line's start time rather than to the start time of all selected lines"},
+    stframe   = { class = "intedit"; name = "stframe"; value = 1;
+                  x = 7; y = 11; height = 1; width = 3; hint = "Frame used as the starting point for the tracking data. \"-1\" corresponds to the last frame."},
+    vsfscale  = { class = "checkbox"; name = "vsfscale"; value = false; label = "\\t() scaling"; -- hurr durr
+                  x = 0; y = 12; height = 1; width = 3; hint = "Use staged transforms to approximate noninteger scale values for vsfilter."},
+    linear    = { class = "checkbox"; name = "linear"; value = false; label = "Linear";
+                  x = 4; y = 12; height = 1; width = 2; hint = "Use transforms and \\move to create a linear transition, instead of frame-by-frame."},
+    sortd     = { class = "dropdown"; name = "sortd"; hint = "Sort lines by"; value = "Default"; items = {"Default", "Time"};
+                  x = 5; y = 5; width = 4; height = 1; hint = "The order to sort the lines after they have been tracked."}, 
+    sortlabel = { class = "label"; name = "sortlabel"; label = "      Sort Method:";
+                  x = 1; y = 5; width = 4; height = 1;},
+  },
+  clip = {
+    clippath = { class = "textbox"; name = "clippath"; hint = "Paste data or the path to a file containing it. No quotes or escapes.";
+                 x = 0; y = 1; height = 4; width = 10;},
+    label    = { class = "label"; label = "                 Paste data or enter a filepath.";
+                 x = 0; y = 0; height = 1; width = 10;},
+    xpos     = { class = "checkbox"; name = "xpos"; value = true; label = "x";
+                  x = 0; y = 6; height = 1; width = 1; hint = "Apply x position data to the selected lines."},
+    ypos     = { class = "checkbox"; name = "ypos"; value = true; label = "y";
+                  x = 1; y = 6; height = 1; width = 1; hint = "Apply y position data to the selected lines."},
+    scale    = { class = "checkbox"; name = "scale"; value = true; label = "Scale";
+                 x = 0; y = 7; height = 1; width = 2;},
+    rotation = { class = "checkbox"; name = "rotation"; value = false; label = "Rotation";
+                 x = 0; y = 8; height = 1; width = 3;},
+    relative = { class = "checkbox"; name = "relative"; value = true; label = "Relative";
+                  x = 4; y = 6; height = 1; width = 3;},
+    stframe  = { class = "intedit"; name = "stframe"; value = 1;
+                  x = 7; y = 6; height = 1; width = 3;},
+  }
 }
 
-gui.clip = {
-  clippath = { class = "textbox"; name = "clippath"; hint = "Paste data or the path to a file containing it. No quotes or escapes.";
-               x = 0; y = 1; height = 4; width = 10;},
-  label    = { class = "label"; label = "                 Paste data or enter a filepath.";
-               x = 0; y = 0; height = 1; width = 10;},
-  xpos     = { class = "checkbox"; name = "xpos"; value = true; label = "x";
-                x = 0; y = 6; height = 1; width = 1; hint = "Apply x position data to the selected lines."},
-  ypos     = { class = "checkbox"; name = "ypos"; value = true; label = "y";
-                x = 1; y = 6; height = 1; width = 1; hint = "Apply y position data to the selected lines."},
-  scale    = { class = "checkbox"; name = "scale"; value = true; label = "Scale";
-               x = 0; y = 7; height = 1; width = 2;},
-  rotation = { class = "checkbox"; name = "rotation"; value = false; label = "Rotation";
-               x = 0; y = 8; height = 1; width = 3;},
-  relative = { class = "checkbox"; name = "relative"; value = true; label = "Relative";
-                x = 4; y = 6; height = 1; width = 3;},
-  stframe  = { class = "intedit"; name = "stframe"; value = 1;
-                x = 7; y = 6; height = 1; width = 3;},
-}
-
-if config_file == "" then config_file = dcp("?user/aegisub-motion.conf") end
-
+--[[ Set up encoder presets. ]]--
 encpre = {
-x264    = '"#{encbin}" --crf 16 --tune fastdecode -i 250 --fps 23.976 --sar 1:1 --index "#{prefix}#{index}.index" --seek #{startf} --frames #{lenf} -o "#{prefix}#{output}[#{startf}-#{endf}].mp4" "#{input}"',
-ffmpeg  = '"#{encbin}" -ss #{startt} -t #{lent} -sn -i "#{input}" "#{prefix}#{output}[#{startf}-#{endf}]-%%05d.jpg"',
-avs2yuv = 'echo FFVideoSource("#{input}",cachefile="#{prefix}#{index}.index").trim(#{startf},#{endf}).ConvertToRGB.ImageWriter("#{prefix}#{output}-[#{startf}-#{endf}]\\",type="png").ConvertToYV12 > "#{prefix}encode.avs"#{nl}mkdir "#{prefix}#{output}-[#{startf}-#{endf}]"#{nl}"#{encbin}" -o NUL "#{prefix}encode.avs"#{nl}del "#{prefix}encode.avs"',
+x264    = '"#{encbin}" --crf 16 --tune fastdecode -i 250 --fps 23.976 --sar 1:1 --index "#{prefix}#{index}.index" --seek #{startf} --frames #{lenf} -o "#{prefix}#{output}[#{startf}-#{endf}].mp4" "#{inpath}#{input}"',
+ffmpeg  = '"#{encbin}" -ss #{startt} -t #{lent} -sn -i "#{inpath}#{input}" "#{prefix}#{output}[#{startf}-#{endf}]-%%05d.jpg"',
+avs2yuv = 'echo FFVideoSource("#{inpath}#{input}",cachefile="#{prefix}#{index}.index").trim(#{startf},#{endf}).ConvertToRGB.ImageWriter("#{prefix}#{output}-[#{startf}-#{endf}]\\",type="png").ConvertToYV12 > "#{prefix}encode.avs"#{nl}mkdir "#{prefix}#{output}-[#{startf}-#{endf}]"#{nl}"#{encbin}" -o NUL "#{prefix}encode.avs"#{nl}del "#{prefix}encode.avs"',
 }
 
+--[[ Set up a table of global options. Defaults included. ]]--
 global = {
-  prefix   = dcp("?video"),
-  encoder  = "x264",
-  encbin   = "",
-  gui_trim = true,
-  gnupauto = false,
+  prefix   = "?video",
+  encoder  = "x264", -- todo: move to trim options
+  encbin   = "",     -- same
+  gui_trim = true,   -- same
   autocopy = true,
   acfilter = true,
   delsourc = false, 
-  -- encoder presets
 }
-
+--[[ Set encoding command default based on preset. ]]--
 global.enccom = encpre[global.encoder] or ""
 
+--[[ Copy the main GUI with some modifications for the config GUI.
+     Helps to lower the amount of code duplication (???) ]]--
 gui.conf = table.copy_deep(gui.main)
 gui.conf.clippath, gui.conf.linespath, gui.conf.wconfig = nil
 gui.conf.encbin, gui.conf.pref = table.copy(gui.conf.pref), nil
@@ -192,8 +198,6 @@ gui.conf.datalabel.label = "       Enter the path to your prefix here (include t
 gui.conf.preflabel.label = "First box: path to encoder binary; second box: encoder command."
 gui.conf.gui_trim = { class = "checkbox"; value = global.gui_trim; label = "Enable trim GUI"; name = "gui_trim";
                     x = 3; y = 22; height = 1; width = 4; hint = "Set whether or not the trim gui should appear."}
-gui.conf.gnupauto = { class = "checkbox"; value = global.gui_expo; label = "Autoplot exports"; name = "gnupauto";
-                    x = 7; y = 22; height = 1; width = 3; hint = "Will attempt to automatically plot with gnuplot on export (only works if it is in your PATH)"}
 gui.conf.enccom   = { class = "textbox"; value = global.enccom; name = "enccom";
                     x = 0; y = 17; height = 4; width = 10; hint = "The encoding command that will be used. If you change this, set the preset to \"custom\"."}
 gui.conf.prefix   = { class = "textbox"; value = global.prefix; name = "prefix";
@@ -207,6 +211,8 @@ gui.conf.autocopy = { class = "checkbox"; value = global.autocopy; label = "Auto
 gui.conf.acfilter = { class = "checkbox"; value = global.acfilter; label = "Copy Filter"; name = "acfilter";
                     x = 7; y = 21; height = 1; width = 3; hint = "Only automatically copy the clipboard if it appears to contain tracking data."}
 
+--[[ A table of all override tags that can be looped through.
+     For detecting dupes in cleanup. ]]--
 alltags = {
   ['xscl']  = "\\fscx([%d%.]+)",
   ['yscl']  = "\\fscy([%d%.]+)",
@@ -237,6 +243,13 @@ alltags = {
   ['fay']   = "\\fay([%-%d%.]+)"
 }
 
+--[[ This is a rather messy table of tags that is used to verify that
+     style defaults are inserted at the beginning the selected line(s)
+     if the corresponding options are selected. The structure is:
+     [tag] = {{"opt1","opt2"}, "style key", don't write}
+     where "opt1" and "opt2" are the options that both must be true,
+     "style key" is the key to get the style value, and
+     don't write specifies not to write the tag if the style default is that value. ]]--
 importanttags = { -- scale_x, scale_y, outline, shadow, angle
   ['\\fscx'] = {{"scale","scale"}, "scale_x", 0};
   ['\\fscy'] = {{"scale","scale"}, "scale_y", 0};
@@ -245,6 +258,8 @@ importanttags = { -- scale_x, scale_y, outline, shadow, angle
   ['\\frz']  = {{"rotation","rotation"}, "angle"};
 }
 
+--[[ A table of config keys whose values should be written to the
+     configurtion file. structure is [header] = {keys...} ]]--
 guiconf = {
   main = {
     "sortd",
@@ -252,7 +267,7 @@ guiconf = {
     "scale", "border", "shadow", "blur", "sclround",
     "rotation", "rotround",
     "relative", "stframe",
-    "vsfscale", "export", "linear",
+    "vsfscale", "linear", --"export",
   },
   clip = {
     "xpos", "ypos", "scale", "rotation",
@@ -260,8 +275,10 @@ guiconf = {
   },
 }
 
+--[[ Stick the global config keys in the above table. ]]--
 for k,v in pairs(global) do table.insert(guiconf,k) end
 
+--[[ Functions for more easily handling angles specified in degrees ]]--
 function dcos(a) return math.cos(math.rad(a)) end
 function dacos(a) return math.deg(math.acos(a)) end
 function dsin(a) return math.sin(math.rad(a)) end
@@ -269,18 +286,19 @@ function dasin(a) return math.deg(math.asin(a)) end
 function dtan(a) return math.tan(math.rad(a)) end
 function datan(y,x) return math.deg(math.atan2(y,x)) end
 
-fix = {}
-
-fix.xpos = {
-  function(sx,l,r) return sx-r end;
-  function(sx,l,r) return l    end;
-  function(sx,l,r) return sx/2 end;
-}
-
-fix.ypos = {
-  function(sy,v) return sy-v end;
-  function(sy,v) return sy/2 end;
-  function(sy,v) return v    end;
+--[[ Functions for giving the default position of a line, given its alignment
+     and margins. ]]--
+fix = {
+  xpos = {
+    function(sx,l,r) return sx-r end;
+    function(sx,l,r) return l    end;
+    function(sx,l,r) return sx/2 end;
+  },
+  ypos = {
+    function(sy,v) return sy-v end;
+    function(sy,v) return sy/2 end;
+    function(sy,v) return v    end;
+  },
 }
 
 function readconf(conf,guitab)
@@ -411,10 +429,10 @@ function preprocessing(sub, sel)
   return information(sub,sel) -- selected line numbers are the same
 end
 
-function getinfo(sub, line, num)
+function getinfo(line)
   line.trans = {}
   for a in line.text:gmatch("%{(.-)}") do
-    aegisub.log(5,"Found a comment/override block in line %d: %s\n",num,a)
+    aegisub.log(5,"Found a comment/override block in line %d: %s\n",line.hnum,a)
     local function cconv(a,b,c,d,e)
       line.clips = a
       line.clip = string.format("m %d %d l %d %d %d %d %d %d",b,c,d,c,d,e,b,e)
@@ -432,7 +450,7 @@ function getinfo(sub, line, num)
       t_start,t_end,t_exp,t_eff = c:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
       t_exp = tonumber(t_exp) or 1 -- set to 1 if unspecified
       table.insert(line.trans,{tonumber(t_start),tonumber(t_end),tonumber(t_exp),t_eff})
-      aegisub.log(5,"Line %d: \\t(%g,%g,%g,%s) found\n",num,t_start,t_end,t_exp,t_eff)
+      aegisub.log(5,"Line %d: \\t(%g,%g,%g,%s) found\n",line.hnum,t_start,t_end,t_exp,t_eff)
     end
   end
 end
@@ -457,9 +475,10 @@ function information(sub, sel)
   for i = #sel,1,-1 do -- burning cpu cycles like they were no thing
     local opline = sub[sel[i]] -- these are different.
     opline.num = sel[i] -- for inserting lines later
+    opline.hnum = opline.num-strt -- humanized number
     karaskel.preproc_line(sub, accd.meta, accd.styles, opline) -- get linewidth/height and margins
     if not opline.effect then opline.effect = "" end
-    getinfo(sub, opline, opline.num-strt)
+    getinfo(opline)
     opline.startframe, opline.endframe = aegisub.frame_from_ms(opline.start_time), aegisub.frame_from_ms(opline.end_time)
     if opline.comment then opline.is_comment = true else opline.is_comment = false end
     if opline.startframe < accd.startframe then -- make timings flexible. Number of frames total has to match the tracked data but
@@ -482,6 +501,7 @@ function information(sub, sel)
 end
 
 function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
+  local setundo = aegisub.set_undo_point
   aegisub.progress.title("Selecting Gerbils")
   gui.main.linespath.value = "" -- clear it out
   local accd = preprocessing(sub,sel)
@@ -501,9 +521,9 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
       gui.main.linespath.value = paste
     end
   end
-  gui.main.pref.value = global.prefix
+  gui.main.pref.value = dcp(global.prefix)
   printmem("GUI startup")
-  local button, config = aegisub.dialog.display(gui.main, {"Go","Clip...","Export","Abort"})
+  local button, config = aegisub.dialog.display(gui.main, {"Go","Clip...","Abort"})
   local clipconf
   if button == "Clip..." then
     button, clipconf = aegisub.dialog.display(gui.clip, {"Go","Cancel","Abort"})
@@ -542,18 +562,13 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
     end
     aegisub.progress.title("Reformatting Gerbils")
     cleanup(sub,newsel,config)
-  elseif button == "Export" then
-    if config.xpos or config.ypos then config.position = true end
-    local mochatab = {}
-    parse_input(mochatab,config.linespath,accd.meta.res_x,accd.meta.res_y)
-    export(accd,mochatab,config)
   elseif button == "Cancel" then
     init_input(sub,sel) -- this is extremely unideal as it reruns all of the information gathering functions as well.
   else
     aegisub.progress.task("ABORT")
     aegisub.cancel()
   end
-  aegisub.set_undo_point("Motion Data")
+  setundo("Motion Data")
   printmem("Closing")
 end
 
@@ -756,7 +771,6 @@ function frame_by_frame(sub,accd,opts,clipopts)
       end
     end
   end
-  if opts.export then export(accd,mocha,opts) end
   for k,v in ipairs(accd.lines) do -- comment lines that were commented in the thingy
     local derp = sub[v.num]
     derp.comment = true
@@ -1153,122 +1167,6 @@ end
 
 aegisub.register_macro("Motion Data - Apply", "Applies properly formatted motion tracking data to selected subtitles.", init_input, isvideo)
 
-function export(accd,mocha,opts)
-  local fnames = {}
-  if opts.position then
-    fnames[1] = "%s X-Y %d-%d.txt"
-    fnames[2] = "%s T-X %d-%d.txt"
-    fnames[3] = "%s T-Y %d-%d.txt"
-  end
-  if opts.scale then
-    fnames[4] = "%s T-sclX %d-%d.txt"
-    fnames[5] = "%s T-sclY %d-%d.txt"
-  end
-  if opts.rotation then
-    fnames[6] = "%s T-rot %d-%d.txt"
-  end
-  fnames[7] = "gnuplot-command %d-%d.txt"
-  -- open files
-  local eff = accd.lines[1].effect:gsub("^aa-mou","",1)
-  if eff == "" then eff = nil end
-  local name = eff or accd.lines[1].actor or "Untitled"
-  for k,v in pairs(fnames) do
-    local it = 0
-    repeat
-      if aegisub.progress.is_cancelled() then error("User cancelled") end
-      it = it + 1
-      local n = string.format(v,name,accd.startframe,it)
-      local f = io.open(global.prefix..n,'r')
-      if f then f:close(); f = false else f = true; fnames[k] = n end -- uhhhhhhh...
-    until f == true -- this is probably the worst possible way of doing this imaginable
-  end
-  local fhandle = {}
-  local len = (aegisub.ms_from_frame(accd.endframe) - aegisub.ms_from_frame(accd.startframe))/10
-  local bigstring = {}
-  if opts.position then
-    table.insert(bigstring,string.format([=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',accd.meta.res_x+70,accd.meta.res_y+80,global.prefix..fnames[1]:sub(0,-5)))
-    table.insert(bigstring,string.format([=[set title 'Plot of X vs Y']=]..'\n'))
-    table.insert(bigstring,string.format([=[unset xtics; set x2tics out mirror; set mx2tics 5; set x2label 'X Position (Pixels)'; set xrange [0:%d]]=]..'\n',accd.meta.res_x))
-    table.insert(bigstring,string.format([=[set ytics out; set mytics 5; set ylabel 'Y Position (Pixels)'; set yrange [0:%d] reverse]=]..'\n',accd.meta.res_y))
-    table.insert(bigstring,string.format([=[set grid x2tics mx2tics mytics ytics; stats '%s' using 1:2 name 'XvYstat']=]..'\n',global.prefix..fnames[1]))
-    table.insert(bigstring,string.format([=[f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b]=]..'\n',global.prefix..fnames[1]))
-    table.insert(bigstring,string.format([=[if (b >= 0) slope = sprintf('y(x) = %%.3fx + %%.3f : R^2: %%.3f',m,b,XvYstat_correlation**2); else slope = sprintf('y(x) = %%.3fx - %%.3f : R^2: %%.3f',m,0-b,XvYstat_correlation**2)]=]..'\n'))
-    table.insert(bigstring,string.format([=[plot '%s' using 1:2 notitle with points, f(x) title slope with lines]=]..'\n',global.prefix..fnames[1]))
-
-    table.insert(bigstring,string.format('\n'..[=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',round(len*2+70,0),accd.meta.res_x+80,global.prefix..fnames[2]:sub(0,-5)))
-    table.insert(bigstring,string.format([=[set title 'Plot of T vs X'; unset x2label]=]..'\n'))
-    table.insert(bigstring,string.format([=[unset x2tics; unset mx2tics; set xtics out mirror; set mxtics 5; set xlabel 'Time (centiseconds)'; set xrange [0:%d]]=]..'\n',round(len,0)))
-    table.insert(bigstring,string.format([=[set ytics out; set mytics 5; set ylabel 'X Position (Pixels)'; set yrange [0:%d] reverse]=]..'\n',accd.meta.res_x))
-    table.insert(bigstring,string.format([=[set grid xtics mxtics ytics mytics; stats '%s' using 1:2 name 'TvXstat']=]..'\n',global.prefix..fnames[2]))
-    table.insert(bigstring,string.format([=[f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b]=]..'\n',global.prefix..fnames[2]))
-    table.insert(bigstring,string.format([=[if (b >= 0) slope = sprintf('Equation: x(t) = %%.3ft + %%.3f : R^2: %%.3f',m,b,TvXstat_correlation**2); else slope = sprintf('Equation: x(t) = %%.3ft - %%.3f : R^2: %%.3f',m,0-b,TvXstat_correlation**2)]=]..'\n'))
-    table.insert(bigstring,string.format([=[plot '%s' using 1:2 notitle with points, f(x) title slope with lines]=]..'\n',global.prefix..fnames[2]))
-
-    table.insert(bigstring,string.format('\n'..[=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',round(len*2+70,0),accd.meta.res_x+80,global.prefix..fnames[3]:sub(0,-5)))
-    table.insert(bigstring,string.format([=[set title 'Plot of T vs Y'; unset x2label]=]..'\n'))
-    table.insert(bigstring,string.format([=[unset x2tics; unset mx2tics; set xtics out mirror; set mxtics 5; set xlabel 'Time (centiseconds)'; set xrange [0:%d]]=]..'\n',round(len,0)))
-    table.insert(bigstring,string.format([=[set ytics out; set mytics 5; set ylabel 'Y Position (Pixels)'; set yrange [0:%d] reverse]=]..'\n',accd.meta.res_y))
-    table.insert(bigstring,string.format([=[set grid xtics mxtics ytics mytics; stats '%s' using 1:2 name 'TvYstat']=]..'\n',global.prefix..fnames[3]))
-    table.insert(bigstring,string.format([=[f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b]=]..'\n',global.prefix..fnames[3]))
-    table.insert(bigstring,string.format([=[if (b >= 0) slope = sprintf('Equation: y(t) = %%.3ft + %%.3f : R^2: %%.3f',m,b,TvYstat_correlation**2); else slope = sprintf('Equation: y(t) = %%.3ft - %%.3f : R^2: %%.3f',m,0-b,TvYstat_correlation**2)]=]..'\n'))
-    table.insert(bigstring,string.format([=[plot '%s' using 1:2 notitle with points, f(x) title slope with lines]=]..'\n',global.prefix..fnames[3]))
-  end
-  if opts.scale then
-    table.insert(bigstring,string.format('\n'..[=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',round(len*2+70,0),600,global.prefix..fnames[4]:sub(0,-5)))
-    table.insert(bigstring,string.format([=[set title 'Plot of T vs sclX'; unset x2label]=]..'\n'))
-    table.insert(bigstring,string.format([=[unset x2tics; unset mx2tics; set xtics out mirror; set mxtics 5; set xlabel 'Time (centiseconds)'; set xrange [0:%d]]=]..'\n',round(len,0)))
-    table.insert(bigstring,string.format([=[set ytics out; set mytics 5; set ylabel 'X Scale (Percent)'; set yrange [0:*] reverse]=]..'\n'))
-    table.insert(bigstring,string.format([=[set grid xtics mxtics ytics mytics; stats '%s' using 1:2 name 'TvSXstat']=]..'\n',global.prefix..fnames[4]))
-    table.insert(bigstring,string.format([=[f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b]=]..'\n',global.prefix..fnames[4]))
-    table.insert(bigstring,string.format([=[if (b >= 0) slope = sprintf('Equation: sclx(t) = %%.3ft + %%.3f : R^2: %%.3f',m,b,TvSXstat_correlation**2); else slope = sprintf('Equation: sclx(t) = %%.3ft - %%.3f : R^2: %%.3f',m,0-b,TvSXstat_correlation**2)]=]..'\n'))
-    table.insert(bigstring,string.format([=[plot '%s' using 1:2 notitle with points, f(x) title slope with lines]=]..'\n',global.prefix..fnames[4]))
-
-    table.insert(bigstring,string.format('\n'..[=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',round(len*2+70,0),600,global.prefix..fnames[5]:sub(0,-5)))
-    table.insert(bigstring,string.format([=[set title 'Plot of T vs sclY'; unset x2label]=]..'\n'))
-    table.insert(bigstring,string.format([=[unset x2tics; unset mx2tics; set xtics out mirror; set mxtics 5; set xlabel 'Time (centiseconds)'; set xrange [0:%d]]=]..'\n',round(len,0)))
-    table.insert(bigstring,string.format([=[set ytics out; set mytics 5; set ylabel 'Y Scale (Percent)'; set yrange [0:*] reverse]=]..'\n'))
-    table.insert(bigstring,string.format([=[set grid xtics mxtics ytics mytics; stats '%s' using 1:2 name 'TvSYstat']=]..'\n',global.prefix..fnames[5]))
-    table.insert(bigstring,string.format([=[f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b]=]..'\n',global.prefix..fnames[5]))
-    table.insert(bigstring,string.format([=[if (b >= 0) slope = sprintf('Equation: scly(t) = %%.3ft + %%.3f : R^2: %%.3f',m,b,TvSYstat_correlation**2); else slope = sprintf('Equation: scly(t) = %%.3ft - %%.3f : R^2: %%.3f',m,0-b,TvSYstat_correlation**2)]=]..'\n'))
-    table.insert(bigstring,string.format([=[plot '%s' using 1:2 notitle with points, f(x) title slope with lines]=]..'\n',global.prefix..fnames[5]))
-  end
-  if opts.rotation then
-    table.insert(bigstring,string.format('\n'..[=[set terminal png small transparent truecolor size %d,%d; set output '%s.png']=]..'\n',round(len*2+70,0),600,global.prefix..fnames[6]:sub(0,-5)))
-    table.insert(bigstring,string.format([=[set title 'Plot of T vs rot'; unset x2label]=]..'\n'))
-    table.insert(bigstring,string.format([=[unset x2tics; unset mx2tics; set xtics out mirror; set mxtics 5; set xlabel 'Time (centiseconds)'; set xrange [0:%d]]=]..'\n',round(len,0)))
-    table.insert(bigstring,string.format([=[set ytics out; set mytics 5; set ylabel 'Z Rotation (Degrees)'; set yrange [%d:%d] reverse]=]..'\n',round(mocha.rmin-1,0),round(mocha.rmax+1,0)))
-    table.insert(bigstring,string.format([=[set grid xtics mxtics ytics mytics; stats '%s' using 1:2 name 'TvRstat']=]..'\n',global.prefix..fnames[6]))
-    table.insert(bigstring,string.format([=[f(x) = m*x + b; fit f(x) '%s' using 1:2 via m,b]=]..'\n',global.prefix..fnames[6]))
-    table.insert(bigstring,string.format([=[if (b >= 0) slope = sprintf('Equation: sclx(t) = %%.3ft + %%.3f : R^2: %%.3f',m,b,TvRstat_correlation**2); else slope = sprintf('Equation: sclx(t) = %%.3ft - %%.3f : R^2: %%.3f',m,0-b,TvRstat_correlation**2)]=]..'\n'))
-    table.insert(bigstring,string.format([=[plot '%s' using 1:2 notitle with points, f(x) title slope with lines]=]..'\n',global.prefix..fnames[6]))
-  end
-  for k,v in pairs(fnames) do
-    aegisub.log(5,"Export: opening %s for writing.\n",v)
-    fhandle[k] = io.open(global.prefix..v,'w')
-  end
-  for x = 1, #mocha.xpos do
-    if aegisub.progress.is_cancelled() then error("User cancelled") end
-    local cs = (aegisub.ms_from_frame(accd.startframe+x-1) - aegisub.ms_from_frame(accd.startframe))/10 -- (normalized to start time)
-    if opts.position then
-      fhandle[1]:write(string.format("%g %g\n",mocha.xpos[x],mocha.ypos[x]))
-      fhandle[2]:write(string.format("%g %g\n",cs,mocha.xpos[x]))
-      fhandle[3]:write(string.format("%g %g\n",cs,mocha.ypos[x]))
-    end
-    if opts.scale then
-      fhandle[4]:write(string.format("%g %g\n",cs,mocha.xscl[x]))
-      fhandle[5]:write(string.format("%g %g\n",cs,mocha.yscl[x]))
-    end
-    if opts.rotation then
-      fhandle[6]:write(string.format("%g %g\n",cs,mocha.zrot[x]))
-    end
-  end
-  for i,v in ipairs(bigstring) do
-    fhandle[7]:write(v)
-  end
-  for i,v in pairs(fhandle) do v:close() end
-  if global.gnupauto then os.execute('cd "'..global.prefix..'" && gnuplot "'..fnames[7]..'"') end
-end
-
 function confmaker()
   local valtab = {}
   local conf = configscope()
@@ -1282,14 +1180,16 @@ function confmaker()
   if button == "Clip..." then
     button, clipconf = aegisub.dialog.display(gui.clip,{"Write","Write local","Cancel","Abort"})
   end
-  if button:match("Write") then
+  if tostring(button):match("Write") then
     local clipconf = clipconf or {}
     if button == "Write local" then conf = dcp("?script/"..config_file) end
+    if global.encoder ~= config.encoder then
+      config.enccom = encpre[config.encoder] or config.enccom
+    end
     for key,value in pairs(global) do
       global[key] = config[key]
       config[key] = nil
     end
-    --if global.enccom ~= encpre[global.encoder] then global.encoder = "custom" end -- automatically set to custom if command doesn't match
     for i,field in ipairs(guiconf.clip) do
       if clipconf[field] == nil then clipconf[field] = gui.clip[field].value end
     end 
@@ -1354,13 +1254,13 @@ function trimnthings(sub,sel)
   end
   local tokens = {}
   tokens.encbin = global.encbin
-  tokens.prefix = global.prefix
+  tokens.prefix = dcp(global.prefix)
   tokens.nl = "\n"
   collecttrim(sub,sel,tokens)
-  local vid = getvideoname(sub):gsub("[A-Z]:\\",""):gsub(".-[^\\]\\","")
-  assert(not vid:match("?dummy"), "No dummy videos allowed. Sorry.")
-  tokens.input = dcp("?video")..vid
-  tokens.index = vid:match("(.+)%.[^%.]+$")
+  tokens.input = getvideoname(sub):gsub("[A-Z]:\\",""):gsub(".+[^\\/]-[\\/]","")
+  assert(not tokens.input:match("?dummy"), "No dummy videos allowed. Sorry.")
+  tokens.inpath = dcp("?video/")
+  tokens.index = tokens.input:match("(.+)%.[^%.]+$")
   tokens.output = tokens.index -- huh.
   if not global.gui_trim then
     writeandencode(tokens)
@@ -1391,15 +1291,20 @@ function writeandencode(tokens)
   local function ReplaceTokens(token)
     return tokens[token:sub(2,-2)]
   end
+  local encsh = tokens.prefix.."encode.bat"
+  local sh = io.open(encsh,"w+")
+  assert(sh,"Encoding command could not be written. Check your prefix.") -- to solve the 250 byte limit, we write to a self-deleting batch file.
+  local ret
   if winpaths then
-    local sh = io.open(global.prefix.."encode.bat","w+")
-    assert(sh,"Encoding command could not be written. Check your prefix.") -- to solve the 250 byte limit, we write to a self-deleting batch file.
     sh:write(global.enccom:gsub("#(%b{})",ReplaceTokens)..'\ndel %0')
     sh:close()
-    os.execute(('""%s%s""'):format(global.prefix,"encode.bat")) -- double quotes makes it work on different drives too, apparently?
-  else -- nfi what to do on lunix
-    os.execute(global.enccom:gsub("#(%b{})",ReplaceTokens))
+    ret = os.execute(('""%s""'):format(encsh)) -- double quotes makes it work on different drives too, apparently
+  else
+    sh:write(global.enccom:gsub("#(%b{})",ReplaceTokens)..'\ndel $0')
+    sh:close()
+    ret = os.execute(('sh "%s"'):format(encsh)) -- seems to work4me
   end
+  if ret ~= 0 then error(false,"Encoding failed!") end
 end
 
 aegisub.register_macro("Motion Data - Trim","Cuts and encodes the current scene for use with motion tracking software.", trimnthings, isvideo)
