@@ -443,8 +443,9 @@ function getinfo(line)
     end
     if line.clip then
       line.sclip = tonumber(line.sclip) or false
-      if line.sclip then aegisub.log(5,"Clip: \\%s(%s,%s)\n",line.clips,line.sclip,line.clip)
-      else aegisub.log(5,"Clip: \\%s(%s)\n",line.clips,line.clip) end
+      if line.sclip then line.rescaleclip = true else line.rescaleclip = false; line.sclip = 1 end
+      aegisub.log(0,tostring(line.rescaleclip)..'\n')
+      aegisub.log(5,"Clip: \\%s(%s,%s)\n",line.clips,line.sclip,line.clip)
     end -- because otherwise it crashes!
     for c in a:gmatch("\\t(%b())") do -- this will return an empty string for t_exp if no exponential factor is specified
       t_start,t_end,t_exp,t_eff = c:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
@@ -961,24 +962,25 @@ function clippinate(line,clipa,iter)
   aegisub.log(5,"cx: %f cy: %f\n",cx,cy)
   aegisub.log(5,"rx: %f ry: %f\n",ratx,raty)
   aegisub.log(5,"frz: %f\n",diffrz)
+  local sclfac = 2^(line.sclip-1)
   local clip = ""
   local function xy(x,y)
     local xo,yo = x,y
-    x = (tonumber(x) - clipa.xpos[clipa.start])*ratx
-    y = (tonumber(y) - clipa.ypos[clipa.start])*raty
+    x = (tonumber(x) - clipa.xpos[clipa.start]*sclfac)*ratx
+    y = (tonumber(y) - clipa.ypos[clipa.start]*sclfac)*raty
     local r = math.sqrt(x^2+y^2)
     local alpha = datan(y,x)
-    x = cx + r*dcos(alpha-diffrz)
-    y = cy + r*dsin(alpha-diffrz)
+    x = cx*sclfac + r*dcos(alpha-diffrz)
+    y = cy*sclfac + r*dsin(alpha-diffrz)
     aegisub.log(5,"Clip: %d %d -> %d %d\n",xo,yo,x,y)
-    if line.sclip then 
-      x = x*1024/(2^(line.sclip-1))
-      y = y*1024/(2^(line.sclip-1))
+    if line.rescaleclip then
+      x = x*1024/sclfac
+      y = y*1024/sclfac
     end
     return string.format("%d %d",round(x),round(y))
   end
   clip = line.clip:gsub("([%.%d%-]+) ([%.%d%-]+)",xy)
-  if line.sclip then 
+  if line.rescaleclip then 
     clip = string.format("\\%s(11,%s)",line.clips,clip)
   else
     clip = string.format("\\%s(%s)",line.clips,clip)
@@ -1052,6 +1054,7 @@ function cleanup(sub, sel, opts) -- make into its own macro eventually.
     for a in line.text:gmatch("{(.-)}") do
       aegisub.progress.set(math.random(100)) -- professional progress bars
       local transforms = {}
+      line.text = line.text:gsub("\\(i?clip)%(1,m","\\%1(m")
       a = a:gsub("(\\t%b())", function(transform)
           aegisub.log(5,"Cleanup: %s found\n",transform)
           table.insert(transforms,transform)
@@ -1087,12 +1090,10 @@ function dialog_sort(sub, sel, sor)
   end -- local because why not?
   local sortF = ({
     ['Time']   = function(l,n) return { key = l.start_time, num = n, data = l } end;
-    --[[ These are pretty pointless since they should all end up in the same order as "Default"
     ['Actor']  = function(l,n) return { key = l.actor,  num = n, data = l } end;
     ['Effect'] = function(l,n) return { key = l.effect, num = n, data = l } end;
     ['Style']  = function(l,n) return { key = l.style,  num = n, data = l } end;
     ['Layer']  = function(l,n) return { key = l.layer,  num = n, data = l } end; 
-    --]]
   })[sor] -- thanks, tophf
   local lines = {}
   for i,v in ipairs(sel) do
