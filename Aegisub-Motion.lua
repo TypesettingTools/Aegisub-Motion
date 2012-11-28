@@ -79,11 +79,12 @@ INALIABLE RIGHTS:
 script_name = "Aegisub-Motion"
 script_description = "A set of tools for simplifying the process of creating and applying motion tracking data with Aegisub." -- and it might have memory issues. I think.
 script_author = "torque"
-script_version = "2.0.0.0.0.0-1" -- no, I have no idea how this versioning system works either.
+script_version = "2.0.0.0.0.0-2" -- PATCHLEVEL BUMP?!
 
 --[[ Include helper scripts. ]]--
 require "karaskel"
 if not pcall(require, "clipboard") then error("Aegisub 3.0.0 or better is required.") end
+if not pcall(require, "debug") then dbg = false end
 
 --[[ Alias commonly used functions with much shorter identifiers.
      As an added bonus, this makes the code more confusing. ]]--
@@ -138,8 +139,6 @@ gui = {
                   x = 4; y = 11; height = 1; width = 3; hint = "Start frame should be relative to the line's start time rather than to the start time of all selected lines"},
     stframe   = { class = "intedit"; name = "stframe"; value = 1;
                   x = 7; y = 11; height = 1; width = 3; hint = "Frame used as the starting point for the tracking data. \"-1\" corresponds to the last frame."},
-    vsfscale  = { class = "checkbox"; name = "vsfscale"; value = false; label = "\\t() scaling"; -- hurr durr
-                  x = 0; y = 12; height = 1; width = 3; hint = "Use staged transforms to approximate noninteger scale values for vsfilter."},
     linear    = { class = "checkbox"; name = "linear"; value = false; label = "Linear";
                   x = 4; y = 12; height = 1; width = 2; hint = "Use transforms and \\move to create a linear transition, instead of frame-by-frame."},
     sortd     = { class = "dropdown"; name = "sortd"; hint = "Sort lines by"; value = "Default"; items = {"Default", "Time"};
@@ -172,6 +171,7 @@ encpre = {
 x264    = '"#{encbin}" --crf 16 --tune fastdecode -i 250 --fps 23.976 --sar 1:1 --index "#{prefix}#{index}.index" --seek #{startf} --frames #{lenf} -o "#{prefix}#{output}[#{startf}-#{endf}].mp4" "#{inpath}#{input}"',
 ffmpeg  = '"#{encbin}" -ss #{startt} -t #{lent} -sn -i "#{inpath}#{input}" "#{prefix}#{output}[#{startf}-#{endf}]-%%05d.jpg"',
 avs2yuv = 'echo FFVideoSource("#{inpath}#{input}",cachefile="#{prefix}#{index}.index").trim(#{startf},#{endf}).ConvertToRGB.ImageWriter("#{prefix}#{output}-[#{startf}-#{endf}]\\",type="png").ConvertToYV12 > "#{prefix}encode.avs"#{nl}mkdir "#{prefix}#{output}-[#{startf}-#{endf}]"#{nl}"#{encbin}" -o NUL "#{prefix}encode.avs"#{nl}del "#{prefix}encode.avs"',
+-- vapoursynth = 
 }
 
 --[[ Set up a table of global options. Defaults included. ]]--
@@ -267,11 +267,11 @@ guiconf = {
     "scale", "border", "shadow", "blur", "sclround",
     "rotation", "rotround",
     "relative", "stframe",
-    "vsfscale", "linear", --"export",
+    "linear", --"export",
   },
   clip = {
     "xpos", "ypos", "scale", "rotation",
-    "relative","stframe",
+    "relative", "stframe",
   },
 }
 
@@ -287,7 +287,12 @@ function dtan(a) return math.tan(math.rad(a)) end
 function datan(y,x) return math.deg(math.atan2(y,x)) end
 
 --[[ Functions for giving the default position of a line, given its alignment
-     and margins. ]]--
+     and margins. The alignment can be split into x and y as follows:
+     x = an%3+1 -> 1 = right aligned (3,6,9), 2 = left aligned (1,4,7),
+     and 3 = centered (2,5,8); y = math.ceil(an/3) -> 1 = bottom (1,2,3),
+     2 = middle (4,5,6), 3 = top (7,8,9). In the below functions, sx is the
+     script width, sy is the script height, l is the line's left margin,
+     r is the line's right margin, and v is the line's vertical margin. ]]--
 fix = {
   xpos = {
     function(sx,l,r) return sx-r end;
@@ -435,7 +440,7 @@ function getinfo(line)
     aegisub.log(5,"Found a comment/override block in line %d: %s\n",line.hnum,a)
     local function cconv(a,b,c,d,e)
       line.clips = a
-      line.clip = string.format("m %d %d l %d %d %d %d %d %d",b,c,d,c,d,e,b,e)
+      line.clip = string.format("m %d %d l %d %d %d %d %d %d",b,c,d,c,d,e,b,e) -- map a 4-corner rectangular clip to a vector clip for handling
     end
     a:gsub("\\(i?clip)%(([%-%d]+),([%-%d]+),([%-%d]+),([%-%d]+)%)",cconv,1) -- hum
     if not line.clip then
@@ -444,9 +449,8 @@ function getinfo(line)
     if line.clip then
       line.sclip = tonumber(line.sclip) or false
       if line.sclip then line.rescaleclip = true else line.rescaleclip = false; line.sclip = 1 end
-      aegisub.log(0,tostring(line.rescaleclip)..'\n')
       aegisub.log(5,"Clip: \\%s(%s,%s)\n",line.clips,line.sclip,line.clip)
-    end -- because otherwise it crashes!
+    end
     for c in a:gmatch("\\t(%b())") do -- this will return an empty string for t_exp if no exponential factor is specified
       t_start,t_end,t_exp,t_eff = c:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
       t_exp = tonumber(t_exp) or 1 -- set to 1 if unspecified
@@ -474,24 +478,24 @@ function information(sub, sel)
   accd.startframe = aegisub.frame_from_ms(sub[sel[1]].start_time) -- get the start frame of the first selected line
   local numlines = #sel
   for i = #sel,1,-1 do -- burning cpu cycles like they were no thing
-    local opline = sub[sel[i]] -- these are different.
-    opline.num = sel[i] -- for inserting lines later
-    opline.hnum = opline.num-strt -- humanized number
-    karaskel.preproc_line(sub, accd.meta, accd.styles, opline) -- get linewidth/height and margins
-    if not opline.effect then opline.effect = "" end
-    getinfo(opline)
-    opline.startframe, opline.endframe = aegisub.frame_from_ms(opline.start_time), aegisub.frame_from_ms(opline.end_time)
-    if opline.comment then opline.is_comment = true else opline.is_comment = false end
-    if opline.startframe < accd.startframe then -- make timings flexible. Number of frames total has to match the tracked data but
-      aegisub.log(5,"Line %d: startframe changed from %d to %d\n",opline.num-strt,accd.startframe,opline.startframe)
-      accd.startframe = opline.startframe
+    local line = sub[sel[i]] -- these are different.
+    line.num = sel[i] -- for inserting lines later
+    line.hnum = line.num-strt -- humanized number
+    karaskel.preproc_line(sub, accd.meta, accd.styles, line) -- get linewidth/height and margins
+    if not line.effect then line.effect = "" end
+    getinfo(line)
+    line.startframe, line.endframe = aegisub.frame_from_ms(line.start_time), aegisub.frame_from_ms(line.end_time)
+    if line.comment then line.is_comment = true else line.is_comment = false end
+    if line.startframe < accd.startframe then -- make timings flexible. Number of frames total has to match the tracked data but
+      aegisub.log(5,"Line %d: startframe changed from %d to %d\n",line.num-strt,accd.startframe,line.startframe)
+      accd.startframe = line.startframe
     end
-    if opline.endframe > accd.endframe then -- individual lines can be shorter than the whole scene
-      aegisub.log(5,"Line %d: endframe changed from %d to %d\n",opline.num-strt,accd.endframe,opline.endframe)
-      accd.endframe = opline.endframe
+    if line.endframe > accd.endframe then -- individual lines can be shorter than the whole scene
+      aegisub.log(5,"Line %d: endframe changed from %d to %d\n",line.num-strt,accd.endframe,line.endframe)
+      accd.endframe = line.endframe
     end
-    if opline.endframe-opline.startframe>1 then
-      table.insert(accd.lines,opline)
+    if line.endframe-line.startframe>1 then
+      table.insert(accd.lines,line)
     end
   end
   local length = #accd.lines
@@ -502,7 +506,7 @@ function information(sub, sel)
 end
 
 function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
-  local setundo = aegisub.set_undo_point
+  local setundo = aegisub.set_undo_point --
   aegisub.progress.title("Selecting Gerbils")
   gui.main.linespath.value = "" -- clear it out
   local accd = preprocessing(sub,sel)
@@ -698,7 +702,9 @@ function ensuretags(line,opts,styles,dim)
     line.ypos = fix.ypos[math.ceil(line.ali/3)](dim.y,line._v)
     line.text = (("{\\pos(%d,%d)}"):format(line.xpos,line.ypos)..line.text):gsub("^({.-)}{","%1")
   end
-  line.oxpos,line.oypos = line.text:match("\\org%(([%-%d%.]+),([%-%d%.]+)%)") or line.xpos,line.ypos
+  line.oxpos,line.oypos = line.text:match("\\org%(([%-%d%.]+),([%-%d%.]+)%)")
+  line.oxpos = line.oxpos or line.xpos; line.oypos = line.oypos or line.ypos
+  debug("arg: (%g,%g)\n",line.oxpos,line.oypos)
   line.origindx,line.origindy = line.xpos - line.oxpos, line.ypos - line.oypos 
   local mergedtext = line.text:gsub("}{","")
   local startblock = mergedtext:match("^{(.-)}")
@@ -788,12 +794,7 @@ function frame_by_frame(sub,accd,opts,clipopts)
     end
   end
   if opts.scale then
-    if opts.vsfscale and not opts.linear then
-      opts.sclround = 2
-      operations["(\\fsc[xy])([%d%.]+)"] = VSscalify
-    else
-      operations["(\\fsc[xy])([%d%.]+)"] = scalify
-    end
+    operations["(\\fsc[xy])([%d%.]+)"] = scalify
     if opts.border then
       operations["(\\[xy]?bord)([%d%.]+)"] = scalify
     end
@@ -934,25 +935,25 @@ end
 
 function possify(pos,line,mocha,opts)
   local oxpos,oypos = pos:match("([%-%d%.]+),([%-%d%.]+)")
-  local xpos,ypos = makexypos(tonumber(oxpos),tonumber(oypos),line.alpha,mocha)
-  aegisub.log(5,"pos: (%f,%f) -> (%f,%f)\n",oxpos,oypos,xpos,ypos)
-  return ("(%g,%g)"):format(round(xpos,opts.posround),round(ypos,opts.posround))
+  local nxpos,nypos = makexypos(tonumber(oxpos),tonumber(oypos),line.alpha,mocha)
+  aegisub.log(5,"pos: (%f,%f) -> (%f,%f)\n",oxpos,oypos,nxpos,nypos)
+  return ("(%g,%g)"):format(round(nxpos,opts.posround),round(nypos,opts.posround))
 end
 
 function makexypos(xpos,ypos,alpha,mocha)
-  local xpos = (xpos + mocha.xdiff)*mocha.ratx + (1 - mocha.ratx)*mocha.currx
-  local ypos = (ypos + mocha.ydiff)*mocha.raty + (1 - mocha.raty)*mocha.curry
-  local r = math.sqrt((xpos - mocha.currx)^2+(ypos - mocha.curry)^2)
-  xpos = mocha.currx + r*dcos(alpha + mocha.zrotd)
-  ypos = mocha.curry - r*dsin(alpha + mocha.zrotd)
-  return xpos,ypos
+  local nxpos = (xpos + mocha.xdiff)*mocha.ratx + (1 - mocha.ratx)*mocha.currx
+  local nypos = (ypos + mocha.ydiff)*mocha.raty + (1 - mocha.raty)*mocha.curry
+  local r = math.sqrt((nxpos - mocha.currx)^2+(nypos - mocha.curry)^2)
+  nxpos = mocha.currx + r*dcos(alpha + mocha.zrotd)
+  nypos = mocha.curry - r*dsin(alpha + mocha.zrotd)
+  return nxpos,nypos
 end
 
 function orginate(opos,line,mocha,opts) -- this will be changed.
   local oxpos,oypos = opos:match("([%-%d%.]+),([%-%d%.]+)")
-  local xpos,ypos = makexypos(tonumber(oxpos),tonumber(oypos),line.alpha,mocha)
-  aegisub.log(5,"org: (%f,%f) -> (%f,%f)\n",oxpos,oypos,xpos,ypos)
-  return ("(%g,%g)"):format(round(xpos,opts.posround),round(ypos,opts.posround))
+  local nxpos,nypos = makexypos(tonumber(oxpos),tonumber(oypos),line.alpha,mocha)
+  aegisub.log(0,"org: (%f,%f) -> (%f,%f)\n",oxpos,oypos,nxpos,nypos)
+  return ("(%g,%g)"):format(round(nxpos,opts.posround),round(nypos,opts.posround))
 end
 
 function clippinate(line,clipa,iter)
@@ -1001,14 +1002,6 @@ function scalify(scale,line,mocha,opts,tag)
   return round(newScale,opts.sclround)
 end
 
-function VSscalify(scale,line,mocha,opts,tag)
-  local newScale = round(scale*mocha.ratx,opts.sclround)
-  local lowend, highend, decimal = math.floor(newScale),math.ceil(newScale),newScale%1*(10^opts.sclround)
-  local start, send = -decimal, (10^opts.sclround)-decimal
-  aegisub.log(5,"%s: %f -> %f\n",tag:sub(2),scale,newScale)
-  return ("%d\\t(%d,%d,%s%d)"):format(lowend,start,send,tag,highend)
-end
-
 function rotate(rot,line,mocha,opts)
   local zrot = rot + mocha.zrotd
   aegisub.log(5,"frz: -> %f\n",zrot)
@@ -1023,6 +1016,7 @@ function munch(sub,sel)
     local l2 = sub[num]
     if l1.text == l2.text and l1.effect == l2.effect then
       l1.end_time = l2.end_time
+      debug("Munched line %d",num)
       sub[num-1]=l1
       sub.delete(num)
       changed = true
@@ -1083,9 +1077,9 @@ end
 function dialog_sort(sub, sel, sor)
   local function compare(a,b)
     if a.key == b.key then
-      return a.num < b.num -- solve the disorganized sort problem.
+      return a.num > b.num -- solve the disorganized sort problem.
     else
-      return a.key < b.key
+      return a.key > b.key
     end
   end -- local because why not?
   local sortF = ({
@@ -1103,24 +1097,23 @@ function dialog_sort(sub, sel, sor)
   end
   local strt = sel[1] -- not strictly necessary
   table.sort(lines, compare)
-  for i, v in ipairs(sel) do
+  for i = #sel,1,-1 do
     if aegisub.progress.is_cancelled() then error("User cancelled") end
-    sub.delete(sel[#sel-i+1]) -- BALEET (in reverse because they are not necessarily contiguous)
+    sub.delete(sel[i]) -- BALEET (in reverse because they are not necessarily contiguous)
   end
   sel = {}
-  for i, v in ipairs(lines) do
+  for i,v in ipairs(lines) do
     if aegisub.progress.is_cancelled() then error("User cancelled") end
     aegisub.progress.title(string.format("Sorting gerbils: %d/%d",i,#lines))
     aegisub.progress.set(i/#lines*100) 
-    aegisub.log(5,"Key: "..v.key..'\n')
-    table.insert(sel,strt+i-1)
-    sub.insert(strt+i-1,v.data) -- not sure this is the best place to do this but owell
+    table.insert(sel,strt)
+    sub.insert(strt,v.data) -- not sure this is the best place to do this but owell
   end
   return sel
 end
 
 function printmem(a)
-  aegisub.log(5,"%s memory usage: %gkB\n",tostring(a),collectgarbage("count"))
+  aegisub.aegisub.log(5,"%s memory usage: %gkB\n",tostring(a),collectgarbage("count"))
 end
 
 function round(num, idp) -- borrowed from the lua-users wiki (all of the intelligent code you see in here is)
@@ -1292,20 +1285,28 @@ function writeandencode(tokens)
   local function ReplaceTokens(token)
     return tokens[token:sub(2,-2)]
   end
-  local encsh = tokens.prefix.."encode.bat"
-  local sh = io.open(encsh,"w+")
-  assert(sh,"Encoding command could not be written. Check your prefix.") -- to solve the 250 byte limit, we write to a self-deleting batch file.
+  local encsh = tokens.prefix.."encode"
   local ret
   if winpaths then
+    local sh = io.open(encsh..".bat","w+")
+    assert(sh,"Encoding command could not be written. Check your prefix.") -- to solve the 250 byte limit, we write to a self-deleting batch file.
     sh:write(global.enccom:gsub("#(%b{})",ReplaceTokens)..'\ndel %0')
     sh:close()
     ret = os.execute(('""%s""'):format(encsh)) -- double quotes makes it work on different drives too, apparently
   else
-    sh:write(global.enccom:gsub("#(%b{})",ReplaceTokens)..'\ndel $0')
+    local sh = io.open(encsh..".sh","w+")
+    assert(sh,"Encoding command could not be written. Check your prefix.")
+    sh:write(global.enccom:gsub("#(%b{})",ReplaceTokens)..'\n')--rm $0')
     sh:close()
-    ret = os.execute(('sh "%s"'):format(encsh)) -- seems to work4me
+    ret = os.execute(('sh "%s"'):format(encsh)) -- this doesn't work for me and I have no idea why
   end
-  if ret ~= 0 then error(false,"Encoding failed!") end
+  if ret ~= 0 then error("Encoding failed!") end
+end
+
+function debug(...)
+  if dbg then
+    aegisub.log(0,...)
+  end
 end
 
 aegisub.register_macro("Motion Data - Trim","Cuts and encodes the current scene for use with motion tracking software.", trimnthings, isvideo)
