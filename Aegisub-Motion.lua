@@ -1113,7 +1113,7 @@ function dialog_sort(sub, sel, sor)
 end
 
 function printmem(a)
-  aegisub.aegisub.log(5,"%s memory usage: %gkB\n",tostring(a),collectgarbage("count"))
+  aegisub.log(5,"%s memory usage: %gkB\n",tostring(a),collectgarbage("count"))
 end
 
 function round(num, idp) -- borrowed from the lua-users wiki (all of the intelligent code you see in here is)
