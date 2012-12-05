@@ -214,33 +214,39 @@ gui.conf.acfilter = { class = "checkbox"; value = global.acfilter; label = "Copy
 --[[ A table of all override tags that can be looped through.
      For detecting dupes in cleanup. ]]--
 alltags = {
-  ['xscl']  = "\\fscx([%d%.]+)",
-  ['yscl']  = "\\fscy([%d%.]+)",
-  ['ali']   = "\\an([1-9])",
-  ['zrot']  = "\\frz?([%-%d%.]+)",
-  ['bord']  = "\\bord([%d%.]+)",
-  ['xbord'] = "\\xbord([%d%.]+)",
-  ['ybord'] = "\\ybord([%d%.]+)",
-  ['shad']  = "\\shad([%-%d%.]+)",
-  ['xshad'] = "\\xshad([%-%d%.]+)",
-  ['yshad'] = "\\yshad([%-%d%.]+)",
-  ['reset'] = "\\r([^\\}]*)",
-  ['alpha'] = "\\alpha&H(%x%x)&",
-  ['l1a']   = "\\1a&H(%x%x)&",
-  ['l2a']   = "\\2a&H(%x%x)&",
-  ['l3a']   = "\\3a&H(%x%x)&",
-  ['l4a']   = "\\4a&H(%x%x)&",
-  ['l1c']   = "\\c&H(%x+)&",
-  ['l1c2']  = "\\1c&H(%x+)&",
-  ['l2c']   = "\\2c&H(%x+)&",
-  ['l3c']   = "\\3c&H(%x+)&",
-  ['l4c']   = "\\4c&H(%x+)&",
-  ['clip']  = "\\clip%((.-)%)",
-  ['iclip'] = "\\iclip%((.-)%)",
-  ['be']    = "\\be([%d%.]+)",
-  ['blur']  = "\\blur([%d%.]+)",
-  ['fax']   = "\\fax([%-%d%.]+)",
-  ['fay']   = "\\fay([%-%d%.]+)"
+  xscl  = "\\fscx([%d%.]+)",
+  yscl  = "\\fscy([%d%.]+)",
+  ali   = "\\an([1-9])",
+  zrot  = "\\frz?([%-%d%.]+)",
+  bord  = "\\bord([%d%.]+)",
+  xbord = "\\xbord([%d%.]+)",
+  ybord = "\\ybord([%d%.]+)",
+  shad  = "\\shad([%-%d%.]+)",
+  xshad = "\\xshad([%-%d%.]+)",
+  yshad = "\\yshad([%-%d%.]+)",
+  reset = "\\r([^\\}]*)",
+  alpha = "\\alpha&H(%x%x)&",
+  l1a   = "\\1a&H(%x%x)&",
+  l2a   = "\\2a&H(%x%x)&",
+  l3a   = "\\3a&H(%x%x)&",
+  l4a   = "\\4a&H(%x%x)&",
+  l1c   = "\\c&H(%x+)&",
+  l1c2  = "\\1c&H(%x+)&",
+  l2c   = "\\2c&H(%x+)&",
+  l3c   = "\\3c&H(%x+)&",
+  l4c   = "\\4c&H(%x+)&",
+  clip  = "\\clip%((.-)%)",
+  iclip = "\\iclip%((.-)%)",
+  be    = "\\be([%d%.]+)",
+  blur  = "\\blur([%d%.]+)",
+  fax   = "\\fax([%-%d%.]+)",
+  fay   = "\\fay([%-%d%.]+)"
+}
+
+globaltags = {
+  fad  = "\\fad%([%d]+,[%d]+%)",
+  fade = "\\fade%(([%d]+),([%d]+),([%d]+),([%-%d]+),([%-%d]+),([%-%d]+),([%-%d]+)%)",
+  clip = ""
 }
 
 --[[ This is a rather messy table of tags that is used to verify that
@@ -290,9 +296,9 @@ function datan(y,x) return math.deg(math.atan2(y,x)) end
      and margins. The alignment can be split into x and y as follows:
      x = an%3+1 -> 1 = right aligned (3,6,9), 2 = left aligned (1,4,7),
      and 3 = centered (2,5,8); y = math.ceil(an/3) -> 1 = bottom (1,2,3),
-     2 = middle (4,5,6), 3 = top (7,8,9). In the below functions, sx is the
-     script width, sy is the script height, l is the line's left margin,
-     r is the line's right margin, and v is the line's vertical margin. ]]--
+     2 = middle (4,5,6), 3 = top (7,8,9). In the below functions, `sx` is the
+     script width, `sy` is the script height, `l` is the line's left margin,
+     `r` is the line's right margin, and `v` is the line's vertical margin. ]]--
 fix = {
   xpos = {
     function(sx,l,r) return sx-r end;
@@ -406,61 +412,110 @@ end
 function string:tobool()
   local bool = ({['true'] = true, ['false'] = false})[self]
   if bool ~= nil then return bool
-    else return self; end
+    else return self
+  end
 end
 
-function preprocessing(sub, sel)
-  for i,v in ipairs(sel) do
-    local line = sub[v]
-    local a = line.text:match("%{(.-)%}")
-    if a then
-      local length = line.end_time - line.start_time
-      local function fadrep(a,b)
-        a, b = tonumber(a), tonumber(b)
+function fixFad(text)
+  local firstfad = text:match(globaltags.fad)
+  if firstfad and not text:match("^{(.-)}"):match(globaltags.fad) then
+    text:gsub(globaltags.fad,"")
+    text = ("{%s}%s"):format(firstfad,sc(6))
+    text:gsub("}"..sc(6).."{","")
+  end
+  return text
+end
+
+function extraLineMetrics(line)
+  line.trans = {}
+  local fstart,fend = line.text:match(globaltags.fad):match("(%d+),(%d+)")
+  local alphafunc = "\\alpha%1"
+  local function lextrans(trans)
+    t_start,t_end,t_exp,t_eff = trans:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
+    t_exp = tonumber(t_exp) or 1 -- set to 1 if unspecified
+    table.insert(line.trans,{tonumber(t_start),tonumber(t_end),t_exp,t_eff})
+    aegisub.log(5,"Line %d: \\t(%g,%g,%g,%s) found\n",line.hnum,t_start,t_end,t_exp,t_eff)
+  end
+  line.text = line.text:gsub("^({.-})", function(block1)
+    if fstart then
+      local replaced = false
+      alphafunc = function(alpha)
         local str = ""
-        if a > 0 then str = str..string.format("\\alpha&HFF&\\t(%d,%d,1,\\alpha&H00&)",0,a) end -- there are a bunch of edge cases for which this won't work, I think
-        if b > 0 then str = str..string.format("\\t(%d,%d,1,\\alpha&HFF&)",length-b,length) end
+        if tonumber(fstart) > 0 then
+          str = str..("\\alpha&HFF&\\t(%d,%s,1,\\alpha%s)"):format(0,fstart,alpha)
+        end
+        if tonumber(fend) > 0 then
+          str = str..("\\t(%d,%d,1,\\alpha&HFF&)"):format(line.duration-tonumber(fend),line.duration)
+        end
+        aegisub.log(0,str..'\n')
         return str
       end
-      line.text = line.text:gsub("\\fad%(([%d]+),([%d]+)%)",fadrep)
-      local function faderep(a,b,c,d,e,f,g)
-        a,b,c,d,e,f,g = tonumber(a),tonumber(b),tonumber(c),tonumber(d),tonumber(e),tonumber(f),tonumber(g)
-        return string.format("\\alpha&H%02X&\\t(%d,%d,1,\\alpha&H%02X&)\\t(%d,%d,1,\\alpha&H%02X&)",a,d,e,b,f,g,c)
-      end
-      line.text:gsub("\\fade%(([%d]+),([%d]+),([%d]+),([%-%d]+),([%-%d]+),([%-%d]+),([%-%d]+)%)",faderep)
+      block1 = block1:gsub("\\alpha(&H%x%x&)",function(alpha) replaced = true; return alphafunc(alpha) end)
+      block1 = block1:gsub(globaltags.fad,function()
+        if not replaced then return alphafunc(alpha_from_style(line.styleref.color1)) else return "" end
+      end)
+    else
+      block1 = block1:gsub("\\fade%(([%d]+),([%d]+),([%d]+),([%-%d]+),([%-%d]+),([%-%d]+),([%-%d]+)%)",function(a,b,c,d,e,f,g)
+        return ("\\alpha&H%02X&\\t(%s,%s,1,\\alpha&H%02X&)\\t(%s,%s,1,\\alpha&H%02X&)"):format(a,d,e,b,f,g,c)
+      end)
     end
-    sub[v] = line -- replace
-  end
-  return information(sub,sel) -- selected line numbers are the same
+    block1:gsub("\\t(%b())",lextrans)
+    return block1
+  end)
+  line.text = line.text:gsub("([^^])({.-})",function(i,block)
+    block = block:gsub("\\alpha(&H%x%x&)",alphafunc)
+    block:gsub("\\t(%b())",lextrans)
+    return i..block
+  end)
+  line.text:gsub("\\(i?clip)%(([%-%d]+),([%-%d]+),([%-%d]+),([%-%d]+)%)",function(a,b,c,d,e)
+    line.clips = a -- map a 4-corner rectangular clip to a vector clip for handling
+    line.clip = ("m %s %s l %s %s %s %s %s %s"):format(b,c,d,c,d,e,b,e)
+  end)
+  return line
 end
 
-function getinfo(line)
-  line.trans = {}
-  for a in line.text:gmatch("%{(.-)}") do
-    aegisub.log(5,"Found a comment/override block in line %d: %s\n",line.hnum,a)
-    local function cconv(a,b,c,d,e)
-      line.clips = a
-      line.clip = string.format("m %d %d l %d %d %d %d %d %d",b,c,d,c,d,e,b,e) -- map a 4-corner rectangular clip to a vector clip for handling
-    end
-    a:gsub("\\(i?clip)%(([%-%d]+),([%-%d]+),([%-%d]+),([%-%d]+)%)",cconv,1) -- hum
-    if not line.clip then
-      line.clips, line.sclip, line.clip = a:match("\\(i?clip)%(([%d]*),?(.-)%)")
-    end
-    if line.clip then
-      line.sclip = tonumber(line.sclip) or false
-      if line.sclip then line.rescaleclip = true else line.rescaleclip = false; line.sclip = 1 end
-      aegisub.log(5,"Clip: \\%s(%s,%s)\n",line.clips,line.sclip,line.clip)
-    end
-    for c in a:gmatch("\\t(%b())") do -- this will return an empty string for t_exp if no exponential factor is specified
-      t_start,t_end,t_exp,t_eff = c:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
-      t_exp = tonumber(t_exp) or 1 -- set to 1 if unspecified
-      table.insert(line.trans,{tonumber(t_start),tonumber(t_end),tonumber(t_exp),t_eff})
-      aegisub.log(5,"Line %d: \\t(%g,%g,%g,%s) found\n",line.hnum,t_start,t_end,t_exp,t_eff)
-    end
-  end
-end
+-- function extraLineMetrics(line)
+--   line.trans = {}
+--   for a in line.text:gmatch("{(.-)}") do
+--     aegisub.log(5,"Found a comment/override block in line %d: %s\n",line.hnum,a)
+--     local function fadrep(a,b,alpha)
+--       a, b = tonumber(a), tonumber(b)
+--       alpha = tonumber(alpha) or 255
+--       local str = ""
+--       if a > 0 then str = str..string.format("\\alpha&HFF&\\t(%d,%d,1,\\alpha&H00&)",0,a) end -- there are a bunch of edge cases for which this won't work, I think
+--       if b > 0 then str = str..string.format("\\t(%d,%d,1,\\alpha&HFF&)",line.duration-b,line.duration) end
+--       return str
+--     end
+--     line.text = line.text:gsub("\\fad%(([%d]+),([%d]+)%)",function(a,b) fadrep(a,b,a:match))
+--     local function faderep(a,b,c,d,e,f,g)
+--       a,b,c,d,e,f,g = tonumber(a),tonumber(b),tonumber(c),tonumber(d),tonumber(e),tonumber(f),tonumber(g)
+--       return string.format("\\alpha&H%02X&\\t(%d,%d,1,\\alpha&H%02X&)\\t(%d,%d,1,\\alpha&H%02X&)",a,d,e,b,f,g,c)
+--     end
+--     line.text:gsub("\\fade%(([%d]+),([%d]+),([%d]+),([%-%d]+),([%-%d]+),([%-%d]+),([%-%d]+)%)",faderep)
+--     local function cconv(a,b,c,d,e)
+--       line.clips = a
+--       line.clip = string.format("m %d %d l %d %d %d %d %d %d",b,c,d,c,d,e,b,e) -- map a 4-corner rectangular clip to a vector clip for handling
+--     end
+--     a:gsub("\\(i?clip)%(([%-%d]+),([%-%d]+),([%-%d]+),([%-%d]+)%)",cconv,1) -- hum
+--     if not line.clip then
+--       line.clips, line.sclip, line.clip = a:match("\\(i?clip)%(([%d]*),?(.-)%)")
+--     end
+--     if line.clip then
+--       line.sclip = tonumber(line.sclip) or false
+--       if line.sclip then line.rescaleclip = true else line.rescaleclip = false; line.sclip = 1 end
+--       aegisub.log(5,"Clip: \\%s(%s,%s)\n",line.clips,line.sclip,line.clip)
+--     end
+--     for c in a:gmatch("\\t(%b())") do
+--       t_start,t_end,t_exp,t_eff = c:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
+--       t_exp = tonumber(t_exp) or 1 -- set to 1 if unspecified
+--       table.insert(line.trans,{tonumber(t_start),tonumber(t_end),t_exp,t_eff})
+--       aegisub.log(5,"Line %d: \\t(%g,%g,%g,%s) found\n",line.hnum,t_start,t_end,t_exp,t_eff)
+--     end
+--   end
+--   return line
+-- end
 
-function information(sub, sel)
+function getSelInfo(sub, sel)
   printmem("Initial")
   local strt
   for x = 1,#sub do -- so if there are like 10000 different styles then this is probably a really bad idea but I DON'T GIVE A FUCK
@@ -478,12 +533,12 @@ function information(sub, sel)
   accd.startframe = aegisub.frame_from_ms(sub[sel[1]].start_time) -- get the start frame of the first selected line
   local numlines = #sel
   for i = #sel,1,-1 do -- burning cpu cycles like they were no thing
-    local line = sub[sel[i]] -- these are different.
+    local line = sub[sel[i]]
     line.num = sel[i] -- for inserting lines later
     line.hnum = line.num-strt -- humanized number
     karaskel.preproc_line(sub, accd.meta, accd.styles, line) -- get linewidth/height and margins
     if not line.effect then line.effect = "" end
-    getinfo(line)
+    sub[sel[i]] = extraLineMetrics(line)
     line.startframe, line.endframe = aegisub.frame_from_ms(line.start_time), aegisub.frame_from_ms(line.end_time)
     if line.comment then line.is_comment = true else line.is_comment = false end
     if line.startframe < accd.startframe then -- make timings flexible. Number of frames total has to match the tracked data but
@@ -505,19 +560,9 @@ function information(sub, sel)
   return accd
 end
 
-function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
-  local setundo = aegisub.set_undo_point --
-  aegisub.progress.title("Selecting Gerbils")
-  gui.main.linespath.value = "" -- clear it out
-  local accd = preprocessing(sub,sel)
-  gui.main.stframe.min = -accd.totframes; gui.main.stframe.max = accd.totframes;
-  gui.clip.stframe.min = -accd.totframes; gui.clip.stframe.max = accd.totframes;
-  local conf = configscope()
-  if conf then
-    if not readconf(conf,{ ['main'] = gui.main; ['clip'] = gui.clip; ['global'] = global }) then aegisub.log(0,"Failed to read config!\n") end
-  end
+function populateInputBox()
   if global.autocopy then
-    local paste = clipboard.get() or "" -- if nothing on the clipboard then returns nil
+    local paste = clipboard.get() or "" --if there's nothing on the clipboard, clipboard.get retuns nil
     if global.acfilter then
       if paste:match("^Adobe After Effects 6.0 Keyframe Data") then
         gui.main.linespath.value = paste
@@ -526,8 +571,26 @@ function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
       gui.main.linespath.value = paste
     end
   end
+end
+
+function dialogPreproc(sub,sel)
+  aegisub.progress.title("Selecting Gerbils")
+  local accd = getSelInfo(sub,sel) --preprocessing(sub,sel)
+  gui.main.stframe.min = -accd.totframes; gui.main.stframe.max = accd.totframes;
+  gui.clip.stframe.min = -accd.totframes; gui.clip.stframe.max = accd.totframes;
+  local conf = configscope()
+  if conf then
+    if not readconf(conf,{ ['main'] = gui.main; ['clip'] = gui.clip; ['global'] = global }) then aegisub.log(3,"Failed to read config!\n") end
+  end
+  populateInputBox()
   gui.main.pref.value = dcp(global.prefix)
+  return conf, accd
+end
+
+function init_input(sub,sel) -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
+  local setundo = aegisub.set_undo_point -- ugly workaround for a problem that was causing random crashes
   printmem("GUI startup")
+  local conf, accd = dialogPreproc(sub,sel)
   local button, config = aegisub.dialog.display(gui.main, {"Go","Clip...","Abort"})
   local clipconf
   if button == "Clip..." then
@@ -704,7 +767,7 @@ function ensuretags(line,opts,styles,dim)
   end
   line.oxpos,line.oypos = line.text:match("\\org%(([%-%d%.]+),([%-%d%.]+)%)")
   line.oxpos = line.oxpos or line.xpos; line.oypos = line.oypos or line.ypos
-  debug("arg: (%g,%g)\n",line.oxpos,line.oypos)
+  -- debug("arg: (%g,%g)\n",line.oxpos,line.oypos)
   line.origindx,line.origindy = line.xpos - line.oxpos, line.ypos - line.oypos 
   local mergedtext = line.text:gsub("}{","")
   local startblock = mergedtext:match("^{(.-)}")
