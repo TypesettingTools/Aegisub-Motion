@@ -447,7 +447,7 @@ function extraLineMetrics(line)
         if tonumber(fend) > 0 then
           str = str..("\\t(%d,%d,1,\\alpha&HFF&)"):format(line.duration-tonumber(fend),line.duration)
         end
-        aegisub.log(0,str..'\n')
+        aegisub.log(5,str..'\n')
         return str
       end
       block1 = block1:gsub("\\alpha(&H%x%x&)",function(alpha) replaced = true; return alphafunc(alpha) end)
@@ -914,6 +914,7 @@ function frame_by_frame(sub,accd,opts,clipopts)
   local function nonlinearmodo(currline)
     for x = currline.rendf,currline.rstartf,-1 do -- new inner loop structure
       printmem("Inner loop")
+      aegisub.log(5,"Round %d\n",x)
       aegisub.progress.title(string.format("Processing frame %g/%g",x,currline.rendf-currline.rstartf+1))
       aegisub.progress.set((x-currline.rstartf)/(currline.rendf-currline.rstartf)*100)
       if aegisub.progress.is_cancelled() then error("User cancelled") end
