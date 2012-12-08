@@ -993,24 +993,24 @@ end
 
 function possify(pos,line,mocha,opts)
   local oxpos,oypos = pos:match("([%-%d%.]+),([%-%d%.]+)")
-  local nxpos,nypos = makexypos(tonumber(oxpos),tonumber(oypos),line.alpha,mocha)
+  local nxpos,nypos = makexypos(tonumber(oxpos),tonumber(oypos),mocha)
+  local r = math.sqrt((nxpos - mocha.currx)^2+(nypos - mocha.curry)^2)
+  nxpos = mocha.currx + r*dcos(line.alpha + mocha.zrotd)
+  nypos = mocha.curry - r*dsin(line.alpha + mocha.zrotd)
   aegisub.log(5,"pos: (%f,%f) -> (%f,%f)\n",oxpos,oypos,nxpos,nypos)
   return ("(%g,%g)"):format(round(nxpos,opts.posround),round(nypos,opts.posround))
 end
 
-function makexypos(xpos,ypos,alpha,mocha)
-  local nxpos = (xpos + mocha.xdiff)*mocha.ratx + (1 - mocha.ratx)*mocha.currx
-  local nypos = (ypos + mocha.ydiff)*mocha.raty + (1 - mocha.raty)*mocha.curry
-  local r = math.sqrt((nxpos - mocha.currx)^2+(nypos - mocha.curry)^2)
-  nxpos = mocha.currx + r*dcos(alpha + mocha.zrotd)
-  nypos = mocha.curry - r*dsin(alpha + mocha.zrotd)
+function makexypos(xpos,ypos,mocha)
+  local nxpos = (xpos + mocha.diffx)*mocha.ratx + (1 - mocha.ratx)*mocha.currx
+  local nypos = (ypos + mocha.diffy)*mocha.raty + (1 - mocha.raty)*mocha.curry
   return nxpos,nypos
 end
 
-function orginate(opos,line,mocha,opts) -- this will be changed.
+function orginate(opos,line,mocha,opts)
   local oxpos,oypos = opos:match("([%-%d%.]+),([%-%d%.]+)")
-  local nxpos,nypos = makexypos(tonumber(oxpos),tonumber(oypos),line.alpha,mocha)
-  aegisub.log(0,"org: (%f,%f) -> (%f,%f)\n",oxpos,oypos,nxpos,nypos)
+  local nxpos,nypos = makexypos(tonumber(oxpos),tonumber(oypos),mocha)
+  aegisub.log(5,"org: (%f,%f) -> (%f,%f)\n",oxpos,oypos,nxpos,nypos)
   return ("(%g,%g)"):format(round(nxpos,opts.posround),round(nypos,opts.posround))
 end
 
