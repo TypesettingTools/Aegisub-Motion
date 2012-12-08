@@ -428,7 +428,7 @@ end
 
 function extraLineMetrics(line)
   line.trans = {}
-  local fstart,fend = line.text:match(globaltags.fad):match("(%d+),(%d+)")
+  local fstart,fend = line.text:match("\\fad%((%d+),(%d+)%)")
   local alphafunc = "\\alpha%1"
   local function lextrans(trans)
     t_start,t_end,t_exp,t_eff = trans:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
