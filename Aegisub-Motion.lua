@@ -815,7 +815,7 @@ function frame_by_frame(sub,accd,opts,clipopts)
   local clipa = {}
   if opts.linespath then
     parse_input(mocha,opts.linespath,accd.meta.res_x,accd.meta.res_y)
-    assert(accd.totframes==mocha.flength,string.format("Number of frames selected (%d) does not match parsed line tracking data length (%d).",accd.totframes,mocha.flength))
+    assert(accd.totframes == mocha.flength,string.format("Number of frames selected (%d) does not match parsed line tracking data length (%d).",accd.totframes,mocha.flength))
     spoof_table(mocha,opts)
     if not opts.relative then
       if opts.stframe < 0 then
@@ -828,7 +828,7 @@ function frame_by_frame(sub,accd,opts,clipopts)
   end
   if clipopts.clippath then
     parse_input(clipa,clipopts.clippath,accd.meta.res_x,accd.meta.res_y)
-    assert(accd.totframes==clipa.flength,string.format("Number of frames selected (%d) does not match parsed clip tracking data length (%d).",accd.totframes,clipa.flength))
+    assert(accd.totframes == clipa.flength,string.format("Number of frames selected (%d) does not match parsed clip tracking data length (%d).",accd.totframes,clipa.flength))
     opts.linear = false -- no linear mode with moving clip, sorry
     opts.clip = true -- simplify things a bit
     spoof_table(clipa,clipopts)
@@ -887,12 +887,7 @@ function frame_by_frame(sub,accd,opts,clipopts)
         local exes, whys = {}, {}
         for i,x in pairs({currline.rstartf,currline.rendf}) do
           local cx,cy = val:match("([%-%d%.]+),([%-%d%.]+)")
-          mocha.ratx = mocha.xscl[x]/mocha.xscl[mocha.start]
-          mocha.raty = mocha.yscl[x]/mocha.yscl[mocha.start]
-          mocha.xdiff = mocha.xpos[x]-mocha.xpos[mocha.start]
-          mocha.ydiff = mocha.ypos[x]-mocha.ypos[mocha.start]
-          mocha.zrotd = mocha.zrot[x]-mocha.zrot[mocha.start]
-          mocha.currx,mocha.curry = mocha.xpos[x],mocha.ypos[x]
+          mochaRatios(mocha,x)
           cx,cy = makexypos(tonumber(cx),tonumber(cy),currline.alpha,mocha)
           table.insert(exes,round(cx,opts.posround)); table.insert(whys,round(cy,opts.posround))
         end
@@ -907,12 +902,7 @@ function frame_by_frame(sub,accd,opts,clipopts)
       currline.text = currline.text:gsub(pattern,function(tag,val) 
         local values = {}
         for i,x in pairs({currline.rstartf,currline.rendf}) do
-          mocha.ratx = mocha.xscl[x]/mocha.xscl[mocha.start]
-          mocha.raty = mocha.yscl[x]/mocha.yscl[mocha.start]
-          mocha.xdiff = mocha.xpos[x]-mocha.xpos[mocha.start]
-          mocha.ydiff = mocha.ypos[x]-mocha.ypos[mocha.start]
-          mocha.zrotd = mocha.zrot[x]-mocha.zrot[mocha.start]
-          mocha.currx,mocha.curry = mocha.xpos[x],mocha.ypos[x]
+          mochaRatios(mocha,x)
           table.insert(values,func(val,currline,mocha,opts,tag))
         end
         return ("%s%g\\t(%d,%d,1,%s%g)"):format(tag,values[1],maths,mathsanswer,tag,values[2])
@@ -935,12 +925,7 @@ function frame_by_frame(sub,accd,opts,clipopts)
           if aegisub.progress.is_cancelled() then error("User cancelled") end
           currline.text = transformate(currline,kv)
         end
-        mocha.ratx = mocha.xscl[x]/mocha.xscl[mocha.start] -- DIVISION IS SLOW
-        mocha.raty = mocha.yscl[x]/mocha.yscl[mocha.start]
-        mocha.xdiff = mocha.xpos[x]-mocha.xpos[mocha.start]
-        mocha.ydiff = mocha.ypos[x]-mocha.ypos[mocha.start]
-        mocha.zrotd = mocha.zrot[x]-mocha.zrot[mocha.start]
-        mocha.currx,mocha.curry = mocha.xpos[x],mocha.ypos[x]
+        mochaRatios(mocha,x)
         for pattern,func in pairs(operations) do -- iterate through the necessary operations
           if aegisub.progress.is_cancelled() then error("User cancelled") end
           currline.text = currline.text:gsub(pattern,function(tag,val) return tag..func(val,currline,mocha,opts,tag) end)
@@ -994,6 +979,15 @@ function frame_by_frame(sub,accd,opts,clipopts)
     end
   end
   return newlines -- yeah mang
+end
+
+function mochaRatios(mocha,x)
+  mocha.ratx = mocha.xscl[x]/mocha.xscl[mocha.start]
+  mocha.raty = mocha.yscl[x]/mocha.yscl[mocha.start]
+  mocha.diffx = mocha.xpos[x]-mocha.xpos[mocha.start]
+  mocha.diffy = mocha.ypos[x]-mocha.ypos[mocha.start]
+  mocha.zrotd = mocha.zrot[x]-mocha.zrot[mocha.start]
+  mocha.currx, mocha.curry = mocha.xpos[x], mocha.ypos[x]
 end
 
 function possify(pos,line,mocha,opts)
