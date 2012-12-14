@@ -467,53 +467,17 @@ function extraLineMetrics(line)
     block:gsub("\\t(%b())",lextrans)
     return i..block
   end)
-  line.text:gsub("\\(i?clip)%(([%-%d]+),([%-%d]+),([%-%d]+),([%-%d]+)%)",function(a,b,c,d,e)
-    line.clips = a -- map a 4-corner rectangular clip to a vector clip for handling
-    line.clip = ("m %s %s l %s %s %s %s %s %s"):format(b,c,d,c,d,e,b,e)
+  line.text:gsub("\\(i?clip)(%b())",function(clip,points)
+    line.clips = clip
+    points = points:gsub("([%-%d]+),([%-%d]+),([%-%d]+),([%-%d]+)", function (leftX,topY,rightX,botY)
+      return ("m %s %s l %s %s %s %s %s %s"):format(leftX,topY,rightX,topY,rightX,botY,leftX,botY) end,1)
+    points:gsub("%((%d?),?(.-)%)",function(scl,clip)
+      line.sclip = tonumber(scl) or 1
+      line.clip = clip
+    end)
   end)
   return line
 end
-
--- function extraLineMetrics(line)
---   line.trans = {}
---   for a in line.text:gmatch("{(.-)}") do
---     aegisub.log(5,"Found a comment/override block in line %d: %s\n",line.hnum,a)
---     local function fadrep(a,b,alpha)
---       a, b = tonumber(a), tonumber(b)
---       alpha = tonumber(alpha) or 255
---       local str = ""
---       if a > 0 then str = str..string.format("\\alpha&HFF&\\t(%d,%d,1,\\alpha&H00&)",0,a) end -- there are a bunch of edge cases for which this won't work, I think
---       if b > 0 then str = str..string.format("\\t(%d,%d,1,\\alpha&HFF&)",line.duration-b,line.duration) end
---       return str
---     end
---     line.text = line.text:gsub("\\fad%(([%d]+),([%d]+)%)",function(a,b) fadrep(a,b,a:match))
---     local function faderep(a,b,c,d,e,f,g)
---       a,b,c,d,e,f,g = tonumber(a),tonumber(b),tonumber(c),tonumber(d),tonumber(e),tonumber(f),tonumber(g)
---       return string.format("\\alpha&H%02X&\\t(%d,%d,1,\\alpha&H%02X&)\\t(%d,%d,1,\\alpha&H%02X&)",a,d,e,b,f,g,c)
---     end
---     line.text:gsub("\\fade%(([%d]+),([%d]+),([%d]+),([%-%d]+),([%-%d]+),([%-%d]+),([%-%d]+)%)",faderep)
---     local function cconv(a,b,c,d,e)
---       line.clips = a
---       line.clip = string.format("m %d %d l %d %d %d %d %d %d",b,c,d,c,d,e,b,e) -- map a 4-corner rectangular clip to a vector clip for handling
---     end
---     a:gsub("\\(i?clip)%(([%-%d]+),([%-%d]+),([%-%d]+),([%-%d]+)%)",cconv,1) -- hum
---     if not line.clip then
---       line.clips, line.sclip, line.clip = a:match("\\(i?clip)%(([%d]*),?(.-)%)")
---     end
---     if line.clip then
---       line.sclip = tonumber(line.sclip) or false
---       if line.sclip then line.rescaleclip = true else line.rescaleclip = false; line.sclip = 1 end
---       aegisub.log(5,"Clip: \\%s(%s,%s)\n",line.clips,line.sclip,line.clip)
---     end
---     for c in a:gmatch("\\t(%b())") do
---       t_start,t_end,t_exp,t_eff = c:sub(2,-2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
---       t_exp = tonumber(t_exp) or 1 -- set to 1 if unspecified
---       table.insert(line.trans,{tonumber(t_start),tonumber(t_end),t_exp,t_eff})
---       aegisub.log(5,"Line %d: \\t(%g,%g,%g,%s) found\n",line.hnum,t_start,t_end,t_exp,t_eff)
---     end
---   end
---   return line
--- end
 
 function getSelInfo(sub, sel)
   printmem("Initial")
