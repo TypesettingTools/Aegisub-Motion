@@ -467,14 +467,17 @@ function extraLineMetrics(line)
     block:gsub("\\t(%b())",lextrans)
     return i..block
   end)
-  line.text:gsub("\\(i?clip)(%b())",function(clip,points)
+  line.text = line.text:gsub("\\(i?clip)(%b())",function(clip,points)
     line.clips = clip
     points = points:gsub("([%-%d]+),([%-%d]+),([%-%d]+),([%-%d]+)", function (leftX,topY,rightX,botY)
-      return ("m %s %s l %s %s %s %s %s %s"):format(leftX,topY,rightX,topY,rightX,botY,leftX,botY) end,1)
-    points:gsub("%((%d?),?(.-)%)",function(scl,clip)
+      return ("m %s %s l %s %s %s %s %s %s"):format(leftX,topY,rightX,topY,rightX,botY,leftX,botY)
+    end,1)
+    points:gsub("%(([%d]*),?(.-)%)",function(scl,clip)
       line.sclip = tonumber(scl) or 1
+      if tonumber(scl) then line.rescaleclip = true end
       line.clip = clip
-    end)
+    end,1)
+    return '\\'..clip..points
   end)
   return line
 end
