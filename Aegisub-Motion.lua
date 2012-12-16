@@ -1261,7 +1261,7 @@ end
 function getvideoname(sub)
   for x = 1,#sub do
     if sub[x].key == "Video File" then
-      return sub[x].value:sub(2)
+      return sub[x].value:gsub("^ ","")
     end
   end
 end
