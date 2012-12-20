@@ -855,7 +855,11 @@ function frame_by_frame(sub,accd,opts,clipopts)
         for i,x in pairs({currline.rstartf,currline.rendf}) do
           local cx,cy = val:match("([%-%d%.]+),([%-%d%.]+)")
           mochaRatios(mocha,x)
-          cx,cy = makexypos(tonumber(cx),tonumber(cy),currline.alpha,mocha)
+          cx = (cx + mocha.diffx)*mocha.ratx + (1 - mocha.ratx)*mocha.currx
+          cy = (cy + mocha.diffy)*mocha.raty + (1 - mocha.raty)*mocha.curry
+          local r = math.sqrt((cx - mocha.currx)^2+(cy - mocha.curry)^2)
+          cx = mocha.currx + r*dcos(currline.alpha + mocha.zrotd)
+          cy = mocha.curry - r*dsin(currline.alpha + mocha.zrotd)
           table.insert(exes,round(cx,opts.posround)); table.insert(whys,round(cy,opts.posround))
         end
         local s = ("\\move(%g,%g,%g,%g,%d,%d)"):format(exes[1],whys[1],exes[2],whys[2],maths,mathsanswer)
