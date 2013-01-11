@@ -1268,6 +1268,7 @@ function getvideoname(sub)
       return sub[x].value:gsub("^ ","")
     end
   end
+  windowerr(false,"Could not find 'Video File'. Try saving your script before rerunning the macro.")
 end
 
 function trimnthings(sub,sel)
