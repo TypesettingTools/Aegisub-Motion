@@ -678,7 +678,7 @@ end
 function windowerr(bool, message)
   if not bool then
     aegisub.dialog.display({{class="label", label=message}},{"ok"})
-    error(message)
+    aegisub.cancel()
   end
 end
 
