@@ -1320,7 +1320,7 @@ function writeandencode(tokens)
   if winpaths then
     local sh = io.open(encsh..".bat","w+")
     assert(sh,"Encoding command could not be written. Check your prefix.") -- to solve the 250 byte limit, we write to a self-deleting batch file.
-    sh:write(global.enccom:gsub("#(%b{})",ReplaceTokens)..'\ndel %0')
+    sh:write(global.enccom:gsub("#(%b{})",ReplaceTokens)..'\ndel "'..encsh..'.bat"')
     sh:close()
     ret = os.execute(('""%s""'):format(encsh)) -- double quotes makes it work on different drives too, apparently
   else
