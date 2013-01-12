@@ -1317,7 +1317,6 @@ function writeandencode(tokens)
   end
   local winpaths = tostring(winpaths)
   local encsh = tokens.prefix.."encode"..({['false'] = '.sh', ['true'] = '.bat'})[winpaths]
-  aegisub.log(0,encsh..'\n')
   local sh = io.open(encsh,"w+")
   assert(sh,"Encoding command could not be written. Check your prefix.") -- to solve the 250 byte limit, we write to a self-deleting batch file.
   sh:write(global.enccom:gsub("#(%b{})",ReplaceTokens)..({['false'] = '\nrm "$0"', ['true'] = '\ndel "%0"'})[winpaths])
