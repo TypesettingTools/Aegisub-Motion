@@ -1315,22 +1315,14 @@ function writeandencode(tokens)
   local function ReplaceTokens(token)
     return tokens[token:sub(2,-2)]
   end
-  local encsh = tokens.prefix.."encode"
-  local ret
-  if winpaths then
-    local sh = io.open(encsh..".bat","w+")
-    assert(sh,"Encoding command could not be written. Check your prefix.") -- to solve the 250 byte limit, we write to a self-deleting batch file.
-    sh:write(global.enccom:gsub("#(%b{})",ReplaceTokens)..'\ndel "'..encsh..'.bat"')
-    sh:close()
-    ret = os.execute(('""%s""'):format(encsh)) -- double quotes makes it work on different drives too, apparently
-  else
-    local sh = io.open(encsh..".sh","w+")
-    assert(sh,"Encoding command could not be written. Check your prefix.")
-    sh:write(global.enccom:gsub("#(%b{})",ReplaceTokens)..'\n')--rm $0')
-    sh:close()
-    ret = os.execute(('sh "%s"'):format(encsh)) -- this doesn't work for me and I have no idea why
-  end
-  if ret ~= 0 then error("Encoding failed!") end
+  local winpaths = tostring(winpaths)
+  local encsh = tokens.prefix.."encode"..({['false'] = '.sh', ['true'] = '.bat'})[winpaths]
+  aegisub.log(0,encsh..'\n')
+  local sh = io.open(encsh,"w+")
+  assert(sh,"Encoding command could not be written. Check your prefix.") -- to solve the 250 byte limit, we write to a self-deleting batch file.
+  sh:write(global.enccom:gsub("#(%b{})",ReplaceTokens)..({['false'] = '\nrm "$0"', ['true'] = '\ndel "%0"'})[winpaths])
+  sh:close()
+  if os.execute((({['false'] = 'sh "%s"', ['true'] = '""%s""'})[winpaths]):format(encsh)) ~= 0 then error("Encoding failed!") end
 end
 
 function debug(...)
