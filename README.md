@@ -1,4 +1,10 @@
-## Aegisub-Motion.lua ##
+## Aegisub-Motion.moon ##
+
+### Aegisub-Motion has been ported to [moonscript][moonscript] by tophf who is a pretty cool guy.  Here's what you need to know: ###
+- Recent development versions of Aegisub (see commit [19854e207a][moonscriptcommit]) have native support for moonscript, so if you've been building Aegisub for yourself, you can simply stick Aegisub-Motion.moon in your automation folder and hopefully go gangbusters. Otherwise, you'll need to compile the script to lua yourself, or wait for me to do it.
+- The moonscript version is slightly better maybe? There are a few things I should probably backport to lua, but see since I will be replacing the original lua with compiled moon soon, I'm not going to bother.
+- For the future, any development that does happen will happen in the moonscript file, which will then be compiled to lua for people with old versions of Aegisub.
+- ### I have only quickly glanced over the moonscript file and briefly confirmed that it compiles, so it may contain ERRORS and BUGS. Please do not hesitate to report these to me if you encounter them.
 
 **Important information**
 - Every time you update, you should delete and regenerate your configuration file(s).
@@ -25,29 +31,29 @@ To use this script, you must first have tracked the motion in an external progra
 The input motion data must be a specific variant of `Adobe After Effects 6.0 Keyframe Data`. For Mocha, export to `After Effects Transform Data [anchor point, position, scale and rotation](*.txt)`). The data format looks like this:
 
     Adobe After Effects 6.0 Keyframe Data
-    
+
       Units Per Second  23.976
       Source Width  1920
       Source Height 1080
       Source Pixel Aspect Ratio 1
       Comp Pixel Aspect Ratio 1
-    
+
     Anchor Point
       Frame X pixels  Y pixels  Z pixels
       0 1583  180 0
-    
+
     Position
       Frame X pixels  Y pixels  Z pixels
       0 1583  180 0
-    
+
     Scale
       Frame X percent Y percent Z percent
       0 100 100 100
-    
+
     Rotation
       Frame Degrees
       0 0
-    
+
     End of Keyframe Data
 
 ### Features ###
@@ -78,6 +84,8 @@ Many bugs have been reported by various users, and if you've reported something 
 
 I'm typically available as `torque` on `irc.rizon.net`. Feel free to PM me with suggestions, requests or questions.
 
+[moonscript]: http://moonscript.org/
+[moonscriptcommit]: https://github.com/Aegisub/Aegisub/commit/19854e207a2f8f703f73791a0a0f887a4a6cd964
 [oldver]: https://github.com/torque/Aegisub-Motion/tree/legacy
 [docu]: https://github.com/torque/Aegisub-Motion/wiki
 [aegplork]: http://plorkyeran.com/aegisub/
