@@ -77,7 +77,7 @@ export script_version     = "2.0.0.0.0.0-3" -- BATCHLEVEL PUMP?!!
 config_file = "aegisub-motion.conf"
 
 local *
-local gui, guiconf, winpaths, encpre, global, alltags, globaltags, importanttags
+local gui, guiconf, winpaths, encpre, global, alltags, globaltags, importanttags, dbg
 
 require "karaskel"
 require "clipboard"
@@ -262,167 +262,6 @@ onetime_init = ->
 
 -------------------------------------------------------------------------------
 
-frame_by_frame = (sub, accd, opts, clipopts) ->
-
-	local *
-
-	newlines = {} -- table to stick indices of tracked lines into for cleanup.
-	operations = {} -- create a table and put the necessary functions into it, which will save a lot of if operations in the inner loop. This was the most elegant solution I came up with.
-	mocha = {}
-	clipa = {}
-	dim = {x:accd.meta.res_x, y:accd.meta.res_y}
-	_ = nil
-
-	main = ->
-
-		printmem "Start of main loop"
-
-		calc_abs_frame = (opts) -> if opts.stframe >= 0 then opts.stframe else accd.totframes + opts.stframe + 1
-
-		if opts.linespath
-			parse_input mocha, opts.linespath, accd.meta.res_x, accd.meta.res_y
-			assert accd.totframes == mocha.flength, ("Number of frames selected (%d) does not match parsed line tracking data length (%d).")\format accd.totframes, mocha.flength
-			spoof_table mocha, opts
-			mocha.start = calc_abs_frame opts if not opts.relative
-			clipa = mocha if opts.clip
-
-		if clipopts.clippath
-			parse_input clipa, clipopts.clippath, accd.meta.res_x, accd.meta.res_y
-			assert accd.totframes == clipa.flength, ("Number of frames selected (%d) does not match parsed clip tracking data length (%d).")\format accd.totframes, clipa.flength
-			opts.linear = false -- no linear mode with moving \clip, sorry
-			opts.clip = true -- simplify things a bit
-			spoof_table clipa, clipopts
-			spoof_table mocha, opts, #clipa.xpos if not opts.linespath
-			clipa.start = calc_abs_frame clipopts if not clipopts.relative
-
-		for v in *accd.lines -- comment lines that were commented in the thingy
-			derp = sub[v.num]
-			derp.comment = true
-			sub[v.num] = derp
-			v.comment = false if not v.is_comment
-
-		if opts.position
-			operations["(\\pos)%(([%-%d%.]+,[%-%d%.]+)%)"] = possify
-			operations["(\\org)%(([%-%d%.]+,[%-%d%.]+)%)"] = orginate if opts.origin
-
-		if opts.scale then
-			operations["(\\fsc[xy])([%d%.]+)"] = scalify
-			operations["(\\[xy]?bord)([%d%.]+)"] = scalify if opts.border
-			operations["(\\[xy]?shad)([%-%d%.]+)"] = scalify if opts.shadow
-			operations["(\\blur)([%d%.]+)"] = scalify if opts.blur
-
-		operations["(\\frz?)([%-%d%.]+)"] = rotate if opts.rotation
-
-		printmem "End of table insertion"
-
-		modo = if opts.linear then linearmodo else nonlinearmodo
-		for currline in *accd.lines
-			with currline
-				printmem "Outer loop"
-				.rstartf = .startframe - accd.startframe + 1 -- start frame of line relative to start frame of tracked data
-				.rendf = .endframe - accd.startframe -- end frame of line relative to start frame of tracked data
-				clipa.clipme = true if opts.clip and .clip
-				.effect = "aa-mou" .. .effect
-				calc_rel_frame = (opts) ->
-					if tonumber(opts.stframe) >= 0 then currline.rstartf + opts.stframe - 1 else currline.rendf + opts.stframe + 1
-				mocha.start = calc_rel_frame opts if opts.relative
-				clipa.start = calc_rel_frame clipopts if clipopts.relative and clipa.clipme
-
-				ensuretags currline, opts, accd.styles, dim
-
-				.alpha = -datan( .ypos - mocha.ypos[mocha.start], .xpos - mocha.xpos[mocha.start] )
-				.beta  = -datan( .oypos - mocha.ypos[mocha.start], .oxpos - mocha.xpos[mocha.start] ) if opts.origin
-				.orgtext = .text -- tables are passed as references.
-				modo currline
-
-		for x = #sub,1,-1
-			if tostring(sub[x].effect)\match "^aa%-mou"
-				aegisub.log 5,"I choose you, %d!\n",x
-				table.insert newlines,x -- seems to work as intended
-
-		return newlines -- yeah mang
-
-	float2str = (f) -> ("%g")\format round(f,opts.posround)
-
-	linearmodo = (currline) ->
-		with currline
-			one = aegisub.ms_from_frame aegisub.frame_from_ms .start_time
-			two = aegisub.ms_from_frame aegisub.frame_from_ms(currline.start_time) + 1
-			three = aegisub.ms_from_frame aegisub.frame_from_ms(currline.end_time) - 1
-			four = aegisub.ms_from_frame aegisub.frame_from_ms .end_time
-			maths = math.floor(0.5*(one+two)-currline.start_time) -- this voodoo magic gets the time length (in ms) from the start of the first subtitle frame to the actual start of the line time.
-			mathsanswer = math.floor(0.5*(three+four)-currline.start_time) -- and this voodoo magic is the total length of the line plus the difference (which is negative) between the start of the last frame the line is on and the end time of the line.
-
-			posmatch, _ = "(\\pos)%(([%-%d%.]+,[%-%d%.]+)%)" -- CHK
-			if operations[posmatch]
-				.text = .text\gsub posmatch,
-					(tag,val) ->
-						exes, whys = {}, {}
-						for x in *{.rstartf, .rendf}
-							cx,cy = val\match("([%-%d%.]+),([%-%d%.]+)")
-							mochaRatios mocha, x
-							cx = (cx + mocha.diffx)*mocha.ratx + (1 - mocha.ratx)*mocha.currx
-							cy = (cy + mocha.diffy)*mocha.raty + (1 - mocha.raty)*mocha.curry
-							r = math.sqrt((cx - mocha.currx)^2+(cy - mocha.curry)^2)
-							cx = mocha.currx + r*dcos(.alpha + mocha.zrotd)
-							cy = mocha.curry - r*dsin(.alpha + mocha.zrotd)
-							table.insert exes, float2str(cx)
-							table.insert whys, float2str(cy)
-						s = ("\\move(%s,%s,%s,%s,%d,%d)")\format exes[1],whys[1],exes[2],whys[2],maths,mathsanswer
-						aegisub.log 5,"%s\n",s
-						s
-				_, operations[posmatch] = operations[posmatch], nil
-
-			for pattern,func in pairs operations -- iterate through the necessary operations
-				check_user_cancelled!
-				.text = .text\gsub pattern,
-					(tag,val) ->
-						values = {}
-						for x in *{.rstartf, .rendf}
-							mochaRatios mocha,x
-							table.insert values, func(val,currline,mocha,opts,tag)
-						("%s%g\\t(%d,%d,1,%s%g)")\format tag,values[1],maths,mathsanswer,tag,values[2]
-
-			sub[.num] = currline
-			operations[posmatch] = _
-
-	nonlinearmodo = (currline) ->
-		with currline
-			for x = .rendf, .rstartf, -1  -- new inner loop structure
-				printmem "Inner loop"
-				aegisub.log 5,"Round %d\n",x
-				aegisub.progress.title ("Processing frame %g/%g")\format x, .rendf - .rstartf + 1
-				aegisub.progress.set (x - .rstartf)/(.rendf - .rstartf) * 100
-				check_user_cancelled!
-
-				.start_time = aegisub.ms_from_frame( accd.startframe + x - 1)
-				.end_time   = aegisub.ms_from_frame( accd.startframe + x)
-
-				if not .is_comment -- don't do any math for commented lines.
-					.time_delta = .start_time - aegisub.ms_from_frame(accd.startframe)
-					for kv in *.trans
-						.text = transformate currline, kv
-						check_user_cancelled!
-					mochaRatios mocha, x
-
-					for pattern,func in pairs operations -- iterate through the necessary operations
-						.text = .text\gsub pattern, (tag,val) -> tag..func(val,currline,mocha,opts,tag)
-						check_user_cancelled!
-
-					if clipa.clipme
-						.text = .text\gsub "\\i?clip%b()", (a) -> clippinate(currline,clipa,x), 1
-
-					.text = .text\gsub '\1',""
-
-				sub.insert .num+1, currline
-				.text = .orgtext
-
-			sub.delete .num if global.delsourc
-
-	main!
-
--------------------------------------------------------------------------------
-
 init_input = (sub,sel) -> -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
 
 	onetime_init!
@@ -430,8 +269,8 @@ init_input = (sub,sel) -> -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
 	setundo = aegisub.set_undo_point -- ugly workaround for a problem that was causing random crashes
 	printmem "GUI startup"
 
-	conf,accd = dialogPreproc sub,sel
-	button,config = aegisub.dialog.display gui.main,{"Go","&\\clip...","Abort"}
+	conf,accd = dialogPreproc(sub,sel)
+	button,config = aegisub.dialog.display(gui.main, {"Go","&\\clip...","Abort"})
 
 	local clipconf
 	if button == "&\\clip..."
@@ -527,15 +366,15 @@ parse_input = (mocha_table, input, shx, shy) ->
 				switch sect
 					when 1
 						if valu\match("%d")
-							table.insert .xpos,tonumber(val[2])*xmult
-							table.insert .ypos,tonumber(val[3])*ymult
+							table.insert .xpos, tonumber(val[2])*xmult
+							table.insert .ypos, tonumber(val[3])*ymult
 					when 3
 						if valu\match("%d")
-							table.insert .xscl,tonumber(val[2])
-							table.insert .yscl,tonumber(val[3])
+							table.insert .xscl, tonumber(val[2])
+							table.insert .yscl, tonumber(val[3])
 					when 7
 						if valu\match("%d")
-							table.insert .zrot,-tonumber(val[2])
+							table.insert .zrot, -tonumber(val[2])
 		.flength = #.xpos
 		for x in *{#.ypos,#.xscl,#.yscl,#.zrot}
 			windowerr x == .flength, 'Error parsing data. "After Effects Transform Data [anchor point, position, scale and rotation]" expected.'
@@ -589,13 +428,13 @@ getSelInfo = (sub, sel) ->
 
 	for x = 1,#sub
 		if sub[x].class == "dialogue"
-			strt = x-1 -- start line of dialogue subs
+			strt = x - 1 -- start line of dialogue subs
 			break
 
 	aegisub.progress.title "Collecting Gerbils"
 	_ = nil
 	accd = {}
-	accd.meta, accd.styles = karaskel.collect_head sub, false -- dump everything I need later into the table so I don't have to pass o9k variables to the other functions
+	accd.meta, accd.styles = karaskel.collect_head(sub, false) -- dump everything I need later into the table so I don't have to pass o9k variables to the other functions
 	accd.lines = {}
 	accd.endframe = aegisub.frame_from_ms sub[sel[1]].end_time -- get the end frame of the first selected line
 	accd.startframe = aegisub.frame_from_ms sub[sel[1]].start_time -- get the start frame of the first selected line
@@ -764,6 +603,168 @@ ensuretags = (line, opts, styles, dim) ->
 
 -------------------------------------------------------------------------------
 
+frame_by_frame = (sub, accd, opts, clipopts) ->
+
+	local *
+
+	newlines = {} -- table to stick indices of tracked lines into for cleanup.
+	operations = {} -- create a table and put the necessary functions into it, which will save a lot of if operations in the inner loop. This was the most elegant solution I came up with.
+	mocha = {}
+	clipa = {}
+	dim = {x:accd.meta.res_x, y:accd.meta.res_y}
+	_ = nil
+
+	main = ->
+
+		printmem "Start of main loop"
+
+		calc_abs_frame = (opts) -> if opts.stframe >= 0 then opts.stframe else accd.totframes + opts.stframe + 1
+
+		if opts.linespath
+			parse_input mocha, opts.linespath, accd.meta.res_x, accd.meta.res_y
+			assert accd.totframes == mocha.flength, ("Number of frames selected (%d) does not match parsed line tracking data length (%d).")\format accd.totframes, mocha.flength
+			spoof_table mocha, opts
+			mocha.start = calc_abs_frame opts if not opts.relative
+			clipa = mocha if opts.clip
+
+		if clipopts.clippath
+			parse_input clipa, clipopts.clippath, accd.meta.res_x, accd.meta.res_y
+			assert accd.totframes == clipa.flength, ("Number of frames selected (%d) does not match parsed clip tracking data length (%d).")\format accd.totframes, clipa.flength
+			opts.linear = false -- no linear mode with moving \clip, sorry
+			opts.clip = true -- simplify things a bit
+			spoof_table clipa, clipopts
+			spoof_table mocha, opts, #clipa.xpos if not opts.linespath
+			clipa.start = calc_abs_frame clipopts if not clipopts.relative
+
+		for v in *accd.lines -- comment lines that were commented in the thingy
+			derp = sub[v.num]
+			derp.comment = true
+			sub[v.num] = derp
+			v.comment = false if not v.is_comment
+
+		if opts.position
+			operations["(\\pos)%(([%-%d%.]+,[%-%d%.]+)%)"] = possify
+			operations["(\\org)%(([%-%d%.]+,[%-%d%.]+)%)"] = orginate if opts.origin
+
+		if opts.scale then
+			operations["(\\fsc[xy])([%d%.]+)"] = scalify
+			operations["(\\[xy]?bord)([%d%.]+)"] = scalify if opts.border
+			operations["(\\[xy]?shad)([%-%d%.]+)"] = scalify if opts.shadow
+			operations["(\\blur)([%d%.]+)"] = scalify if opts.blur
+
+		operations["(\\frz?)([%-%d%.]+)"] = rotate if opts.rotation
+
+		printmem "End of table insertion"
+
+		modo = if opts.linear then linearmodo else nonlinearmodo
+		for currline in *accd.lines
+			with currline
+				printmem "Outer loop"
+				.rstartf = .startframe - accd.startframe + 1 -- start frame of line relative to start frame of tracked data
+				.rendf = .endframe - accd.startframe -- end frame of line relative to start frame of tracked data
+				clipa.clipme = true if opts.clip and .clip
+				.effect = "aa-mou" .. .effect
+				calc_rel_frame = (opts) ->
+					if tonumber(opts.stframe) >= 0 then currline.rstartf + opts.stframe - 1 else currline.rendf + opts.stframe + 1
+				mocha.start = calc_rel_frame opts if opts.relative
+				clipa.start = calc_rel_frame clipopts if clipopts.relative and clipa.clipme
+
+				ensuretags currline, opts, accd.styles, dim
+
+				.alpha = -datan( .ypos - mocha.ypos[mocha.start], .xpos - mocha.xpos[mocha.start] )
+				.beta  = -datan( .oypos - mocha.ypos[mocha.start], .oxpos - mocha.xpos[mocha.start] ) if opts.origin
+				.orgtext = .text -- tables are passed as references.
+
+				modo currline
+
+		for x = #sub,1,-1
+			if tostring(sub[x].effect)\match "^aa%-mou"
+				aegisub.log 5,"I choose you, %d!\n",x
+				table.insert newlines,x -- seems to work as intended
+
+		return newlines -- yeah mang
+
+	float2str = (f) -> ("%g")\format round(f,opts.posround)
+
+	linearmodo = (currline) ->
+		with currline
+			one = aegisub.ms_from_frame aegisub.frame_from_ms .start_time
+			two = aegisub.ms_from_frame aegisub.frame_from_ms(currline.start_time) + 1
+			three = aegisub.ms_from_frame aegisub.frame_from_ms(currline.end_time) - 1
+			four = aegisub.ms_from_frame aegisub.frame_from_ms .end_time
+			maths = math.floor(0.5*(one+two) - currline.start_time) -- this voodoo magic gets the time length (in ms) from the start of the first subtitle frame to the actual start of the line time.
+			mathsanswer = math.floor(0.5*(three+four) - currline.start_time) -- and this voodoo magic is the total length of the line plus the difference (which is negative) between the start of the last frame the line is on and the end time of the line.
+
+			posmatch, _ = "(\\pos)%(([%-%d%.]+,[%-%d%.]+)%)" -- CHK
+			if operations[posmatch]
+				.text = .text\gsub posmatch,
+					(tag,val) ->
+						exes, whys = {}, {}
+						for x in *{.rstartf, .rendf}
+							cx,cy = val\match("([%-%d%.]+),([%-%d%.]+)")
+							mochaRatios mocha, x
+							cx = (cx + mocha.diffx)*mocha.ratx + (1 - mocha.ratx)*mocha.currx
+							cy = (cy + mocha.diffy)*mocha.raty + (1 - mocha.raty)*mocha.curry
+							r = math.sqrt((cx - mocha.currx)^2+(cy - mocha.curry)^2)
+							cx = mocha.currx + r*dcos(.alpha + mocha.zrotd)
+							cy = mocha.curry - r*dsin(.alpha + mocha.zrotd)
+							table.insert exes, float2str(cx)
+							table.insert whys, float2str(cy)
+						s = ("\\move(%s,%s,%s,%s,%d,%d)")\format exes[1],whys[1],exes[2],whys[2],maths,mathsanswer
+						aegisub.log 5,"%s\n",s
+						s
+				_, operations[posmatch] = operations[posmatch], nil
+
+			for pattern,func in pairs operations -- iterate through the necessary operations
+				check_user_cancelled!
+				.text = .text\gsub pattern,
+					(tag,val) ->
+						values = {}
+						for x in *{.rstartf, .rendf}
+							mochaRatios mocha,x
+							table.insert values, func(val,currline,mocha,opts,tag)
+						("%s%g\\t(%d,%d,1,%s%g)")\format tag,values[1],maths,mathsanswer,tag,values[2]
+
+			sub[.num] = currline
+			operations[posmatch] = _
+
+	nonlinearmodo = (currline) ->
+		with currline
+			for x = .rendf, .rstartf, -1  -- new inner loop structure
+				printmem "Inner loop"
+				aegisub.log 5,"Round %d\n",x
+				aegisub.progress.title ("Processing frame %g/%g")\format x, .rendf - .rstartf + 1
+				aegisub.progress.set (x - .rstartf)/(.rendf - .rstartf) * 100
+				check_user_cancelled!
+
+				.start_time = aegisub.ms_from_frame( accd.startframe + x - 1)
+				.end_time   = aegisub.ms_from_frame( accd.startframe + x)
+
+				if not .is_comment -- don't do any math for commented lines.
+					.time_delta = .start_time - aegisub.ms_from_frame(accd.startframe)
+					for kv in *.trans
+						.text = transformate currline, kv
+						check_user_cancelled!
+					mochaRatios mocha, x
+
+					for pattern,func in pairs operations -- iterate through the necessary operations
+						.text = .text\gsub pattern, (tag,val) -> tag..func(val,currline,mocha,opts,tag)
+						check_user_cancelled!
+
+					if clipa.clipme
+						.text = .text\gsub "\\i?clip%b()", (a) -> clippinate(currline,clipa,x), 1
+
+					.text = .text\gsub '\1',""
+
+				sub.insert .num+1, currline
+				.text = .orgtext
+
+			sub.delete .num if global.delsourc
+
+	main!
+
+-------------------------------------------------------------------------------
+
 mochaRatios = (mocha, x) ->
 	with mocha
 		.ratx = .xscl[x] / .xscl[.start]
@@ -778,7 +779,7 @@ mochaRatios = (mocha, x) ->
 
 possify = (pos, line, mocha, opts) ->
 	oxpos,oypos = pos\match "([%-%d%.]+),([%-%d%.]+)"
-	nxpos,nypos = makexypos tonumber(oxpos), tonumber(oypos), mocha
+	nxpos,nypos = makexypos(tonumber(oxpos), tonumber(oypos), mocha)
 	r = math.sqrt((nxpos - mocha.currx)^2 + (nypos - mocha.curry)^2)
 	nxpos = mocha.currx + r*dcos(line.alpha + mocha.zrotd)
 	nypos = mocha.curry - r*dsin(line.alpha + mocha.zrotd)
@@ -789,7 +790,7 @@ possify = (pos, line, mocha, opts) ->
 
 orginate = (opos, line, mocha, opts) ->
 	oxpos,oypos = opos\match("([%-%d%.]+),([%-%d%.]+)")
-	nxpos,nypos = makexypos tonumber(oxpos), tonumber(oypos), mocha
+	nxpos,nypos = makexypos(tonumber(oxpos), tonumber(oypos), mocha)
 	aegisub.log 5,"org: (%f,%f) -> (%f,%f)\n",oxpos,oypos,nxpos,nypos
 	return ("(%g,%g)")\format round(nxpos,opts.posround), round(nypos,opts.posround)
 
@@ -810,7 +811,7 @@ clippinate = (line, clipa, iter) ->
 		diffrz = .zrot[iter] - .zrot[.start]
 	aegisub.log 5,"cx: %f cy: %f\nrx: %f ry: %f\nfrz: %f\n",cx,cy,ratx,raty,diffrz
 
-	sclfac = 2^(line.sclip-1)
+	sclfac = 2^(line.sclip - 1)
 	clip = line.clip\gsub "([%.%d%-]+) ([%.%d%-]+)",
 		(x,y) ->
 			xo,yo = x,y
@@ -1035,11 +1036,11 @@ confmaker = ->
 		gui.conf[key].value = value if gui.conf[key]
 	gui.conf.enccom.value = encpre[global.encoder] or gui.conf.enccom.value
 
-	button, config = aegisub.dialog.display gui.conf, {"Write","Write local","\\clip...","Abort"}
+	button, config = aegisub.dialog.display(gui.conf, {"Write","Write local","\\clip...","Abort"})
 
 	local clipconf
 	if button == "\\clip..."
-		button, clipconf = aegisub.dialog.display gui.clip, {"Write","Write local","Cancel","Abort"}
+		button, clipconf = aegisub.dialog.display(gui.clip, {"Write","Write local","Cancel","Abort"})
 
 	switch button
 		when "Write","Write local"
