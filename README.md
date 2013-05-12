@@ -14,11 +14,9 @@
 ### [Documentation][docu] ###
 
 **TODO**
-- Make _all_ of the gnuplot related code a lot less terrible
+- Re-add plotting capability? Maybe?
 - Remove random unnecessary code (there is still a lot, I bet!)
 - Make UI separate from the backend code
-- Figure out what the fuck is going on when both org and pos are enabled
-- Make automated encoding actually work on non-windows operating systems
 - Attempt to reproduce a bug where the cleanup was magically deleting lines for no good reason
 
 ### Usage ###
@@ -83,7 +81,7 @@ Many bugs have been reported by various users, and if you've reported something 
 
 ### Contact ###
 
-I'm typically available as `torque` on `irc.rizon.net`. Feel free to PM me with suggestions, requests or questions.
+I'm typically available as `torque` on `irc.rizon.net`. Feel free to PM me with suggestions, requests or questions. I am not always at the computer, but if you leave me a message, I will get back to you when I can.
 
 [moonscript]: http://moonscript.org/
 [moonscriptcommit]: https://github.com/Aegisub/Aegisub/commit/19854e207a2f8f703f73791a0a0f887a4a6cd964
