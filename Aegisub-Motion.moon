@@ -410,6 +410,7 @@ dialogPreproc = (sub, sel) ->
 		f.min = -accd.totframes
 		f.max =  accd.totframes
 
+	local conf -- the scope of assignment in conditionals is limited to that conditional by default.
 	if conf = configscope()
 		if not readconf conf, {main: gui.main, clip: gui.clip, global: global}
 			aegisub.log 3,"Failed to read config!\n"
