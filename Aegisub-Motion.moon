@@ -81,8 +81,8 @@ local gui, guiconf, winpaths, encpre, global, alltags, globaltags, importanttags
 
 require "karaskel"
 require "clipboard"
-require "re"
 if not pcall(require, "debug") then dbg = false
+re = require "aegisub.re" -- "re" conflicts with some other lua module installed by luarocks
 
 onetime_init = ->
 	return if gui
