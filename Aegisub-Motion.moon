@@ -831,7 +831,7 @@ transformate = (line, trans) ->
 	t_s = trans[1] - line.time_delta
 	t_e = trans[2] - line.time_delta
 	aegisub.log 5,"Transform: %d,%d -> %d,%d\n",trans[1],trans[2],t_s,t_e
-	return line.text\gsub "\\t%b()", ("\\t(%d,%d,%g,%s)")\format(string.char(1),t_s,t_e,trans[3],trans[4]), 1
+	return line.text\gsub "\\t%b()", ("\\%st(%d,%d,%g,%s)")\format(string.char(1),t_s,t_e,trans[3],trans[4]), 1
 
 scalify = (scale, line, mocha, opts, tag) ->
 	newScale = scale*mocha.ratx -- sudden camelCase for no reason
