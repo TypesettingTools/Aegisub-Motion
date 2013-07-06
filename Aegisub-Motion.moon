@@ -498,8 +498,8 @@ spoof_table = (parsed_table, opts, len) ->
 extraLineMetrics = (line) ->
 
 	line.trans = {}
-	fstart,fend = line.text\match "\\fad%((%d+),(%d+)%)"
-	alphafunc = "\\alpha%1"
+	fstart, fend = line.text\match "\\fad%((%d+),(%d+)%)" -- only uses the first one
+	line.text = line.text\gsub globaltags.fad, "" -- kill them all
 
 	lextrans = (trans) ->
 		t_start,t_end,t_exp,t_eff = trans\sub(2,-2)\match "([%-%d]+),([%-%d]+),([%d%.]*),?(.+)"
@@ -516,28 +516,25 @@ extraLineMetrics = (line) ->
 		aegisub.log 5,str..'\n'
 		str
 
-	line.text = line.text\gsub "^({.-})",
-		(block1) ->
-			if fstart
-				replaced = false
-				block1 = block1\gsub "\\alpha(&H%x%x&)",
-					(alpha) ->
-						replaced = true
-						alphafunc alpha
-				block1 = block1\gsub globaltags.fad,
-					-> if replaced then alphafunc alpha_from_style(line.styleref.color1) else ""
-			else
-				block1 = block1\gsub "\\fade%(([%d]+),([%d]+),([%d]+),([%-%d]+),([%-%d]+),([%-%d]+),([%-%d]+)%)",
-					(a,b,c,d,e,f,g) ->
-						("\\alpha&H%02X&\\t(%s,%s,1,\\alpha&H%02X&)\\t(%s,%s,1,\\alpha&H%02X&)")\format(a,d,e,b,f,g,c)
-			block1\gsub "\\t(%b())", lextrans
-			block1
-
-	line.text = line.text\gsub "([^^])({.-})",
-		(i,block) ->
+	line.text = line.text\gsub "^{(.-)}", (block1) ->
+		if fstart
+			replaced = false
+			block1 = block1\gsub "\\alpha(&H%x%x&)", (alpha) ->
+				replaced = true
+				alphafunc alpha
+			unless replaced
+				block1 ..= alphafunc alpha_from_style(line.styleref.color1)
+		else
+			block1 = block1\gsub "\\fade%(([%d]+),([%d]+),([%d]+),([%-%d]+),([%-%d]+),([%-%d]+),([%-%d]+)%)",
+				(a,b,c,d,e,f,g) ->
+					("\\alpha&H%02X&\\t(%s,%s,1,\\alpha&H%02X&)\\t(%s,%s,1,\\alpha&H%02X&)")\format(a,d,e,b,f,g,c)
+		block1\gsub "\\t(%b())", lextrans
+		'{' .. block1 .. '}'
+	line.text = line.text\gsub "([^^])({.-})", (i, block) ->
+		if fstart
 			block = block\gsub "\\alpha(&H%x%x&)", alphafunc
-			block\gsub "\\t(%b())", lextrans
-			i..block
+		block\gsub "\\t(%b())", lextrans
+		i..block
 
 	line.text = line.text\gsub "\\(i?clip)(%b())",
 		(clip,points) ->
