@@ -81,7 +81,6 @@ local gui, guiconf, winpaths, encpre, global, alltags, globaltags, importanttags
 
 require "karaskel"
 require "clipboard"
-if not pcall(require, "debug") then dbg = false
 re = require "aegisub.re" -- "re" conflicts with some other lua module installed by luarocks
 
 onetime_init = ->
@@ -384,7 +383,7 @@ parse_input = (mocha_table, input, shx, shy) ->
 		table.sort dummytab
 		mocha_table[prefix.."min"] = dummytab[1]
 		mocha_table[prefix.."max"] = dummytab[#dummytab]
-		aegisub.log 5,"%smax: %g; %smin: %g\n", prefix, mocha_table[prefix.."max"], prefix, mocha_table[prefix.."min"]
+		debug "%smax: %g; %smin: %g", prefix, mocha_table[prefix.."max"], prefix, mocha_table[prefix.."min"]
 
 	printmem "End of input parsing"
 
@@ -413,7 +412,7 @@ dialogPreproc = (sub, sel) ->
 	local conf -- the scope of assignment in conditionals is limited to that conditional by default.
 	if conf = configscope()
 		if not readconf conf, {main: gui.main, clip: gui.clip, global: global}
-			aegisub.log 3,"Failed to read config!\n"
+			warn "Failed to read config!"
 
 	populateInputBox!
 
@@ -455,11 +454,11 @@ getSelInfo = (sub, sel) ->
 			.is_comment = .comment==true
 
 			if .startframe < accd.startframe -- make timings flexible. Number of frames total has to match the tracked data but
-				aegisub.log 5,"Line %d: startframe changed from %d to %d\n",.num - strt,accd.startframe,.startframe
+				debug "Line %d: startframe changed from %d to %d",.num - strt,accd.startframe,.startframe
 				accd.startframe = .startframe
 
 			if .endframe > accd.endframe -- individual lines can be shorter than the whole scene
-				aegisub.log 5,"Line %d: endframe changed from %d to %d\n",.num - strt,accd.endframe,.endframe
+				debug "Line %d: endframe changed from %d to %d",.num - strt,accd.endframe,.endframe
 				accd.endframe = .endframe
 
 			if .endframe - .startframe > 1
@@ -506,7 +505,7 @@ extraLineMetrics = (line) ->
 		t_start,t_end,t_exp,t_eff = trans\sub(2,-2)\match "([%-%d]+),([%-%d]+),([%d%.]*),?(.+)"
 		t_exp = tonumber(t_exp) or 1 -- set to 1 if unspecified
 		table.insert line.trans, {tonumber(t_start), tonumber(t_end), t_exp, t_eff}
-		aegisub.log 5,"Line %d: \\t(%g,%g,%g,%s) found\n",line.hnum,t_start,t_end,t_exp,t_eff
+		debug "Line %d: \\t(%g,%g,%g,%s) found",line.hnum,t_start,t_end,t_exp,t_eff
 
 	alphafunc = (alpha) ->
 		str = ""
@@ -514,7 +513,6 @@ extraLineMetrics = (line) ->
 			str ..= ("\\alpha&HFF&\\t(%d,%s,1,\\alpha%s)")\format 0, fstart, alpha
 		if tonumber(fend) > 0
 			str ..= ("\\t(%d,%d,1,\\alpha&HFF&)")\format line.duration - tonumber(fend), line.duration
-		aegisub.log 5,str..'\n'
 		str
 
 	line.text = line.text\gsub "^{(.-)}", (block1) ->
@@ -677,7 +675,6 @@ frame_by_frame = (sub, accd, opts, clipopts) ->
 
 		for x = #sub,1,-1
 			if tostring(sub[x].effect)\match "^aa%-mou"
-				aegisub.log 5,"I choose you, %d!\n",x
 				table.insert newlines,x -- seems to work as intended
 
 		return newlines -- yeah mang
@@ -709,7 +706,7 @@ frame_by_frame = (sub, accd, opts, clipopts) ->
 							table.insert exes, float2str(cx)
 							table.insert whys, float2str(cy)
 						s = ("\\move(%s,%s,%s,%s,%d,%d)")\format exes[1],whys[1],exes[2],whys[2],maths,mathsanswer
-						aegisub.log 5,"%s\n",s
+						debug "%s",s
 						s
 				_, operations[posmatch] = operations[posmatch], nil
 
@@ -730,7 +727,7 @@ frame_by_frame = (sub, accd, opts, clipopts) ->
 		with currline
 			for x = .rendf, .rstartf, -1  -- new inner loop structure
 				printmem "Inner loop"
-				aegisub.log 5,"Round %d\n",x
+				debug "Round %d",x
 				aegisub.progress.title ("Processing frame %g/%g")\format x, .rendf - .rstartf + 1
 				aegisub.progress.set (x - .rstartf)/(.rendf - .rstartf) * 100
 				check_user_cancelled!
@@ -781,7 +778,7 @@ possify = (pos, line, mocha, opts) ->
 	r = math.sqrt((nxpos - mocha.currx)^2 + (nypos - mocha.curry)^2)
 	nxpos = mocha.currx + r*dcos(line.alpha + mocha.zrotd)
 	nypos = mocha.curry - r*dsin(line.alpha + mocha.zrotd)
-	aegisub.log 5,"pos: (%f,%f) -> (%f,%f)\n",oxpos,oypos,nxpos,nypos
+	debug "pos: (%f,%f) -> (%f,%f)",oxpos,oypos,nxpos,nypos
 	return ("(%g,%g)")\format round(nxpos,opts.posround), round(nypos,opts.posround)
 
 -------------------------------------------------------------------------------
@@ -789,7 +786,7 @@ possify = (pos, line, mocha, opts) ->
 orginate = (opos, line, mocha, opts) ->
 	oxpos,oypos = opos\match("([%-%d%.]+),([%-%d%.]+)")
 	nxpos,nypos = makexypos(tonumber(oxpos), tonumber(oypos), mocha)
-	aegisub.log 5,"org: (%f,%f) -> (%f,%f)\n",oxpos,oypos,nxpos,nypos
+	debug "org: (%f,%f) -> (%f,%f)",oxpos,oypos,nxpos,nypos
 	return ("(%g,%g)")\format round(nxpos,opts.posround), round(nypos,opts.posround)
 
 -------------------------------------------------------------------------------
@@ -807,7 +804,7 @@ clippinate = (line, clipa, iter) ->
 		ratx   = .xscl[iter]/.xscl[.start]
 		raty   = .yscl[iter]/.yscl[.start]
 		diffrz = .zrot[iter] - .zrot[.start]
-	aegisub.log 5,"cx: %f cy: %f\nrx: %f ry: %f\nfrz: %f\n",cx,cy,ratx,raty,diffrz
+	debug "cx: %f cy: %frx: %f ry: %f\nfrz: %f\n",cx,cy,ratx,raty,diffrz
 
 	sclfac = 2^(line.sclip - 1)
 	clip = line.clip\gsub "([%.%d%-]+) ([%.%d%-]+)",
@@ -819,7 +816,7 @@ clippinate = (line, clipa, iter) ->
 			alpha = datan(y,x)
 			x = cx*sclfac + r*dcos(alpha - diffrz)
 			y = cy*sclfac + r*dsin(alpha - diffrz)
-			aegisub.log 5,"Clip: %d %d -> %d %d\n",xo,yo,x,y
+			debug "Clip: %d %d -> %d %d",xo,yo,x,y
 			if line.rescaleclip
 				x *= 1024/sclfac
 				y *= 1024/sclfac
@@ -831,17 +828,17 @@ clippinate = (line, clipa, iter) ->
 transformate = (line, trans) ->
 	t_s = trans[1] - line.time_delta
 	t_e = trans[2] - line.time_delta
-	aegisub.log 5,"Transform: %d,%d -> %d,%d\n",trans[1],trans[2],t_s,t_e
+	debug "Transform: %d,%d -> %d,%d",trans[1],trans[2],t_s,t_e
 	return line.text\gsub "\\t%b()", ("\\%st(%d,%d,%g,%s)")\format(string.char(1),t_s,t_e,trans[3],trans[4]), 1
 
 scalify = (scale, line, mocha, opts, tag) ->
 	newScale = scale*mocha.ratx -- sudden camelCase for no reason
-	aegisub.log 5,"%s: %f -> %f\n",tag\sub(2),scale,newScale
+	debug "%s: %f -> %f",tag\sub(2),scale,newScale
 	return round(newScale, opts.sclround)
 
 rotate = (rot, line, mocha, opts) ->
 	zrot = rot + mocha.zrotd
-	aegisub.log 5,"frz: -> %f\n",zrot
+	debug "frz: -> %f",zrot
 	return round(zrot, opts.rotround)
 
 -------------------------------------------------------------------------------
@@ -892,13 +889,12 @@ cleanup = (sub, sel, opts) -> -- make into its own macro eventually.
 
 				a = a\gsub "(\\t%b())",
 					(transform) ->
-						aegisub.log 5,"Cleanup: %s found\n",transform
+						debug "Cleanup: %s found",transform
 						table.insert transforms, transform
 						string.char(3)
 
 				for k,v in pairs alltags
 					_, num = a\gsub(v,"")
-					--aegisub.log 5,"v: %s, num: %s, a: %s\n",v,num,a
 					a = a\gsub v, "", num - 1
 
 				for trans in *transforms
@@ -949,24 +945,24 @@ dialog_sort = (sub, sel, sor) ->
 -------------------------------------------------------------------------------
 
 readconf = (conf,guitab) ->
-	aegisub.log 5,"Opening config file: %s\n",conf
+	debug "Opening config file: %s",conf
 	cf = io.open conf,'r'
 	return nil if not cf
 
 	valtab = {}
 	thesection = nil
-	aegisub.log 5,"Reading config file...\n"
+	debug "Reading config file..."
 	for line in cf\lines()
 		section = line\match "#(%w+)"
 		if section
 			valtab[section] = {}
 			thesection = section
-			aegisub.log 5,"Section: %s\n",thesection
+			debug "Section: %s",thesection
 		elseif thesection == nil
 			return nil
 		else
 			key, val = splitconf line
-			aegisub.log 5,"Read: %s -> %s\n", key, tostring(val\tobool())
+			debug "Read: %s -> %s", key, tostring(val\tobool())
 			valtab[thesection][key\gsub("^ +","")] = val\tobool()
 
 	cf\close()
@@ -974,18 +970,18 @@ readconf = (conf,guitab) ->
 	for section,sectab in pairs guitab
 		for ident,value in pairs valtab[section]
 			if section == "global"
-				aegisub.log 5,"Set: global.%s = %s (%s)\n",ident,tostring(value),type(value)
+				debug "Set: global.%s = %s (%s)",ident,tostring(value),type(value)
 				sectab[ident] = value
 			else
 				if sectab[ident]
-					aegisub.log 5,"Set: gui.%s.%s = %s (%s)\n",section,ident,tostring(value),type(value)
+					debug "Set: gui.%s.%s = %s (%s)",section,ident,tostring(value),type(value)
 					sectab[ident].value = value
 	return true
 
 writeconf = (conf,optab) ->
 	cf = io.open conf,'w+'
 	if not cf
-		aegisub.log 0,'Config write failed! Check that %s exists and has write permission.\n',cf
+		warn 'Config write failed! Check that %s exists and has write permission.\n', cf
 		return nil
 
 	configlines = {}
@@ -1001,11 +997,11 @@ writeconf = (conf,optab) ->
 					table.insert configlines, ("  %s:%s\n")\format(field,tostring(tab[field]))
 
 	for v in *configlines
-		aegisub.log 5,"Write: %s -> config\n",v\gsub("^ +","")
+		debug "Write: %s -> config",v\gsub("^ +","")
 		cf\write v
 
 	cf\close()
-	aegisub.log 5,"Config written to %s\n",conf
+	debug "Config written to %s",conf
 	return true
 
 splitconf = (s) ->
@@ -1028,7 +1024,7 @@ confmaker = ->
 	lvaltab = {}
 	conf = configscope()
 	if not readconf conf, {main: gui.conf, clip: gui.clip, global: global}
-		aegisub.log 0,"Config read failed!\n"
+		warn "Config read failed!"
 
 	for key, value in pairs global
 		gui.conf[key].value = value if gui.conf[key]
@@ -1070,7 +1066,7 @@ trimnthings = (sub, sel) ->
 	conf = configscope()
 	if conf
 		if not readconf conf, {global: global}
-			aegisub.log 0,"Failed to read config!\n"
+			warn "Failed to read config!"
 
 	tokens = {}
 	with tokens
@@ -1212,10 +1208,15 @@ windowerr = (bool, message) ->
 		error message
 
 printmem = (a) ->
-	aegisub.log 5,"%s memory usage: %gkB\n", tostring(a), collectgarbage"count"
+	debug "%s memory usage: %gkB", tostring(a), collectgarbage "count"
 
 debug = (...) ->
-	aegisub.log 0, ... if dbg
+	aegisub.log 4, ...
+	aegisub.log 4, '\n'
+
+warn = (...) ->
+	aegisub.log 2, ...
+	aegisub.log 2, '\n'
 
 round = (num, idp) -> -- borrowed from the lua-users wiki (all of the intelligent code you see in here is)
 	mult = 10^(idp or 0)
