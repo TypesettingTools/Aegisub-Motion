@@ -862,7 +862,7 @@ munch = (sub, sel) ->
 cleanup = (sub, sel, opts) -> -- make into its own macro eventually.
 
 	opts = opts or {}
-	linediff
+	local linediff
 	cleantrans = (cont) -> -- internal function because that's the only way to pass the line difference to it
 		t_s, t_e, ex, eff = cont\sub(2,-2)\match "([%-%d]+),([%-%d]+),([%d%.]*),?(.+)"
 		return ("%s")\format eff if tonumber(t_e) <= 0 -- if the end time is less than or equal to zero, the transformation has finished. Replace it with only its contents.
