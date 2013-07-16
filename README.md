@@ -1,11 +1,6 @@
 ## Aegisub-Motion.moon ##
 
-#### Aegisub-Motion has been ported to [moonscript][moonscript] by tophf who is a pretty cool guy.  Here's what you need to know: ###
-- Recent development versions of Aegisub (see commit [19854e207a][moonscriptcommit]) have native support for moonscript, so if you've been building Aegisub for yourself, you can simply stick Aegisub-Motion.moon in your automation folder and hopefully go gangbusters. Otherwise, you'll need to compile the script to lua yourself, or wait for me to do it.
-- The moonscript version is slightly better maybe? There are a few things I should probably backport to lua, but see since I will be replacing the original lua with compiled moon soon, I'm not going to bother.
-- For the future, any development that does happen will happen in the moonscript file, which will then be compiled to lua for people with old versions of Aegisub.
-
-#### I have only quickly glanced over the moonscript file and briefly confirmed that it compiles, so it may contain ERRORS and BUGS. Please do not hesitate to report these [to me](#contact) if you encounter them.
+Aegisub-Motion has been ported to [moonscript][moonscript] by tophf who is a pretty cool guy.  Aegisub-Motion.moon is now the main version, but it will only run on recent trunk builds of Aegisub. Older versions, such as the 3.0.x branch need to use Aegisub-Motion.lua, which is now built from Aegisub-Motion.moon.
 
 **Important information**
 - Every time you update, you should delete and regenerate your configuration file(s).
