@@ -72,7 +72,7 @@
 export script_name        = "Aegisub-Motion"
 export script_description = "A set of tools for simplifying the process of creating and applying motion tracking data with Aegisub."
 export script_author      = "torque"
-export script_version     = "2.0.0.0.0.0-3" -- BATCHLEVEL PUMP?!!
+export script_version     = "0.5.0"
 
 config_file = "aegisub-motion.conf"
 
