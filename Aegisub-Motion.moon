@@ -1102,15 +1102,18 @@ trimnthings = (sub, sel) ->
 
 	platform = ({
 			{ext:'.bat', exec:'""%s""',  postexec:'\nif errorlevel 1 (echo Error & pause & del %0) else del %0'}
-			{ext:'.sh',  exec:'sh "%s"', postexec:''}
+			{ext:'.sh',  exec:'sh "%s"', postexec:' 2>&1\nrm $0'}
 		})[if winpaths then 1 else 2]
 
-	encsh = tokens.prefix.."encode"..platform.ext
+	encsh = tokens.prefix.."a-mo.encode"..platform.ext
 	sh = io.open encsh, "w+"
 	assert sh, "Encoding command could not be written. Check your prefix."
 	sh\write( global.enccom\gsub("#(%b{})", (token) -> tokens[token\sub(2, -2)])..platform.postexec )
-	sh\close()
-	ret = os.execute platform.exec\format encsh
+	sh\close!
+	output = io.popen platform.exec\format encsh
+	outputstr = output\read!
+	debug outputstr
+	output\close!
 	-- if ret != 0 then error "Encoding failed!\n"
 
 -------------------------------------------------------------------------------
