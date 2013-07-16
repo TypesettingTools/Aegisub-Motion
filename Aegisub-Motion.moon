@@ -1008,7 +1008,7 @@ splitconf = (s) ->
 	s\gsub("[\r\n]+", "")\match("^(.-):(.*)$")
 
 configscope = ->
-	return config_file if not config_file or re.match(tostring(config_file), "^(?:/|[A-Z]:\\\\)", re.ICASE)
+	return config_file if not config_file or re.match(tostring(config_file), [[^(?:/|[A-Z]:\\)]], re.ICASE)
 	cfs = aegisub.decode_path("?script/"..config_file)
 	if f = io.open(cfs)
 		f\close()
