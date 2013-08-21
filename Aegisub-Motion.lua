@@ -550,33 +550,33 @@ onetime_init = function()
     gui.conf[k] = e
   end
   alltags = {
-    xscl = "\\fscx([%d%.]+)",
-    yscl = "\\fscy([%d%.]+)",
-    ali = "\\an([1-9])",
-    zrot = "\\frz?([%-%d%.]+)",
-    bord = "\\bord([%d%.]+)",
-    xbord = "\\xbord([%d%.]+)",
-    ybord = "\\ybord([%d%.]+)",
-    shad = "\\shad([%-%d%.]+)",
-    xshad = "\\xshad([%-%d%.]+)",
-    yshad = "\\yshad([%-%d%.]+)",
-    reset = "\\r([^\\}]*)",
-    alpha = "\\alpha&H(%x%x)&",
-    l1a = "\\1a&H(%x%x)&",
-    l2a = "\\2a&H(%x%x)&",
-    l3a = "\\3a&H(%x%x)&",
-    l4a = "\\4a&H(%x%x)&",
-    l1c = "\\c&H(%x+)&",
-    l1c2 = "\\1c&H(%x+)&",
-    l2c = "\\2c&H(%x+)&",
-    l3c = "\\3c&H(%x+)&",
-    l4c = "\\4c&H(%x+)&",
-    clip = "\\clip%((.-)%)",
-    iclip = "\\iclip%((.-)%)",
-    be = "\\be([%d%.]+)",
-    blur = "\\blur([%d%.]+)",
-    fax = "\\fax([%-%d%.]+)",
-    fay = "\\fay([%-%d%.]+)"
+    xscl = [[\fscx([%d%.]+)]],
+    yscl = [[\fscy([%d%.]+)]],
+    ali = [[\an([1-9])]],
+    zrot = [[\frz?([%-%d%.]+)]],
+    bord = [[\bord([%d%.]+)]],
+    xbord = [[\xbord([%d%.]+)]],
+    ybord = [[\ybord([%d%.]+)]],
+    shad = [[\shad([%-%d%.]+)]],
+    xshad = [[\xshad([%-%d%.]+)]],
+    yshad = [[\yshad([%-%d%.]+)]],
+    reset = [[\r([^\\}]*)]],
+    alpha = [[\alpha&H(%x%x)&]],
+    l1a = [[\1a&H(%x%x)&]],
+    l2a = [[\2a&H(%x%x)&]],
+    l3a = [[\3a&H(%x%x)&]],
+    l4a = [[\4a&H(%x%x)&]],
+    l1c = [[\c&H(%x+)&]],
+    l1c2 = [[\1c&H(%x+)&]],
+    l2c = [[\2c&H(%x+)&]],
+    l3c = [[\3c&H(%x+)&]],
+    l4c = [[\4c&H(%x+)&]],
+    clip = [[\clip%((.-)%)]],
+    iclip = [[\iclip%((.-)%)]],
+    be = [[\be([%d%.]+)]],
+    blur = [[\blur([%d%.]+)]],
+    fax = [[\fax([%-%d%.]+)]],
+    fay = [[\fay([%-%d%.]+)]]
   }
   globaltags = {
     fad = "\\fad%([%d]+,[%d]+%)",
@@ -1022,7 +1022,7 @@ extraLineMetrics = function(line)
   end)
   line.text = line.text:gsub("\\(i?clip)(%b())", function(clip, points)
     line.clips = clip
-    points = points:gsub("([%-%d]+),([%-%d]+),([%-%d]+),([%-%d]+)", function(leftX, topY, rightX, botY)
+    points = points:gsub("([%-%d%.]+),([%-%d%.]+),([%-%d%.]+),([%-%d%.]+)", function(leftX, topY, rightX, botY)
       return ("m %s %s l %s %s %s %s %s %s"):format(leftX, topY, rightX, topY, rightX, botY, leftX, botY)
     end, 1)
     points:gsub("%(([%d]*),?(.-)%)", function(scl, clip)
@@ -1036,7 +1036,7 @@ extraLineMetrics = function(line)
       end
       line.clip = clip
     end, 1)
-    return '\\' .. clip .. points
+    return '\\' .. clip .. '(' .. line.clip .. ')'
   end)
   return line
 end
@@ -1369,11 +1369,12 @@ makexypos = function(xpos, ypos, mocha)
   return nxpos, nypos
 end
 clippinate = function(line, clipa, iter)
+  local cx, cy, ratx, raty, diffrz
   do
-    local cx, cy = clipa.xpos[iter], clipa.ypos[iter]
-    local ratx = clipa.xscl[iter] / clipa.xscl[clipa.start]
-    local raty = clipa.yscl[iter] / clipa.yscl[clipa.start]
-    local diffrz = clipa.zrot[iter] - clipa.zrot[clipa.start]
+    cx, cy = clipa.xpos[iter], clipa.ypos[iter]
+    ratx = clipa.xscl[iter] / clipa.xscl[clipa.start]
+    raty = clipa.yscl[iter] / clipa.yscl[clipa.start]
+    diffrz = clipa.zrot[iter] - clipa.zrot[clipa.start]
   end
   debug("cx: %f cy: %frx: %f ry: %f\nfrz: %f\n", cx, cy, ratx, raty, diffrz)
   local sclfac = 2 ^ (line.sclip - 1)

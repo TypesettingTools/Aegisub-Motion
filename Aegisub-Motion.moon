@@ -189,33 +189,33 @@ onetime_init = ->
 
 	-- [[ A table of all override tags that can be looped through. For detecting dupes in cleanup. ]]--
 	alltags = {
-		xscl:  "\\fscx([%d%.]+)"
-		yscl:  "\\fscy([%d%.]+)"
-		ali:   "\\an([1-9])"
-		zrot:  "\\frz?([%-%d%.]+)"
-		bord:  "\\bord([%d%.]+)"
-		xbord: "\\xbord([%d%.]+)"
-		ybord: "\\ybord([%d%.]+)"
-		shad:  "\\shad([%-%d%.]+)"
-		xshad: "\\xshad([%-%d%.]+)"
-		yshad: "\\yshad([%-%d%.]+)"
-		reset: "\\r([^\\}]*)"
-		alpha: "\\alpha&H(%x%x)&"
-		l1a:   "\\1a&H(%x%x)&"
-		l2a:   "\\2a&H(%x%x)&"
-		l3a:   "\\3a&H(%x%x)&"
-		l4a:   "\\4a&H(%x%x)&"
-		l1c:   "\\c&H(%x+)&"
-		l1c2:  "\\1c&H(%x+)&"
-		l2c:   "\\2c&H(%x+)&"
-		l3c:   "\\3c&H(%x+)&"
-		l4c:   "\\4c&H(%x+)&"
-		clip:  "\\clip%((.-)%)"
-		iclip: "\\iclip%((.-)%)"
-		be:    "\\be([%d%.]+)"
-		blur:  "\\blur([%d%.]+)"
-		fax:   "\\fax([%-%d%.]+)"
-		fay:   "\\fay([%-%d%.]+)"
+		xscl:  [[\fscx([%d%.]+)]]
+		yscl:  [[\fscy([%d%.]+)]]
+		ali:   [[\an([1-9])]]
+		zrot:  [[\frz?([%-%d%.]+)]]
+		bord:  [[\bord([%d%.]+)]]
+		xbord: [[\xbord([%d%.]+)]]
+		ybord: [[\ybord([%d%.]+)]]
+		shad:  [[\shad([%-%d%.]+)]]
+		xshad: [[\xshad([%-%d%.]+)]]
+		yshad: [[\yshad([%-%d%.]+)]]
+		reset: [[\r([^\\}]*)]]
+		alpha: [[\alpha&H(%x%x)&]]
+		l1a:   [[\1a&H(%x%x)&]]
+		l2a:   [[\2a&H(%x%x)&]]
+		l3a:   [[\3a&H(%x%x)&]]
+		l4a:   [[\4a&H(%x%x)&]]
+		l1c:   [[\c&H(%x+)&]]
+		l1c2:  [[\1c&H(%x+)&]]
+		l2c:   [[\2c&H(%x+)&]]
+		l3c:   [[\3c&H(%x+)&]]
+		l4c:   [[\4c&H(%x+)&]]
+		clip:  [[\clip%((.-)%)]]
+		iclip: [[\iclip%((.-)%)]]
+		be:    [[\be([%d%.]+)]]
+		blur:  [[\blur([%d%.]+)]]
+		fax:   [[\fax([%-%d%.]+)]]
+		fay:   [[\fay([%-%d%.]+)]]
 	}
 
 	globaltags = {
@@ -536,22 +536,19 @@ extraLineMetrics = (line) ->
 		block\gsub "\\t(%b())", lextrans
 		i..block
 
-	line.text = line.text\gsub "\\(i?clip)(%b())",
-		(clip, points) ->
-			line.clips = clip
-			points = points\gsub "([%-%d]+),([%-%d]+),([%-%d]+),([%-%d]+)",
-				(leftX, topY, rightX, botY) ->
-					("m %s %s l %s %s %s %s %s %s")\format(leftX, topY, rightX, topY, rightX, botY, leftX, botY),
-				1
-			points\gsub "%(([%d]*),?(.-)%)",
-				(scl, clip) ->
-					if line.sclip = tonumber(scl)
-						line.rescaleclip = true
-					else
-						line.sclip = 1
-					line.clip = clip,
-				1
-			'\\'..clip..points
+	line.text = line.text\gsub "\\(i?clip)(%b())", (clip, points) ->
+		line.clips = clip
+		points = points\gsub "([%-%d%.]+),([%-%d%.]+),([%-%d%.]+),([%-%d%.]+)", (leftX, topY, rightX, botY) ->
+				("m %s %s l %s %s %s %s %s %s")\format(leftX, topY, rightX, topY, rightX, botY, leftX, botY),
+			1
+		points\gsub "%(([%d]*),?(.-)%)", (scl, clip) ->
+				if line.sclip = tonumber(scl)
+					line.rescaleclip = true
+				else
+					line.sclip = 1
+				line.clip = clip,
+			1
+		'\\'..clip..'('..line.clip..')'
 	return line
 
 -------------------------------------------------------------------------------
@@ -799,6 +796,7 @@ makexypos = (xpos, ypos, mocha) ->
 -------------------------------------------------------------------------------
 
 clippinate = (line, clipa, iter) ->
+	local cx, cy, ratx, raty, diffrz
 	with clipa
 		cx, cy = .xpos[iter], .ypos[iter]
 		ratx   = .xscl[iter]/.xscl[.start]
@@ -807,20 +805,19 @@ clippinate = (line, clipa, iter) ->
 	debug "cx: %f cy: %frx: %f ry: %f\nfrz: %f\n", cx, cy, ratx, raty, diffrz
 
 	sclfac = 2^(line.sclip - 1)
-	clip = line.clip\gsub "([%.%d%-]+) ([%.%d%-]+)",
-		(x, y) ->
-			xo, yo = x, y
-			x = (tonumber(x) - clipa.xpos[clipa.start]*sclfac) * ratx
-			y = (tonumber(y) - clipa.ypos[clipa.start]*sclfac) * raty
-			r = math.sqrt(x^2+y^2)
-			alpha = datan(y, x)
-			x = cx*sclfac + r*dcos(alpha - diffrz)
-			y = cy*sclfac + r*dsin(alpha - diffrz)
-			debug "Clip: %d %d -> %d %d", xo, yo, x, y
-			if line.rescaleclip
-				x *= 1024/sclfac
-				y *= 1024/sclfac
-			("%d %d")\format round(x), round(y)
+	clip = line.clip\gsub "([%.%d%-]+) ([%.%d%-]+)", (x, y) ->
+		xo, yo = x, y
+		x = (tonumber(x) - clipa.xpos[clipa.start]*sclfac) * ratx
+		y = (tonumber(y) - clipa.ypos[clipa.start]*sclfac) * raty
+		r = math.sqrt(x^2+y^2)
+		alpha = datan(y, x)
+		x = cx*sclfac + r*dcos(alpha - diffrz)
+		y = cy*sclfac + r*dsin(alpha - diffrz)
+		debug "Clip: %d %d -> %d %d", xo, yo, x, y
+		if line.rescaleclip
+			x *= 1024/sclfac
+			y *= 1024/sclfac
+		("%d %d")\format round(x), round(y)
 
 	scale = if line.rescaleclip then "11," else ""
 	return ("\\%s(%s)")\format line.clips, scale..clip
