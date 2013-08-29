@@ -270,59 +270,72 @@ init_input = (sub, sel) -> -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
 	printmem "GUI startup"
 
 	conf, accd = dialogPreproc sub, sel
-	button, config = aegisub.dialog.display(gui.main, {"Go", "&\\clip...", "Abort"})
 
-	local clipconf
-	if button == "&\\clip..."
-		button, clipconf = aegisub.dialog.display(gui.clip, {"Go", "Cancel", "Abort"})
+	-- cancel:Abort in the main dialog tells Esc key to abort the entire macro
+	-- cancel:Cancel in \clip dialog tells Esc key to close it and go back to the main dialog
+	btns =
+		main: makebuttons {{ok:"&Go"}, {clip:"&\\clip..."}, {cancel:"&Abort"}}
+		clip: makebuttons {{ok:"&Go clippin'"}, {cancel:"&Cancel"}, {abort:"&Abort"}}
+	dlg = "main"
 
-	switch button
-		when "Go"
-			clipconf = clipconf or {} -- solve indexing errors
-			for field in *guiconf.clip
-				if clipconf[field] == nil then clipconf[field] = gui.clip[field].value
-			config.linespath = false if config.linespath == ""
+	while true
+		local clipconf, button, config
 
-			writeconf conf, {main: config, clip: clipconf, global: global} if config.wconfig
+		with btns[dlg]
+			button, config = aegisub.dialog.display(gui[dlg], .__list, .__namedlist)
 
-			config.stframe   = 1 if config.stframe == 0 -- TODO: fix this horrible clusterfuck
-			clipconf.stframe = 1 if clipconf.stframe == 0
+		switch button
+			when btns.main.clip
+				dlg = "clip"
+				continue
 
-			config.position   = true if config.xpos or config.ypos
-			clipconf.position = true if clipconf.xpos or clipconf.ypos
+			when btns.main.ok, btns.clip.ok
+				clipconf = clipconf or {} -- solve indexing errors
+				for field in *guiconf.clip
+					if clipconf[field] == nil then clipconf[field] = gui.clip[field].value
+				config.linespath = false if config.linespath == ""
 
-			config.yconst   = not config.ypos
-			config.xconst   = not config.xpos
-			clipconf.yconst = not clipconf.ypos
-			clipconf.xconst = not clipconf.xpos -- TODO: remove unnecessary logic inversion
+				writeconf conf, {main: config, clip: clipconf, global: global} if config.wconfig
 
-			clipconf.stframe = config.stframe if config.clip
-			config.linear    = false if config.clip or clipconf.clippath
+				config.stframe   = 1 if config.stframe == 0 -- TODO: fix this horrible clusterfuck
+				clipconf.stframe = 1 if clipconf.stframe == 0
 
-			if clipconf.clippath == "" or clipconf.clippath == nil
-				if not config.linespath then windowerr false, "No tracking data was provided."
-				clipconf.clippath = false
+				config.position   = true if config.xpos or config.ypos
+				clipconf.position = true if clipconf.xpos or clipconf.ypos
+
+				config.yconst   = not config.ypos
+				config.xconst   = not config.xpos
+				clipconf.yconst = not clipconf.ypos
+				clipconf.xconst = not clipconf.xpos -- TODO: remove unnecessary logic inversion
+
+				clipconf.stframe = config.stframe if config.clip
+				config.linear    = false if config.clip or clipconf.clippath
+
+				if clipconf.clippath == "" or clipconf.clippath == nil
+					if not config.linespath then windowerr false, "No tracking data was provided."
+					clipconf.clippath = false
+				else
+					config.clip = false -- set clip to false if clippath exists
+
+				aegisub.progress.title "Mincing Gerbils"
+				printmem "Go"
+
+				newsel = frame_by_frame sub, accd, config, clipconf
+				if munch sub, newsel
+					newsel = {}
+					for x = 1, #sub
+						table.insert newsel, x if tostring(sub[x].effect)\match("^aa%-mou")
+
+				aegisub.progress.title "Reformatting Gerbils"
+				cleanup sub, newsel, config
+
 			else
-				config.clip = false -- set clip to false if clippath exists
-
-			aegisub.progress.title "Mincing Gerbils"
-			printmem "Go"
-
-			newsel = frame_by_frame sub, accd, config, clipconf
-			if munch sub, newsel
-				newsel = {}
-				for x = 1, #sub
-					table.insert newsel, x if tostring(sub[x].effect)\match("^aa%-mou")
-
-			aegisub.progress.title "Reformatting Gerbils"
-			cleanup sub, newsel, config
-
-		when "Cancel"
-			init_input sub, sel -- this is extremely unideal as it reruns all of the information gathering functions as well.
-
-		else
-			aegisub.progress.task "ABORT"
-			aegisub.cancel()
+				if dlg == 'main' or button == btns.clip.abort
+					aegisub.progress.task "ABORT"
+					aegisub.cancel!
+				else
+					dlg = "main"
+					continue
 
 	setundo "Motion Data"
 	printmem "Closing"
@@ -1027,32 +1040,42 @@ confmaker = ->
 		gui.conf[key].value = value if gui.conf[key]
 	gui.conf.enccom.value = encpre[global.encoder] or gui.conf.enccom.value
 
-	button, config = aegisub.dialog.display(gui.conf, {"Write", "Write local", "\\clip...", "Abort"})
+	btns =
+		conf: makebuttons {{ok:"&Write"}, {local:"Write &local"}, {clip:"&\\clip..."}, {cancel:"&Abort"}}
+		clip: makebuttons {{ok:"&Write"}, {local:"Write &local"}, {cancel:"&Cancel"}, {abort:"&Abort"}}
+	dlg = "conf"
 
-	local clipconf
-	if button == "\\clip..."
-		button, clipconf = aegisub.dialog.display(gui.clip, {"Write", "Write local", "Cancel", "Abort"})
+	while true
+		local clipconf, button, config
 
-	switch button
-		when "Write", "Write local"
-			clipconf = clipconf or {}
-			conf = aegisub.decode_path("?script/"..config_file) if button == "Write local"
-			config.enccom = encpre[config.encoder] or config.enccom if global.encoder != config.encoder
+		with btns[dlg]
+			button, config = aegisub.dialog.display(gui[dlg], .__list, .__namedlist)
 
-			for key, value in pairs global
-				global[key] = config[key]
-				config[key] = nil
+		switch button
+			when btns.conf.clip
+				dlg = "clip"
+				continue
 
-			for field in *guiconf.clip
-				clipconf[field] = gui.clip[field].value if clipconf[field] == nil
+			when btns.conf.ok, btns.conf.local, btns.clip.ok, btns.clip.local
+				clipconf = clipconf or {}
+				conf = aegisub.decode_path("?script/"..config_file) if button == "Write local"
+				config.enccom = encpre[config.encoder] or config.enccom if global.encoder != config.encoder
 
-			writeconf conf, {main: config, clip: clipconf, global: global}
+				for key, value in pairs global
+					global[key] = config[key]
+					config[key] = nil
 
-		when "Cancel"
-			confmaker!
+				for field in *guiconf.clip
+					clipconf[field] = gui.clip[field].value if clipconf[field] == nil
 
-		else
-			aegisub.cancel()
+				writeconf conf, {main: config, clip: clipconf, global: global}
+
+			else
+				if dlg == "conf" or button == btns.clip.abort
+					aegisub.cancel!
+				else
+					dlg = "conf"
+					continue
 
 -------------------------------------------------------------------------------
 
@@ -1202,9 +1225,18 @@ conformdialog = (dlg) ->
 			e[k] = v
 	dlg
 
+makebuttons = (extendedlist) -> -- example: {{ok:'&Add'}, {load:'Loa&d...'}, {cancel:'&Cancel'}}
+	btns = __list:{}, __namedlist:{}
+	for L in *extendedlist
+		for k,v in pairs L
+			btns[k] = v
+			btns.__namedlist[k] = v
+			table.insert btns.__list, v
+	btns
+
 windowerr = (bool, message) ->
 	if not bool
-		aegisub.dialog.display {{class:"label", label:message}}, {"Close"}
+		aegisub.dialog.display {{class:"label", label:message}}, {"&Close"}, {cancel:"&Close"}
 		error message
 
 printmem = (a) ->
