@@ -275,9 +275,10 @@ init_input = (sub, sel) -> -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
 
 	-- cancel:Abort in the main dialog tells Esc key to abort the entire macro
 	-- cancel:Cancel in \clip dialog tells Esc key to close it and go back to the main dialog
-	btns =
-		main: makebuttons {{ok:"&Go"}, {clip:"&\\clip..."}, {cancel:"&Abort"}}
-		clip: makebuttons {{ok:"&Go clippin'"}, {cancel:"&Cancel"}, {abort:"&Abort"}}
+	btns = {
+			main: makebuttons {{ok:"&Go"}, {clip:"&\\clip..."}, {cancel:"&Abort"}}
+			clip: makebuttons {{ok:"&Go clippin'"}, {cancel:"&Cancel"}, {abort:"&Abort"}}
+		}
 	dlg = "main"
 
 	while true
@@ -1043,9 +1044,10 @@ confmaker = ->
 		gui.conf[key].value = value if gui.conf[key]
 	gui.conf.enccom.value = encpre[global.encoder] or gui.conf.enccom.value
 
-	btns =
-		conf: makebuttons {{ok:"&Write"}, {local:"Write &local"}, {clip:"&\\clip..."}, {cancel:"&Abort"}}
-		clip: makebuttons {{ok:"&Write"}, {local:"Write &local"}, {cancel:"&Cancel"}, {abort:"&Abort"}}
+	btns = {
+			conf: makebuttons {{ok:"&Write"}, {local:"Write &local"}, {clip:"&\\clip..."}, {cancel:"&Abort"}}
+			clip: makebuttons {{ok:"&Write"}, {local:"Write &local"}, {cancel:"&Cancel"}, {abort:"&Abort"}}
+		}
 	dlg = "conf"
 
 	while true
