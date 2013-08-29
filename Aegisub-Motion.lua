@@ -761,6 +761,7 @@ init_input = function(sub, sel)
         end
         aegisub.progress.title("Reformatting Gerbils")
         cleanup(sub, newsel, config)
+        break
       else
         if dlg == 'main' or button == btns.clip.abort then
           aegisub.progress.task("ABORT")
@@ -1760,6 +1761,7 @@ confmaker = function()
           clip = clipconf,
           global = global
         })
+        break
       else
         if dlg == "conf" or button == btns.clip.abort then
           aegisub.cancel()

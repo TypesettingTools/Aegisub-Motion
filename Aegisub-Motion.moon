@@ -330,6 +330,7 @@ init_input = (sub, sel) -> -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
 
 				aegisub.progress.title "Reformatting Gerbils"
 				cleanup sub, newsel, config
+				break
 
 			else
 				if dlg == 'main' or button == btns.clip.abort
@@ -1071,6 +1072,7 @@ confmaker = ->
 					clipconf[field] = gui.clip[field].value if clipconf[field] == nil
 
 				writeconf conf, {main: config, clip: clipconf, global: global}
+				break
 
 			else
 				if dlg == "conf" or button == btns.clip.abort
