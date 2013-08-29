@@ -77,7 +77,7 @@ onetime_init = function()
         1,
         name = "xpos",
         value = true,
-        label = "x",
+        label = "&x",
         hint = "Apply x position data to the selected lines."
       },
       ypos = {
@@ -88,7 +88,7 @@ onetime_init = function()
         1,
         name = "ypos",
         value = true,
-        label = "y",
+        label = "&y",
         hint = "Apply y position data to the selected lines."
       },
       origin = {
@@ -99,7 +99,7 @@ onetime_init = function()
         1,
         name = "origin",
         value = false,
-        label = "Origin",
+        label = "&Origin",
         hint = "Move the origin along with the position."
       },
       clip = {
@@ -110,7 +110,7 @@ onetime_init = function()
         1,
         name = "clip",
         value = false,
-        label = "Clip",
+        label = "&Clip",
         hint = "Move clip along with the position (note: will also be scaled and rotated if those options are selected)."
       },
       scale = {
@@ -121,7 +121,7 @@ onetime_init = function()
         1,
         name = "scale",
         value = true,
-        label = "Scale",
+        label = "&Scale",
         hint = "Apply scaling data to the selected lines."
       },
       border = {
@@ -132,7 +132,7 @@ onetime_init = function()
         1,
         name = "border",
         value = true,
-        label = "Border",
+        label = "&Border",
         hint = "Scale border with the line (only if Scale is also selected)."
       },
       shadow = {
@@ -143,7 +143,7 @@ onetime_init = function()
         1,
         name = "shadow",
         value = true,
-        label = "Shadow",
+        label = "&Shadow",
         hint = "Scale shadow with the line (only if Scale is also selected)."
       },
       blur = {
@@ -154,7 +154,7 @@ onetime_init = function()
         1,
         name = "blur",
         value = true,
-        label = "Blur",
+        label = "Bl&ur",
         hint = "Scale blur with the line (only if Scale is also selected, does not scale \\be)."
       },
       rotation = {
@@ -165,7 +165,7 @@ onetime_init = function()
         1,
         name = "rotation",
         value = false,
-        label = "Rotation",
+        label = "&Rotation",
         hint = "Apply rotation data to the selected lines."
       },
       posround = {
@@ -212,7 +212,7 @@ onetime_init = function()
         1,
         name = "wconfig",
         value = false,
-        label = "Write config",
+        label = "&Write config",
         hint = "Write current settings to the configuration file."
       },
       relative = {
@@ -223,7 +223,7 @@ onetime_init = function()
         1,
         name = "relative",
         value = true,
-        label = "Relative",
+        label = "R&elative",
         hint = "Start frame should be relative to the line's start time rather than to the start time of all selected lines"
       },
       stframe = {
@@ -244,7 +244,7 @@ onetime_init = function()
         1,
         name = "linear",
         value = false,
-        label = "Linear",
+        label = "Li&near",
         hint = "Use transforms and \\move to create a linear transition, instead of frame-by-frame."
       },
       sortd = {
@@ -298,7 +298,7 @@ onetime_init = function()
         1,
         name = "xpos",
         value = true,
-        label = "x",
+        label = "&x",
         hint = "Apply x position data to the selected lines."
       },
       ypos = {
@@ -309,7 +309,7 @@ onetime_init = function()
         1,
         name = "ypos",
         value = true,
-        label = "y",
+        label = "&y",
         hint = "Apply y position data to the selected lines."
       },
       scale = {
@@ -320,7 +320,7 @@ onetime_init = function()
         1,
         name = "scale",
         value = true,
-        label = "Scale"
+        label = "&Scale"
       },
       rotation = {
         "checkbox",
@@ -330,7 +330,7 @@ onetime_init = function()
         1,
         name = "rotation",
         value = false,
-        label = "Rotation"
+        label = "&Rotation"
       },
       relative = {
         "checkbox",
@@ -340,7 +340,7 @@ onetime_init = function()
         1,
         name = "relative",
         value = true,
-        label = "Relative"
+        label = "R&elative"
       },
       stframe = {
         "intedit",
