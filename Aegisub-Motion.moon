@@ -1232,7 +1232,7 @@ conformdialog = (dlg) ->
 	dlg
 
 makebuttons = (extendedlist) -> -- example: {{ok:'&Add'}, {load:'Loa&d...'}, {cancel:'&Cancel'}}
-	btns = __list:{}, __namedlist:{}
+	btns = {__list:{}, __namedlist:{}}
 	for L in *extendedlist
 		for k,v in pairs L
 			btns[k] = v
