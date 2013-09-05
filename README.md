@@ -1,10 +1,9 @@
 ## Aegisub-Motion.moon ##
 
-Aegisub-Motion has been ported to [moonscript][moonscript] by tophf who is a pretty cool guy.  Aegisub-Motion.moon is now the main version, but it will only run on recent trunk builds of Aegisub. Older versions, such as the 3.0.x branch need to use Aegisub-Motion.lua, which is now built from Aegisub-Motion.moon.
+Aegisub-Motion has been ported to [moonscript][moonscript] by tophf who is a pretty cool guy.  Aegisub-Motion.moon is now the main version, but it will only run on [recent trunk builds][aegplork] of Aegisub. Older versions, such as the 3.0.x branch need to use Aegisub-Motion.lua, which is now built from Aegisub-Motion.moon.
 
-**Important information**
-- Every time you update, you should delete and regenerate your configuration file(s).
-- This script no longer supports Aegisub 2.1.x. [Click here for the last version that does.][oldver]
+### Motion Trackers ###
+If you don't feel like sticking it to the man and stealing extremely expensive software from Imagineer Systems (don't lie to me, I know you weren't paying for [Mocha Pro][mocha]), lachs0r made [an export script][bscript] for [Blender][blender] as well as [a video tutorial][btut] on how to actually track motion in Blender.
 
 ### [Documentation][docu] ###
 
@@ -20,35 +19,39 @@ Aegisub-Motion requires Aegisub 3.0.X or better, which is now the official stabl
 
 No previous versions of Aegisub are supported (the script will simply refuse to load). If bugs in the old version are reported, I will fix them, but the new features will not end up being backported.
 
-To use this script, you must first have tracked the motion in an external program. The recommended one is [Mocha Pro][mocha], but any motion tracking software should work as long as the data is exported to the right format.
-
 The input motion data must be a specific variant of `Adobe After Effects 6.0 Keyframe Data`. For Mocha, export to `After Effects Transform Data [anchor point, position, scale and rotation](*.txt)`). The data format looks like this:
 
-    Adobe After Effects 6.0 Keyframe Data
+```
+Adobe After Effects 6.0 Keyframe Data
 
-      Units Per Second  23.976
-      Source Width  1920
-      Source Height 1080
-      Source Pixel Aspect Ratio 1
-      Comp Pixel Aspect Ratio 1
+	Units Per Second	23.976
+	Source Width	1280
+	Source Height	720
+	Source Pixel Aspect Ratio	1
+	Comp Pixel Aspect Ratio	1
 
-    Anchor Point
-      Frame X pixels  Y pixels  Z pixels
-      0 1583  180 0
+Anchor Point
+	Frame	X pixels	Y pixels	Z pixels
+	301	631.721	60.102	0
+	302	631.638	67.4154	0
 
-    Position
-      Frame X pixels  Y pixels  Z pixels
-      0 1583  180 0
+Position
+	Frame	X pixels	Y pixels	Z pixels
+	301	631.721	60.102	0
+	302	631.638	67.4154	0
 
-    Scale
-      Frame X percent Y percent Z percent
-      0 100 100 100
+Scale
+	Frame	X percent	Y percent	Z percent
+	301	199.755	199.755	100
+	302	198.532	198.532	100
 
-    Rotation
-      Frame Degrees
-      0 0
+Rotation
+	Frame	Degrees
+	301	-44.5743
+	302	-44.0877
 
-    End of Keyframe Data
+End of Keyframe Data
+```
 
 ### Features ###
 
@@ -61,8 +64,6 @@ The output can be sorted by one of two methods: the default, which is to place e
 The second macro can trim and encode the current scene to an H.264-in-mp4 file or an image sequence ready for motion tracking. It can utilize x264, ffmpeg, avisynth, or potentially many other command-line tools to do this (ffmpeg is not frame accurate, and avisynth needs ffms2 or another frame accurate source filter to be, well, frame accurate.)
 
 It uses a very simple external configuration file to save user input across scripts. The config writing functions should no longer be capable of erasing the contents of config file if they error.
-
-Finally, it also supports exporting the tracking data into a format that is compatable with [gnuplot][gnuplot], along with gnuplot plotting instructions. It can even plot the data automatically, if you have gnuplot in your PATH.
 
 ### Troubleshooting ###
 
@@ -79,9 +80,9 @@ Many bugs have been reported by various users, and if you've reported something 
 I'm typically available as `torque` on `irc.rizon.net`. Feel free to PM me with suggestions, requests or questions. I am not always at the computer, but if you leave me a message, I will get back to you when I can.
 
 [moonscript]: http://moonscript.org/
-[moonscriptcommit]: https://github.com/Aegisub/Aegisub/commit/19854e207a2f8f703f73791a0a0f887a4a6cd964
-[oldver]: https://github.com/torque/Aegisub-Motion/tree/legacy
+[bscript]: https://gist.github.com/torque/6453947/raw/f2faa10114edf46307c47307ae3b7f6d215c5bc6/gistfile1.py
+[blender]: http://www.blender.org/
+[btut]: https://www.youtube.com/watch?v=lHgiRjKr4Iw
 [docu]: https://github.com/torque/Aegisub-Motion/wiki
 [aegplork]: http://plorkyeran.com/aegisub/
 [mocha]: http://www.imagineersystems.com/
-[gnuplot]: http://www.gnuplot.info/
