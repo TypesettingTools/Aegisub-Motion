@@ -80,7 +80,7 @@ Many bugs have been reported by various users, and if you've reported something 
 I'm typically available as `torque` on `irc.rizon.net`. Feel free to PM me with suggestions, requests or questions. I am not always at the computer, but if you leave me a message, I will get back to you when I can.
 
 [moonscript]: http://moonscript.org/
-[bscript]: https://gist.github.com/torque/6453947/raw/f2faa10114edf46307c47307ae3b7f6d215c5bc6/gistfile1.py
+[bscript]: https://gist.github.com/torque/73fc57523c79d3e7bf22/raw/9e455d7313c65d406622bab620d9c99381a46956/aae-export.py
 [blender]: http://www.blender.org/
 [btut]: https://www.youtube.com/watch?v=lHgiRjKr4Iw
 [docu]: https://github.com/torque/Aegisub-Motion/wiki
