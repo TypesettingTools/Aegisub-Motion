@@ -1121,7 +1121,7 @@ trimnthings = (sub, sel) ->
 			for k, v in pairs opts do tokens[k] = v
 			.startt = aegisub.ms_from_frame .startf
 			.endt   = aegisub.ms_from_frame .endf
-			.lenf = .endf - .startf
+			.lenf = .endf - .startf + 1
 			.lent = .endt - .startt
 
 		.startt, .endt, .lent = .startt/1000, .endt/1000, .lent/1000

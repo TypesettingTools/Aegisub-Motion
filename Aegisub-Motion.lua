@@ -1814,7 +1814,7 @@ trimnthings = function(sub, sel)
       end
       tokens.startt = aegisub.ms_from_frame(tokens.startf)
       tokens.endt = aegisub.ms_from_frame(tokens.endf)
-      tokens.lenf = tokens.endf - tokens.startf
+      tokens.lenf = tokens.endf - tokens.startf + 1
       tokens.lent = tokens.endt - tokens.startt
     end
     tokens.startt, tokens.endt, tokens.lent = tokens.startt / 1000, tokens.endt / 1000, tokens.lent / 1000
