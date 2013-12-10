@@ -1264,6 +1264,7 @@ getvideoname = (sub) ->
 	for x = 1, #sub
 		if sub[x].key == "Video File"
 			return sub[x].value\gsub "^ ", ""
+	windowerr false, "Could not find 'Video File'. Try saving your script before rerunning the macro."
 
 isvideo = ->
 	return true if aegisub.frame_from_ms(0)

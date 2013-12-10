@@ -2026,6 +2026,7 @@ getvideoname = function(sub)
       return sub[x].value:gsub("^ ", "")
     end
   end
+  return windowerr(false, "Could not find 'Video File'. Try saving your script before rerunning the macro.")
 end
 isvideo = function()
   if aegisub.frame_from_ms(0) then
