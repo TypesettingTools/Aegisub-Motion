@@ -130,18 +130,6 @@ onetime_init = ->
 			relative: {"checkbox",  4, 6, 3,  1,  name:  "relative", value: true, label: "R&elative"}
 			stframe:  {"intedit",   7, 6, 3,  1,  name:  "stframe", value: 1}
 		}
-		t: {
-			vidlabel: {"label",     0,  0, 30, 1, label: "The path to the loaded video"}
-			input:    {"textbox",   0,  1, 30, 1, name:  "input"}
-			idxlabel: {"label",     0,  2, 30, 1, label: "The path to the index file."}
-			index:    {"textbox",   0,  3, 30, 1, name:  "index"}
-			sflabel:  {"label",     0,  4, 15, 1, label: "Start frame"}
-			startf:   {"intedit",   0,  5, 15, 1, name:  "startf"}
-			eflabel:  {"label",     15, 4, 15, 1, label: "End frame"}
-			endf:     {"intedit",   15, 5, 15, 1, name:  "endf"}
-			oplabel:  {"label",     0,  6, 30, 1, label: "Video file to be written"}
-			output:   {"textbox",   0,  7, 30, 1, name:  "output"}
-		}
 	}
 
 	for _, dlg in pairs gui do conformdialog dlg
@@ -159,7 +147,6 @@ onetime_init = ->
 			prefix:   "?video"
 			encoder:  "x264" -- todo: move to trim options
 			encbin:   ""     -- same
-			gui_trim: false  -- same
 			autocopy: true
 			acfilter: true
 			delsourc: false
@@ -178,7 +165,6 @@ onetime_init = ->
 		.preflabel.label = "First box: path to encoder binary; second box: encoder command."
 
 	for k, e in pairs conformdialog {
-			gui_trim: {"checkbox", 3, 22, 4, 1, value: global.trim, label: "Enable trim GUI", name: "gui_trim", hint: "Set whether or not the trim gui should appear."}
 			enccom:   {"textbox",  0, 17, 10, 4, value: global.enccom,                         name: "enccom",   hint: "The encoding command that will be used. If you change this, set the preset to \"custom\"."}
 			prefix:   {"textbox",  0, 1, 10, 4, value: global.prefix,                         name: "prefix",   hint: "The folder to which all generated files will be written."}
 			encoder:  {"dropdown", 0, 11, 2, 1, value: global.encoder,                        name: "encoder",
@@ -1107,22 +1093,6 @@ trimnthings = (sub, sel) ->
 		.inpath = aegisub.decode_path "?video/"
 		.index = .input\match "(.+)%.[^%.]+$"
 		.output = .index -- huh.
-
-		if global.gui_trim
-			gui.t.input.value  = .input
-			gui.t.index.value  = .index
-			gui.t.startf.value = .startf
-			gui.t.endf.value   = .endf
-			gui.t.output.value = .output
-
-			button, opts = aegisub.dialog.display gui.t
-			return if not button
-
-			for k, v in pairs opts do tokens[k] = v
-			.startt = aegisub.ms_from_frame .startf
-			.endt   = aegisub.ms_from_frame .endf
-			.lenf = .endf - .startf + 1
-			.lent = .endt - .startt
 
 		.startt, .endt, .lent = .startt/1000, .endt/1000, .lent/1000
 

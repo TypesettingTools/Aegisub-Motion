@@ -351,88 +351,6 @@ onetime_init = function()
         name = "stframe",
         value = 1
       }
-    },
-    t = {
-      vidlabel = {
-        "label",
-        0,
-        0,
-        30,
-        1,
-        label = "The path to the loaded video"
-      },
-      input = {
-        "textbox",
-        0,
-        1,
-        30,
-        1,
-        name = "input"
-      },
-      idxlabel = {
-        "label",
-        0,
-        2,
-        30,
-        1,
-        label = "The path to the index file."
-      },
-      index = {
-        "textbox",
-        0,
-        3,
-        30,
-        1,
-        name = "index"
-      },
-      sflabel = {
-        "label",
-        0,
-        4,
-        15,
-        1,
-        label = "Start frame"
-      },
-      startf = {
-        "intedit",
-        0,
-        5,
-        15,
-        1,
-        name = "startf"
-      },
-      eflabel = {
-        "label",
-        15,
-        4,
-        15,
-        1,
-        label = "End frame"
-      },
-      endf = {
-        "intedit",
-        15,
-        5,
-        15,
-        1,
-        name = "endf"
-      },
-      oplabel = {
-        "label",
-        0,
-        6,
-        30,
-        1,
-        label = "Video file to be written"
-      },
-      output = {
-        "textbox",
-        0,
-        7,
-        30,
-        1,
-        name = "output"
-      }
     }
   }
   for _, dlg in pairs(gui) do
@@ -448,7 +366,6 @@ onetime_init = function()
       prefix = "?video",
       encoder = "x264",
       encbin = "",
-      gui_trim = false,
       autocopy = true,
       acfilter = true,
       delsourc = false
@@ -466,17 +383,6 @@ onetime_init = function()
     _with_0.preflabel.label = "First box: path to encoder binary; second box: encoder command."
   end
   for k, e in pairs(conformdialog({
-    gui_trim = {
-      "checkbox",
-      3,
-      22,
-      4,
-      1,
-      value = global.trim,
-      label = "Enable trim GUI",
-      name = "gui_trim",
-      hint = "Set whether or not the trim gui should appear."
-    },
     enccom = {
       "textbox",
       0,
@@ -1799,24 +1705,6 @@ trimnthings = function(sub, sel)
     tokens.inpath = aegisub.decode_path("?video/")
     tokens.index = tokens.input:match("(.+)%.[^%.]+$")
     tokens.output = tokens.index
-    if global.gui_trim then
-      gui.t.input.value = tokens.input
-      gui.t.index.value = tokens.index
-      gui.t.startf.value = tokens.startf
-      gui.t.endf.value = tokens.endf
-      gui.t.output.value = tokens.output
-      local button, opts = aegisub.dialog.display(gui.t)
-      if not button then
-        return 
-      end
-      for k, v in pairs(opts) do
-        tokens[k] = v
-      end
-      tokens.startt = aegisub.ms_from_frame(tokens.startf)
-      tokens.endt = aegisub.ms_from_frame(tokens.endf)
-      tokens.lenf = tokens.endf - tokens.startf + 1
-      tokens.lent = tokens.endt - tokens.startt
-    end
     tokens.startt, tokens.endt, tokens.lent = tokens.startt / 1000, tokens.endt / 1000, tokens.lent / 1000
   end
   local platform = ({
