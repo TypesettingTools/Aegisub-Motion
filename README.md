@@ -3,7 +3,7 @@
 Aegisub-Motion has been ported to [moonscript][moonscript] by tophf who is a pretty cool guy.  Aegisub-Motion.moon is now the main version, but it will only run on [recent trunk builds][aegplork] of Aegisub. Older versions, such as the 3.0.x branch need to use Aegisub-Motion.lua, which is now built from Aegisub-Motion.moon.
 
 ### Motion Trackers ###
-If you don't feel like sticking it to the man and stealing extremely expensive software from Imagineer Systems (don't lie to me, I know you weren't paying for [Mocha Pro][mocha]), lachs0r made [an export script][bscript] for [Blender][blender] as well as [a video tutorial][btut] on how to actually track motion in Blender.
+If you don't feel like sticking it to the man and stealing extremely expensive software from Imagineer Systems (don't lie to me, I know you weren't paying for [Mocha Pro][mocha]), lachs0r made (and logarithm fixed) [an export script][bscript] for [Blender][blender] as well as [a video tutorial][btut] on how to actually track motion in Blender.
 
 ### [Documentation][docu] ###
 
@@ -80,7 +80,7 @@ Many bugs have been reported by various users, and if you've reported something 
 I'm typically available as `torque` on `irc.rizon.net`. Feel free to PM me with suggestions, requests or questions. I am not always at the computer, but if you leave me a message, I will get back to you when I can.
 
 [moonscript]: http://moonscript.org/
-[bscript]: https://gist.github.com/torque/73fc57523c79d3e7bf22/raw/9e455d7313c65d406622bab620d9c99381a46956/aae-export.py
+[bscript]: https://gist.github.com/torque/6453947/raw/c077f87ddf6eaafec2e14b7895ab4dd4771e6949/aae-export.py
 [blender]: http://www.blender.org/
 [btut]: https://www.youtube.com/watch?v=lHgiRjKr4Iw
 [docu]: https://github.com/torque/Aegisub-Motion/wiki
