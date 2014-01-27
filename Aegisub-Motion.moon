@@ -1106,11 +1106,12 @@ trimnthings = (sub, sel) ->
 	assert sh, "Encoding command could not be written. Check your prefix."
 	sh\write( global.enccom\gsub("#(%b{})", (token) -> tokens[token\sub(2, -2)])..platform.postexec )
 	sh\close!
-	output = io.popen platform.exec\format encsh
-	outputstr = output\read!
-	debug outputstr
-	output\close!
-	-- if ret != 0 then error "Encoding failed!\n"
+	ret = os.execute platform.exec\format encsh
+	-- output = io.popen platform.exec\format encsh
+	-- outputstr = output\read!
+	-- debug outputstr
+	-- output\close!
+	if ret != 0 then error "Encoding failed!\n"
 
 -------------------------------------------------------------------------------
 
