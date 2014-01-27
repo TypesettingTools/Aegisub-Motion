@@ -363,7 +363,7 @@ onetime_init = function()
   }
   do
     global = {
-      prefix = "?video",
+      prefix = "?video/",
       encoder = "x264",
       encbin = "",
       autocopy = true,
@@ -1732,10 +1732,10 @@ trimnthings = function(sub, sel)
     return tokens[token:sub(2, -2)]
   end) .. platform.postexec)
   sh:close()
-  local output = io.popen(platform.exec:format(encsh))
-  local outputstr = output:read()
-  debug(outputstr)
-  return output:close()
+  local ret = os.execute(platform.exec:format(encsh))
+  if ret ~= 0 then
+    return error("Encoding failed!\n")
+  end
 end
 collecttrim = function(sub, sel, tokens)
   do
