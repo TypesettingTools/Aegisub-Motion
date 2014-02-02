@@ -1732,10 +1732,7 @@ trimnthings = function(sub, sel)
     return tokens[token:sub(2, -2)]
   end) .. platform.postexec)
   sh:close()
-  local ret = os.execute(platform.exec:format(encsh))
-  if ret ~= 0 then
-    return error("Encoding failed!\n")
-  end
+  return os.execute(platform.exec:format(encsh))
 end
 collecttrim = function(sub, sel, tokens)
   do
