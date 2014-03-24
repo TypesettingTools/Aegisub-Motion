@@ -267,11 +267,12 @@ init_input = (sub, sel) -> -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
 		}
 	dlg = "main"
 
+	config = {}
 	while true
-		local clipconf, button, config
+		local button
 
 		with btns[dlg]
-			button, config = aegisub.dialog.display(gui[dlg], .__list, .__namedlist)
+			button, config[dlg] = aegisub.dialog.display(gui[dlg], .__list, .__namedlist)
 
 		switch button
 			when btns.main.clip
@@ -279,44 +280,44 @@ init_input = (sub, sel) -> -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
 				continue
 
 			when btns.main.ok, btns.clip.ok
-				clipconf = clipconf or {} -- solve indexing errors
+				config.clip = config.clip or {} -- solve indexing errors
 				for field in *guiconf.clip
-					if clipconf[field] == nil then clipconf[field] = gui.clip[field].value
-				config.linespath = false if config.linespath == ""
+					if config.clip[field] == nil then config.clip[field] = gui.clip[field].value
+				config.main.linespath = false if config.main.linespath == ""
 
-				writeconf conf, {main: config, clip: clipconf, global: global} if config.wconfig
+				writeconf conf, {main: config.main, clip: config.clip, global: global} if config.main.wconfig
 
-				config.stframe   = 1 if config.stframe == 0 -- TODO: fix this horrible clusterfuck
-				clipconf.stframe = 1 if clipconf.stframe == 0
+				config.main.stframe   = 1 if config.main.stframe == 0 -- TODO: fix this horrible clusterfuck
+				config.clip.stframe = 1 if config.clip.stframe == 0
 
-				config.position   = true if config.xpos or config.ypos
-				clipconf.position = true if clipconf.xpos or clipconf.ypos
+				config.main.position   = true if config.main.xpos or config.main.ypos
+				config.clip.position = true if config.clip.xpos or config.clip.ypos
 
-				config.yconst   = not config.ypos
-				config.xconst   = not config.xpos
-				clipconf.yconst = not clipconf.ypos
-				clipconf.xconst = not clipconf.xpos -- TODO: remove unnecessary logic inversion
+				config.main.yconst   = not config.main.ypos
+				config.main.xconst   = not config.main.xpos
+				config.clip.yconst = not config.clip.ypos
+				config.clip.xconst = not config.clip.xpos -- TODO: remove unnecessary logic inversion
 
-				clipconf.stframe = config.stframe if config.clip
-				config.linear    = false if config.clip or clipconf.clippath
+				config.clip.stframe = config.main.stframe if config.main.clip
+				config.main.linear    = false if config.main.clip or config.clip.clippath
 
-				if clipconf.clippath == "" or clipconf.clippath == nil
-					if not config.linespath then windowerr false, "No tracking data was provided."
-					clipconf.clippath = false
+				if config.clip.clippath == "" or config.clip.clippath == nil
+					if not config.main.linespath then windowerr false, "No tracking data was provided."
+					config.clip.clippath = false
 				else
-					config.clip = false -- set clip to false if clippath exists
+					config.main.clip = false -- set clip to false if clippath exists
 
 				aegisub.progress.title "Mincing Gerbils"
 				printmem "Go"
 
-				newsel = frame_by_frame sub, accd, config, clipconf
+				newsel = frame_by_frame sub, accd, config.main, config.clip
 				if munch sub, newsel
 					newsel = {}
 					for x = 1, #sub
 						table.insert newsel, x if tostring(sub[x].effect)\match("^aa%-mou")
 
 				aegisub.progress.title "Reformatting Gerbils"
-				cleanup sub, newsel, config
+				cleanup sub, newsel, config.main
 				break
 
 			else

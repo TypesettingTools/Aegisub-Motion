@@ -592,13 +592,14 @@ init_input = function(sub, sel)
     })
   }
   local dlg = "main"
+  local config = { }
   while true do
     local _continue_0 = false
     repeat
-      local clipconf, button, config
+      local button
       do
         local _with_0 = btns[dlg]
-        button, config = aegisub.dialog.display(gui[dlg], _with_0.__list, _with_0.__namedlist)
+        button, config[dlg] = aegisub.dialog.display(gui[dlg], _with_0.__list, _with_0.__namedlist)
       end
       local _exp_0 = button
       if btns.main.clip == _exp_0 then
@@ -606,57 +607,57 @@ init_input = function(sub, sel)
         _continue_0 = true
         break
       elseif btns.main.ok == _exp_0 or btns.clip.ok == _exp_0 then
-        clipconf = clipconf or { }
+        config.clip = config.clip or { }
         local _list_0 = guiconf.clip
         for _index_0 = 1, #_list_0 do
           local field = _list_0[_index_0]
-          if clipconf[field] == nil then
-            clipconf[field] = gui.clip[field].value
+          if config.clip[field] == nil then
+            config.clip[field] = gui.clip[field].value
           end
         end
-        if config.linespath == "" then
-          config.linespath = false
+        if config.main.linespath == "" then
+          config.main.linespath = false
         end
-        if config.wconfig then
+        if config.main.wconfig then
           writeconf(conf, {
-            main = config,
-            clip = clipconf,
+            main = config.main,
+            clip = config.clip,
             global = global
           })
         end
-        if config.stframe == 0 then
-          config.stframe = 1
+        if config.main.stframe == 0 then
+          config.main.stframe = 1
         end
-        if clipconf.stframe == 0 then
-          clipconf.stframe = 1
+        if config.clip.stframe == 0 then
+          config.clip.stframe = 1
         end
-        if config.xpos or config.ypos then
-          config.position = true
+        if config.main.xpos or config.main.ypos then
+          config.main.position = true
         end
-        if clipconf.xpos or clipconf.ypos then
-          clipconf.position = true
+        if config.clip.xpos or config.clip.ypos then
+          config.clip.position = true
         end
-        config.yconst = not config.ypos
-        config.xconst = not config.xpos
-        clipconf.yconst = not clipconf.ypos
-        clipconf.xconst = not clipconf.xpos
-        if config.clip then
-          clipconf.stframe = config.stframe
+        config.main.yconst = not config.main.ypos
+        config.main.xconst = not config.main.xpos
+        config.clip.yconst = not config.clip.ypos
+        config.clip.xconst = not config.clip.xpos
+        if config.main.clip then
+          config.clip.stframe = config.main.stframe
         end
-        if config.clip or clipconf.clippath then
-          config.linear = false
+        if config.main.clip or config.clip.clippath then
+          config.main.linear = false
         end
-        if clipconf.clippath == "" or clipconf.clippath == nil then
-          if not config.linespath then
+        if config.clip.clippath == "" or config.clip.clippath == nil then
+          if not config.main.linespath then
             windowerr(false, "No tracking data was provided.")
           end
-          clipconf.clippath = false
+          config.clip.clippath = false
         else
-          config.clip = false
+          config.main.clip = false
         end
         aegisub.progress.title("Mincing Gerbils")
         printmem("Go")
-        local newsel = frame_by_frame(sub, accd, config, clipconf)
+        local newsel = frame_by_frame(sub, accd, config.main, config.clip)
         if munch(sub, newsel) then
           newsel = { }
           for x = 1, #sub do
@@ -666,7 +667,7 @@ init_input = function(sub, sel)
           end
         end
         aegisub.progress.title("Reformatting Gerbils")
-        cleanup(sub, newsel, config)
+        cleanup(sub, newsel, config.main)
         break
       else
         if dlg == 'main' or button == btns.clip.abort then
