@@ -93,7 +93,7 @@ onetime_init = ->
 	-- [[ Set up interface tables. ]]--
 	gui = {
 		main: {
-			-- mnemonics: xyOCSBuRWen + G\A + Wl\A
+			-- mnemonics: xyOCSBhuRWen + G\A
 			linespath: {"textbox",  0, 1,  10, 4, name:  "linespath", hint: "Paste data or the path to a file containing it. No quotes or escapes."}
 			pref:      {"textbox",  0, 14, 10, 3, name:  "pref", hint: "The prefix", hint: "The directory any generated files will be written to."}
 			preflabel: {"label",    0, 13, 10, 1, label: "                  Files will be written to this directory."}
@@ -106,7 +106,7 @@ onetime_init = ->
 			clip:      {"checkbox", 4, 7,  2,  1, name:  "clip", value: false, label: "&Clip", hint: "Move clip along with the position (note: will also be scaled and rotated if those options are selected)."}
 			scale:     {"checkbox", 0, 8,  2,  1, name:  "scale", value: true, label: "&Scale", hint: "Apply scaling data to the selected lines."}
 			border:    {"checkbox", 2, 8,  2,  1, name:  "border", value: true, label: "&Border", hint: "Scale border with the line (only if Scale is also selected)."}
-			shadow:    {"checkbox", 4, 8,  2,  1, name:  "shadow", value: true, label: "&Shadow", hint: "Scale shadow with the line (only if Scale is also selected)."}
+			shadow:    {"checkbox", 4, 8,  2,  1, name:  "shadow", value: true, label: "S&hadow", hint: "Scale shadow with the line (only if Scale is also selected)."}
 			blur:      {"checkbox", 4, 9,  2,  1, name:  "blur", value: true, label: "Bl&ur", hint: "Scale blur with the line (only if Scale is also selected, does not scale \\be)."}
 			rotation:  {"checkbox", 0, 9,  3,  1, name:  "rotation", value: false, label: "&Rotation", hint: "Apply rotation data to the selected lines."}
 			posround:  {"intedit",  7, 7,  3,  1, name:  "posround", value: 2, min: 0, max: 5, hint: "How many decimal places of accuracy the resulting positions should have."}
