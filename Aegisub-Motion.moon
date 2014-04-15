@@ -93,7 +93,7 @@ onetime_init = ->
 	-- [[ Set up interface tables. ]]--
 	gui = {
 		main: {
-			-- mnemonics: xyOCSBuRWen + G\A + Wl\A
+			-- mnemonics: xyOCSBhuRWen + G\A
 			linespath: {"textbox",  0, 1,  10, 4, name:  "linespath", hint: "Paste data or the path to a file containing it. No quotes or escapes."}
 			pref:      {"textbox",  0, 14, 10, 3, name:  "pref", hint: "The prefix", hint: "The directory any generated files will be written to."}
 			preflabel: {"label",    0, 13, 10, 1, label: "                  Files will be written to this directory."}
@@ -106,7 +106,7 @@ onetime_init = ->
 			clip:      {"checkbox", 4, 7,  2,  1, name:  "clip", value: false, label: "&Clip", hint: "Move clip along with the position (note: will also be scaled and rotated if those options are selected)."}
 			scale:     {"checkbox", 0, 8,  2,  1, name:  "scale", value: true, label: "&Scale", hint: "Apply scaling data to the selected lines."}
 			border:    {"checkbox", 2, 8,  2,  1, name:  "border", value: true, label: "&Border", hint: "Scale border with the line (only if Scale is also selected)."}
-			shadow:    {"checkbox", 4, 8,  2,  1, name:  "shadow", value: true, label: "&Shadow", hint: "Scale shadow with the line (only if Scale is also selected)."}
+			shadow:    {"checkbox", 4, 8,  2,  1, name:  "shadow", value: true, label: "S&hadow", hint: "Scale shadow with the line (only if Scale is also selected)."}
 			blur:      {"checkbox", 4, 9,  2,  1, name:  "blur", value: true, label: "Bl&ur", hint: "Scale blur with the line (only if Scale is also selected, does not scale \\be)."}
 			rotation:  {"checkbox", 0, 9,  3,  1, name:  "rotation", value: false, label: "&Rotation", hint: "Apply rotation data to the selected lines."}
 			posround:  {"intedit",  7, 7,  3,  1, name:  "posround", value: 2, min: 0, max: 5, hint: "How many decimal places of accuracy the resulting positions should have."}
@@ -317,7 +317,7 @@ init_input = (sub, sel) -> -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
 						table.insert newsel, x if tostring(sub[x].effect)\match("^aa%-mou")
 
 				aegisub.progress.title "Reformatting Gerbils"
-				cleanup sub, newsel, config.main
+				cleanup sub, newsel, config.main, #accd.lines
 				break
 
 			else
@@ -726,10 +726,13 @@ frame_by_frame = (sub, accd, opts, clipopts) ->
 
 	nonlinearmodo = (currline) ->
 		with currline
+			_refresh = os.time!
 			for x = .rendf, .rstartf, -1  -- new inner loop structure
 				printmem "Inner loop"
 				debug "Round %d", x
-				aegisub.progress.title ("Processing frame %g/%g")\format x, .rendf - .rstartf + 1
+				if os.time! > _refresh + 1
+					aegisub.progress.title ("Processing frame %g/%g")\format x, .rendf - .rstartf + 1
+					_refresh = os.time!
 				aegisub.progress.set (x - .rstartf)/(.rendf - .rstartf) * 100
 				check_user_cancelled!
 
@@ -860,7 +863,7 @@ munch = (sub, sel) ->
 
 -------------------------------------------------------------------------------
 
-cleanup = (sub, sel, opts) -> -- make into its own macro eventually.
+cleanup = (sub, sel, opts, origselcnt) -> -- make into its own macro eventually.
 
 	opts = opts or {}
 	local linediff
@@ -872,9 +875,9 @@ cleanup = (sub, sel, opts) -> -- make into its own macro eventually.
 		return ("\\t(%s,%s,%s,%s)")\format t_s, t_e, ex, eff -- otherwise, return an untouched transform.
 
 	ns = {}
+	aegisub.progress.title ("Castrating %d gerbils...")\format #sel
 	for i, v in ipairs sel
-		aegisub.progress.title ("Castrating gerbils: %d/%d")\format i, #sel
-
+		aegisub.progress.set i/#sel*100
 		lnum = sel[#sel - i + 1]
 		with line = sub[lnum] -- iterate backwards (makes line deletion sane)
 			linediff = .end_time - .start_time
@@ -884,7 +887,6 @@ cleanup = (sub, sel, opts) -> -- make into its own macro eventually.
 			.text = .text\gsub "{}", "" -- I think this is irrelevant. But whatever.
 
 			for a in .text\gmatch "{(.-)}"
-				aegisub.progress.set math.random(100) -- professional progress bars
 				transforms = {}
 				.text = .text\gsub "\\(i?clip)%(1,m", "\\%1(m"
 
@@ -908,11 +910,11 @@ cleanup = (sub, sel, opts) -> -- make into its own macro eventually.
 			.effect = .effect\gsub "aa%-mou", "", 1
 			sub[lnum] = line
 
-	sel = dialog_sort sub, sel, opts.sortd if opts.sortd != "Default"
+	sel = dialog_sort sub, sel, opts.sortd, origselcnt if opts.sortd != "Default"
 
 -------------------------------------------------------------------------------
 
-dialog_sort = (sub, sel, sor) ->
+dialog_sort = (sub, sel, sor, origselcnt) ->
 	sortF = ({
 		Time:   (l, n) -> {key: l.start_time, num: n, data: l }
 		Actor:  (l, n) -> {key: l.actor,      num: n, data: l }
@@ -921,27 +923,29 @@ dialog_sort = (sub, sel, sor) ->
 		Layer:  (l, n) -> {key: l.layer,      num: n, data: l }
 	})[sor] -- thanks, tophf //np
 
-	lines = {}
-	for v in *sel
-		table.insert lines, sortF( sub[v], v )
-		check_user_cancelled!
+	aegisub.progress.title ("Sorting %d gerbils...")\format #sel
 
-	strt = sel[1] -- not strictly necessary
-	table.sort lines, (a, b) -> a.key > b.key or (a.key == b.key and a.num > b.num)
+	lines = [sortF(sub[v], v) for v in *sel]
+	table.sort lines, (a, b) -> a.key < b.key or (a.key == b.key and a.num < b.num)
 
-	for i = #sel, 1, -1
-		sub.delete sel[i] -- BALEET (in reverse because they are not necessarily contiguous)
-		check_user_cancelled!
+	strt = sel[1] + origselcnt - 1
+	newsel = [i for i = strt, strt + #lines - 1]
 
-	sel = {}
-	for i, v in ipairs lines
-		aegisub.progress.title ("Sorting gerbils: %d/%d")\format i, #lines
-		aegisub.progress.set i/#lines*100
-		table.insert sel, strt
-		sub.insert strt, v.data -- not sure this is the best place to do this but owell
-		check_user_cancelled!
+	ok, _ = pcall -> sub.delete unpack sel
+	if ok
+		sub.insert strt, unpack [v.data for v in *lines]
+	else --pay the price
+		for i = #sel, 1, -1
+			sub.delete sel[i] -- BALEET (in reverse because they are not necessarily contiguous)
+			check_user_cancelled!
 
-	return sel
+		for i, v in ipairs lines
+			aegisub.progress.set i/#lines*100
+			sub.insert strt, v.data -- not sure this is the best place to do this but owell
+			strt += 1
+			check_user_cancelled!
+
+	return newsel
 
 -------------------------------------------------------------------------------
 
