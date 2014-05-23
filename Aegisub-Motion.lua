@@ -143,7 +143,7 @@ onetime_init = function()
         1,
         name = "shadow",
         value = true,
-        label = "&Shadow",
+        label = "S&hadow",
         hint = "Scale shadow with the line (only if Scale is also selected)."
       },
       blur = {
@@ -667,7 +667,7 @@ init_input = function(sub, sel)
           end
         end
         aegisub.progress.title("Reformatting Gerbils")
-        cleanup(sub, newsel, config.main)
+        cleanup(sub, newsel, config.main, #accd.lines)
         break
       else
         if dlg == 'main' or button == btns.clip.abort then
@@ -1236,10 +1236,14 @@ frame_by_frame = function(sub, accd, opts, clipopts)
   nonlinearmodo = function(currline)
     do
       local _with_0 = currline
+      local _refresh = os.time()
       for x = _with_0.rendf, _with_0.rstartf, -1 do
         printmem("Inner loop")
         debug("Round %d", x)
-        aegisub.progress.title(("Processing frame %g/%g"):format(x, _with_0.rendf - _with_0.rstartf + 1))
+        if os.time() > _refresh + 1 then
+          aegisub.progress.title(("Processing frame %g/%g"):format(x, _with_0.rendf - _with_0.rstartf + 1))
+          _refresh = os.time()
+        end
         aegisub.progress.set((x - _with_0.rstartf) / (_with_0.rendf - _with_0.rstartf) * 100)
         check_user_cancelled()
         _with_0.start_time = aegisub.ms_from_frame(accd.startframe + x - 1)
@@ -1376,7 +1380,7 @@ munch = function(sub, sel)
   end
   return changed
 end
-cleanup = function(sub, sel, opts)
+cleanup = function(sub, sel, opts, origselcnt)
   opts = opts or { }
   local linediff
   local cleantrans
@@ -1394,8 +1398,9 @@ cleanup = function(sub, sel, opts)
     return ("\\t(%s,%s,%s,%s)"):format(t_s, t_e, ex, eff)
   end
   local ns = { }
+  aegisub.progress.title(("Castrating %d gerbils..."):format(#sel))
   for i, v in ipairs(sel) do
-    aegisub.progress.title(("Castrating gerbils: %d/%d"):format(i, #sel))
+    aegisub.progress.set(i / #sel * 100)
     local lnum = sel[#sel - i + 1]
     do
       local line = sub[lnum]
@@ -1405,7 +1410,6 @@ cleanup = function(sub, sel, opts)
       line.text = line.text:gsub("\\t(%b())", cleantrans)
       line.text = line.text:gsub("{}", "")
       for a in line.text:gmatch("{(.-)}") do
-        aegisub.progress.set(math.random(100))
         local transforms = { }
         line.text = line.text:gsub("\\(i?clip)%(1,m", "\\%1(m")
         a = a:gsub("(\\t%b())", function(transform)
@@ -1430,10 +1434,10 @@ cleanup = function(sub, sel, opts)
     end
   end
   if opts.sortd ~= "Default" then
-    sel = dialog_sort(sub, sel, opts.sortd)
+    sel = dialog_sort(sub, sel, opts.sortd, origselcnt)
   end
 end
-dialog_sort = function(sub, sel, sor)
+dialog_sort = function(sub, sel, sor, origselcnt)
   local sortF = ({
     Time = function(l, n)
       return {
@@ -1471,29 +1475,59 @@ dialog_sort = function(sub, sel, sor)
       }
     end
   })[sor]
-  local lines = { }
-  for _index_0 = 1, #sel do
-    local v = sel[_index_0]
-    table.insert(lines, sortF(sub[v], v))
-    check_user_cancelled()
+  aegisub.progress.title(("Sorting %d gerbils..."):format(#sel))
+  local lines
+  do
+    local _accum_0 = { }
+    local _len_0 = 1
+    for _index_0 = 1, #sel do
+      local v = sel[_index_0]
+      _accum_0[_len_0] = sortF(sub[v], v)
+      _len_0 = _len_0 + 1
+    end
+    lines = _accum_0
   end
-  local strt = sel[1]
   table.sort(lines, function(a, b)
-    return a.key > b.key or (a.key == b.key and a.num > b.num)
+    return a.key < b.key or (a.key == b.key and a.num < b.num)
   end)
-  for i = #sel, 1, -1 do
-    sub.delete(sel[i])
-    check_user_cancelled()
+  local strt = sel[1] + origselcnt - 1
+  local newsel
+  do
+    local _accum_0 = { }
+    local _len_0 = 1
+    for i = strt, strt + #lines - 1 do
+      _accum_0[_len_0] = i
+      _len_0 = _len_0 + 1
+    end
+    newsel = _accum_0
   end
-  sel = { }
-  for i, v in ipairs(lines) do
-    aegisub.progress.title(("Sorting gerbils: %d/%d"):format(i, #lines))
-    aegisub.progress.set(i / #lines * 100)
-    table.insert(sel, strt)
-    sub.insert(strt, v.data)
-    check_user_cancelled()
+  local ok, _ = pcall(function()
+    return sub.delete(unpack(sel))
+  end)
+  if ok then
+    sub.insert(strt, unpack((function()
+      local _accum_0 = { }
+      local _len_0 = 1
+      for _index_0 = 1, #lines do
+        local v = lines[_index_0]
+        _accum_0[_len_0] = v.data
+        _len_0 = _len_0 + 1
+      end
+      return _accum_0
+    end)()))
+  else
+    for i = #sel, 1, -1 do
+      sub.delete(sel[i])
+      check_user_cancelled()
+    end
+    for i, v in ipairs(lines) do
+      aegisub.progress.set(i / #lines * 100)
+      sub.insert(strt, v.data)
+      strt = strt + 1
+      check_user_cancelled()
+    end
   end
-  return sel
+  return newsel
 end
 readconf = function(conf, guitab)
   debug("Opening config file: %s", conf)
@@ -1907,12 +1941,21 @@ round = function(num, idp)
   return math.floor(num * mult + 0.5) / mult
 end
 getvideoname = function(sub)
-  for x = 1, #sub do
-    if sub[x].key == "Video File" then
-      return sub[x].value:gsub("^ ", "")
+  if aegisub.project_properties then
+    local video = aegisub.project_properties().video_file
+    if video:len() == 0 then
+      return windowerr(false, "Theoretically it should be impossible to get this error.")
+    else
+      return video
     end
+  else
+    for x = 1, #sub do
+      if sub[x].key == "Video File" then
+        return sub[x].value:gsub("^ ", "")
+      end
+    end
+    return windowerr(false, "Could not find 'Video File'. Try saving your script before rerunning the macro.")
   end
-  return windowerr(false, "Could not find 'Video File'. Try saving your script before rerunning the macro.")
 end
 isvideo = function()
   if aegisub.frame_from_ms(0) then
