@@ -1236,10 +1236,17 @@ round = (num, idp) -> -- borrowed from the lua-users wiki (all of the intelligen
 	math.floor(num * mult + 0.5) / mult
 
 getvideoname = (sub) ->
-	for x = 1, #sub
-		if sub[x].key == "Video File"
-			return sub[x].value\gsub "^ ", ""
-	windowerr false, "Could not find 'Video File'. Try saving your script before rerunning the macro."
+	if aegisub.project_properties
+		video = aegisub.project_properties!.video_file
+		if video\len! == 0
+			windowerr false, "Theoretically it should be impossible to get this error."
+		else
+			return video
+	else
+		for x = 1, #sub
+			if sub[x].key == "Video File"
+				return sub[x].value\gsub "^ ", ""
+		windowerr false, "Could not find 'Video File'. Try saving your script before rerunning the macro."
 
 isvideo = ->
 	return true if aegisub.frame_from_ms(0)
