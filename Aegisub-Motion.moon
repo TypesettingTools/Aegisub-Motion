@@ -77,7 +77,7 @@ export script_version     = "0.5.0"
 config_file = "aegisub-motion.conf"
 
 local *
-local gui, guiconf, winpaths, encpre, global, alltags, globaltags, importanttags
+local gui, guiconf, winpaths, pathSep, encpre, global, alltags, globaltags, importanttags
 
 require "karaskel"
 require "clipboard"
@@ -89,6 +89,10 @@ onetime_init = ->
 
 	-- [[ Detect whether to use *nix or Windows style paths. ]]--
 	winpaths = not aegisub.decode_path('?data')\match('/')
+	if winpaths
+		pathSep = '\\'
+	else
+		pathSep = '/'
 
 	-- [[ Set up interface tables. ]]--
 	gui = {
@@ -418,6 +422,9 @@ dialogPreproc = (sub, sel) ->
 	if conf = configscope()
 		if not readconf conf, {main: gui.main, clip: gui.clip, global: global}
 			warn "Failed to read config!"
+
+	if global.prefix\sub(#global.prefix) ~= pathSep
+		global.prefix ..= pathSep
 
 	populateInputBox!
 
@@ -1031,6 +1038,9 @@ confmaker = ->
 	if not readconf conf, {main: gui.conf, clip: gui.clip, global: global}
 		warn "Config read failed!"
 
+	if global.prefix\sub(#global.prefix) ~= pathSep
+		global.prefix ..= pathSep
+
 	for key, value in pairs global
 		gui.conf[key].value = value if gui.conf[key]
 	gui.conf.enccom.value = encpre[global.encoder] or gui.conf.enccom.value
@@ -1084,6 +1094,9 @@ trimnthings = (sub, sel) ->
 	if conf
 		if not readconf conf, {global: global}
 			warn "Failed to read config!"
+
+	if global.prefix\sub(#global.prefix) ~= pathSep
+		global.prefix ..= pathSep
 
 	tokens = {}
 	with tokens
