@@ -1115,11 +1115,11 @@ trimnthings = (sub, sel) ->
 		.startt, .endt, .lent = .startt/1000, .endt/1000, .lent/1000
 
 	platform = ({
-			{ext:'.bat', exec:'""%s""',  postexec:'\nif errorlevel 1 (echo Error & pause & del %0) else del %0'}
-			{ext:'.sh',  exec:'sh "%s"', postexec:' 2>&1\nrm $0'}
+			{pre: os.getenv('TEMP')..'\\', ext:'.bat', exec:'""%s""',  postexec:'\nif errorlevel 1 (echo Error & pause)'}
+			{pre: "/tmp/", ext:'.sh',  exec:'sh "%s"', postexec:' 2>&1'}
 		})[if winpaths then 1 else 2]
 
-	encsh = tokens.prefix.."a-mo.encode"..platform.ext
+	encsh = platform.pre.."a-mo.encode"..platform.ext
 	sh = io.open encsh, "w+"
 	assert sh, "Encoding command could not be written. Check your prefix."
 	sh\write( global.enccom\gsub("#(%b{})", (token) -> tokens[token\sub(2, -2)])..platform.postexec )
