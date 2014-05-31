@@ -4,7 +4,7 @@ script_author = "torque"
 script_version = "0.5.0"
 local config_file = "aegisub-motion.conf"
 local success, re, onetime_init, init_input, parse_input, populateInputBox, dialogPreproc, getSelInfo, spoof_table, extraLineMetrics, ensuretags, frame_by_frame, mochaRatios, possify, orginate, makexypos, clippinate, transformate, scalify, rotate, munch, cleanup, dialog_sort, readconf, writeconf, splitconf, configscope, confmaker, trimnthings, collecttrim, dcos, dacos, dsin, dasin, dtan, datan, fix, check_user_cancelled, conformdialog, makebuttons, windowerr, printmem, debug, warn, round, getvideoname, isvideo
-local gui, guiconf, winpaths, encpre, global, alltags, globaltags, importanttags
+local gui, guiconf, winpaths, pathSep, encpre, global, alltags, globaltags, importanttags
 require("karaskel")
 require("clipboard")
 success, re = pcall(require, "aegisub.re")
@@ -16,6 +16,11 @@ onetime_init = function()
     return 
   end
   winpaths = not aegisub.decode_path('?data'):match('/')
+  if winpaths then
+    pathSep = '\\'
+  else
+    pathSep = '/'
+  end
   gui = {
     main = {
       linespath = {
@@ -815,6 +820,9 @@ dialogPreproc = function(sub, sel)
         warn("Failed to read config!")
       end
     end
+  end
+  if global.prefix:sub(#global.prefix) ~= pathSep then
+    global.prefix = global.prefix .. pathSep
   end
   populateInputBox()
   gui.main.pref.value = aegisub.decode_path(global.prefix)
@@ -1628,6 +1636,9 @@ confmaker = function()
   }) then
     warn("Config read failed!")
   end
+  if global.prefix:sub(#global.prefix) ~= pathSep then
+    global.prefix = global.prefix .. pathSep
+  end
   for key, value in pairs(global) do
     if gui.conf[key] then
       gui.conf[key].value = value
@@ -1729,6 +1740,9 @@ trimnthings = function(sub, sel)
       warn("Failed to read config!")
     end
   end
+  if global.prefix:sub(#global.prefix) ~= pathSep then
+    global.prefix = global.prefix .. pathSep
+  end
   local tokens = { }
   do
     tokens.encbin = global.encbin
@@ -1744,14 +1758,16 @@ trimnthings = function(sub, sel)
   end
   local platform = ({
     {
+      pre = os.getenv('TEMP') .. '\\',
       ext = '.bat',
       exec = '""%s""',
-      postexec = '\nif errorlevel 1 (echo Error & pause & del %0) else del %0'
+      postexec = '\nif errorlevel 1 (echo Error & pause)'
     },
     {
+      pre = "/tmp/",
       ext = '.sh',
       exec = 'sh "%s"',
-      postexec = ' 2>&1\nrm $0'
+      postexec = ' 2>&1'
     }
   })[(function()
     if winpaths then
@@ -1760,7 +1776,7 @@ trimnthings = function(sub, sel)
       return 2
     end
   end)()]
-  local encsh = tokens.prefix .. "a-mo.encode" .. platform.ext
+  local encsh = platform.pre .. "a-mo.encode" .. platform.ext
   local sh = io.open(encsh, "w+")
   assert(sh, "Encoding command could not be written. Check your prefix.")
   sh:write(global.enccom:gsub("#(%b{})", function(token)
