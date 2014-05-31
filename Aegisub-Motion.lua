@@ -368,7 +368,7 @@ onetime_init = function()
   }
   do
     global = {
-      prefix = "?video/",
+      prefix = "?video" .. pathSep,
       encoder = "x264",
       encbin = "",
       autocopy = true,

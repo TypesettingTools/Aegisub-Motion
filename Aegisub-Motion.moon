@@ -148,7 +148,7 @@ onetime_init = ->
 
 	-- [[ Set up a table of global options. Defaults included. ]]--
 	with global = {
-			prefix:   "?video/"
+			prefix:   "?video"..pathSep
 			encoder:  "x264" -- todo: move to trim options
 			encbin:   ""     -- same
 			autocopy: true
