@@ -4,9 +4,7 @@
 export script_name        = "Aegisub-Motion"
 export script_description = "A set of tools for simplifying the process of creating and applying motion tracking data with Aegisub."
 export script_author      = "torque"
-export script_version     = "0.9.9"
-
-config_file = "aegisub-motion.conf"
+export script_version     = "0xDEADBEEF"
 
 local *
 local gui, guiconf, winpaths, pathSep, encpre, global, alltags, globaltags, importanttags
@@ -17,60 +15,62 @@ success, re = pcall require, "aegisub.re"
 re = require "re" unless success
 
 onetime_init = ->
-	return if gui
-
-	-- [[ Detect whether to use *nix or Windows style paths. ]]--
-	winpaths = not aegisub.decode_path('?data')\match('/')
-	if winpaths
-		pathSep = '\\'
-	else
-		pathSep = '/'
-
-	-- [[ Set up interface tables. ]]--
-	gui = {
+	-- Set up interface tables.
+	interface = {
+		global: {
+			prefix:   { value: "?video", config: true }
+			cfgver:   { value: 1,        config: true }
+			autocopy: { value: true,     config: true }
+			delsourc: { value: false,    config: true }
+		}
 		main: {
-			-- mnemonics: xyOCSBhuRWen + G\A
-			linespath: {"textbox",  0, 1,  10, 4, name:  "linespath", hint: "Paste data or the path to a file containing it. No quotes or escapes."}
-			pref:      {"textbox",  0, 14, 10, 3, name:  "pref", hint: "The prefix", hint: "The directory any generated files will be written to."}
-			preflabel: {"label",    0, 13, 10, 1, label: "                  Files will be written to this directory."}
-			datalabel: {"label",    0, 0,  10, 1, label: "                       Paste data or enter a filepath."}
-			optlabel:  {"label",    0, 6,  5,  1, label: "Data to be applied:"}
-			rndlabel:  {"label",    7, 6,  3,  1, label: "Rounding"}
-			xpos:      {"checkbox", 0, 7,  1,  1, name:  "xpos", value: true, label: "&x", hint: "Apply x position data to the selected lines."}
-			ypos:      {"checkbox", 1, 7,  1,  1, name:  "ypos", value: true, label: "&y", hint: "Apply y position data to the selected lines."}
-			origin:    {"checkbox", 2, 7,  2,  1, name:  "origin", value: false, label: "&Origin", hint: "Move the origin along with the position."}
-			clip:      {"checkbox", 4, 7,  2,  1, name:  "clip", value: false, label: "&Clip", hint: "Move clip along with the position (note: will also be scaled and rotated if those options are selected)."}
-			scale:     {"checkbox", 0, 8,  2,  1, name:  "scale", value: true, label: "&Scale", hint: "Apply scaling data to the selected lines."}
-			border:    {"checkbox", 2, 8,  2,  1, name:  "border", value: true, label: "&Border", hint: "Scale border with the line (only if Scale is also selected)."}
-			shadow:    {"checkbox", 4, 8,  2,  1, name:  "shadow", value: true, label: "S&hadow", hint: "Scale shadow with the line (only if Scale is also selected)."}
-			blur:      {"checkbox", 4, 9,  2,  1, name:  "blur", value: true, label: "Bl&ur", hint: "Scale blur with the line (only if Scale is also selected, does not scale \\be)."}
-			rotation:  {"checkbox", 0, 9,  3,  1, name:  "rotation", value: false, label: "&Rotation", hint: "Apply rotation data to the selected lines."}
-			posround:  {"intedit",  7, 7,  3,  1, name:  "posround", value: 2, min: 0, max: 5, hint: "How many decimal places of accuracy the resulting positions should have."}
-			sclround:  {"intedit",  7, 8,  3,  1, name:  "sclround", value: 2, min: 0, max: 5, hint: "How many decimal places of accuracy the resulting scales should have (also applied to border, shadow, and blur)."}
-			rotround:  {"intedit",  7, 9,  3,  1, name:  "rotround", value: 2, min: 0, max: 5, hint: "How many decimal places of accuracy the resulting rotations should have."}
-			wconfig:   {"checkbox", 0, 11, 4,  1, name:  "wconfig", value: false, label: "&Write config", hint: "Write current settings to the configuration file."}
-			relative:  {"checkbox", 4, 11, 3,  1, name:  "relative", value: true, label: "R&elative", hint: "Start frame should be relative to the line's start time rather than to the start time of all selected lines"}
-			stframe:   {"intedit",  7, 11, 3,  1, name:  "stframe", value: 1, hint: "Frame used as the starting point for the tracking data. \"-1\" corresponds to the last frame."}
-			linear:    {"checkbox", 4, 12, 2,  1, name:  "linear", value: false, label: "Li&near", hint: "Use transforms and \\move to create a linear transition, instead of frame-by-frame."}
-			sortd:     {"dropdown", 5, 5,  4,  1, name:  "sortd", hint: "Sort lines by", value: "Default", items: {"Default", "Time"}, hint: "The order to sort the lines after they have been tracked."}
-			sortlabel: {"label",    1, 5,  4,  1, name:  "sortlabel", label: "      Sort Method:"}
+			-- mnemonics: xyOCSBuRWen + G\A + Wl\A
+			linespath: { class: "textbox",  x: 0, y: 1,  width: 10, height: 4,               name:  "linespath", hint: "Paste data or the path to a file containing it. No quotes or escapes." }
+			preflabel: { class: "label",    x: 0, y: 13, width: 10, height: 1,                                   label: "                  Files will be written to this directory." }
+			prefix:    { class: "label",    x: 0, y: 14, width: 10, height: 1 }
+			datalabel: { class: "label",    x: 0, y: 0,  width: 10, height: 1,                                   label: "                       Paste data or enter a filepath." }
+			optlabel:  { class: "label",    x: 0, y: 6,  width: 5,  height: 1,                                   label: "Data to be applied:" }
+			rndlabel:  { class: "label",    x: 7, y: 6,  width: 3,  height: 1,                                   label: "Rounding" }
+			xpos:      { class: "checkbox", x: 0, y: 7,  width: 1,  height: 1, config: true, name:  "xpos",      label: "&x",            value: true,   hint: "Apply x position data to the selected lines." }
+			ypos:      { class: "checkbox", x: 1, y: 7,  width: 1,  height: 1, config: true, name:  "ypos",      label: "&y",            value: true,   hint: "Apply y position data to the selected lines." }
+			origin:    { class: "checkbox", x: 2, y: 7,  width: 2,  height: 1, config: true, name:  "origin",    label: "&Origin",       value: false,  hint: "Move the origin along with the position." }
+			clip:      { class: "checkbox", x: 4, y: 7,  width: 2,  height: 1, config: true, name:  "clip",      label: "&Clip",         value: false,  hint: "Move clip along with the position (note: will also be scaled and rotated if those options are selected)." }
+			scale:     { class: "checkbox", x: 0, y: 8,  width: 2,  height: 1, config: true, name:  "scale",     label: "&Scale",        value: true,   hint: "Apply scaling data to the selected lines." }
+			border:    { class: "checkbox", x: 2, y: 8,  width: 2,  height: 1, config: true, name:  "border",    label: "&Border",       value: true,   hint: "Scale border with the line (only if Scale is also selected)." }
+			shadow:    { class: "checkbox", x: 4, y: 8,  width: 2,  height: 1, config: true, name:  "shadow",    label: "&Shadow",       value: true,   hint: "Scale shadow with the line (only if Scale is also selected)." }
+			blur:      { class: "checkbox", x: 4, y: 9,  width: 2,  height: 1, config: true, name:  "blur",      label: "Bl&ur",         value: true,   hint: "Scale blur with the line (only if Scale is also selected, does not scale \\be)." }
+			rotation:  { class: "checkbox", x: 0, y: 9,  width: 3,  height: 1, config: true, name:  "rotation",  label: "&Rotation",     value: false,  hint: "Apply rotation data to the selected lines." }
+			posround:  { class: "intedit",  x: 7, y: 7,  width: 3,  height: 1, config: true, name:  "posround",  min: 0, max: 5,         value: 2,      hint: "How many decimal places of accuracy the resulting positions should have." }
+			sclround:  { class: "intedit",  x: 7, y: 8,  width: 3,  height: 1, config: true, name:  "sclround",  min: 0, max: 5,         value: 2,      hint: "How many decimal places of accuracy the resulting scales should have (also applied to border, shadow, and blur)." }
+			rotround:  { class: "intedit",  x: 7, y: 9,  width: 3,  height: 1, config: true, name:  "rotround",  min: 0, max: 5,         value: 2,      hint: "How many decimal places of accuracy the resulting rotations should have." }
+			wconfig:   { class: "checkbox", x: 0, y: 11, width: 4,  height: 1,               name:  "wconfig",   label: "&Write config", value: false,  hint: "Write current settings to the configuration file." }
+			relative:  { class: "checkbox", x: 4, y: 11, width: 3,  height: 1, config: true, name:  "relative",  label: "R&elative",     value: true,   hint: "Start frame should be relative to the line's start time rather than to the start time of all selected lines" }
+			stframe:   { class: "intedit",  x: 7, y: 11, width: 3,  height: 1, config: true, name:  "stframe",                           value: 1,      hint: "Frame used as the starting point for the tracking data. \"-1\" corresponds to the last frame." }
+			linear:    { class: "checkbox", x: 4, y: 12, width: 2,  height: 1, config: true, name:  "linear",    label: "Li&near",       value: false,  hint: "Use transforms and \\move to create a linear transition, instead of frame-by-frame." }
+			sortd:     { class: "dropdown", x: 5, y: 5,  width: 4,  height: 1, config: true, name:  "sortd",     label: "Sort lines by", value: "Default", items: { "Default", "Time" }, hint: "The order to sort the lines after they have been tracked." }
+			sortlabel: { class: "label",    x: 1, y: 5,  width: 4,  height: 1,               name:  "sortlabel", label: "      Sort Method:" }
+			autocopy:  { class: "label",    x: 0, y: 0,  width: 0,  height: 0, config: true, label: "", value: true }
+			delsourc:  { class: "label",    x: 0, y: 0,  width: 0,  height: 0, config: true, label: "", value: false }
 		}
 		clip: {
 			-- mnemonics: xySRe + GCA
-			clippath: {"textbox",   0, 1, 10, 4,  name:  "clippath", hint: "Paste data or the path to a file containing it. No quotes or escapes."}
-			label:    {"label",     0, 0, 10, 1,  label: "                 Paste data or enter a filepath."}
-			xpos:     {"checkbox",  0, 6, 1,  1,  name:  "xpos", value: true, label: "&x", hint: "Apply x position data to the selected lines."}
-			ypos:     {"checkbox",  1, 6, 1,  1,  name:  "ypos", value: true, label: "&y", hint: "Apply y position data to the selected lines."}
-			scale:    {"checkbox",  0, 7, 2,  1,  name:  "scale", value: true, label: "&Scale"}
-			rotation: {"checkbox",  0, 8, 3,  1,  name:  "rotation", value: false, label: "&Rotation"}
-			relative: {"checkbox",  4, 6, 3,  1,  name:  "relative", value: true, label: "R&elative"}
-			stframe:  {"intedit",   7, 6, 3,  1,  name:  "stframe", value: 1}
+			clippath: { class: "textbox",   x: 0, y: 1, width: 10, height: 4,               name:  "clippath", hint: "Paste data or the path to a file containing it. No quotes or escapes." }
+			label:    { class: "label",     x: 0, y: 0, width: 10, height: 1,              label: "                 Paste data or enter a filepath." }
+			xpos:     { class: "checkbox",  x: 0, y: 6, width: 1,  height: 1, config: true, name:  "xpos",     value: true,  label: "&x", hint: "Apply x position data to the selected lines." }
+			ypos:     { class: "checkbox",  x: 1, y: 6, width: 1,  height: 1, config: true, name:  "ypos",     value: true,  label: "&y", hint: "Apply y position data to the selected lines." }
+			scale:    { class: "checkbox",  x: 0, y: 7, width: 2,  height: 1, config: true, name:  "scale",    value: true,  label: "&Scale" }
+			rotation: { class: "checkbox",  x: 0, y: 8, width: 3,  height: 1, config: true, name:  "rotation", value: false, label: "&Rotation" }
+			relative: { class: "checkbox",  x: 4, y: 6, width: 3,  height: 1, config: true, name:  "relative", value: true,  label: "R&elative" }
+			stframe:  { class: "intedit",   x: 7, y: 6, width: 3,  height: 1, config: true, name:  "stframe",  value: 1 }
+		}
+		trim: {
+			encoder:  { config: true, value: "x264" }
+			encbin:   { config: true, value: "" }
+			enccom:   { config: true, value: "" }
 		}
 	}
 
-	for _, dlg in pairs gui do conformdialog dlg
-
-	-- [[ Set up encoder presets. ]]--
+	-- Set up encoder presets.
 	encpre = {
 		x264:    '"#{encbin}" --crf 16 --tune fastdecode -i 250 --fps 23.976 --sar 1:1 --index "#{prefix}#{index}.index" --seek #{startf} --frames #{lenf} -o "#{prefix}#{output}[#{startf}-#{endf}].mp4" "#{inpath}#{input}"'
 		ffmpeg:  '"#{encbin}" -ss #{startt} -t #{lent} -sn -i "#{inpath}#{input}" "#{prefix}#{output}[#{startf}-#{endf}]-%%05d.jpg"'
@@ -78,40 +78,6 @@ onetime_init = ->
 		-- vapoursynth =
 	}
 
-	-- [[ Set up a table of global options. Defaults included. ]]--
-	with global = {
-			prefix:   "?video"..pathSep
-			encoder:  "x264" -- todo: move to trim options
-			encbin:   ""     -- same
-			autocopy: true
-			acfilter: true
-			delsourc: false
-		}
-		-- [[ Set encoding command default based on preset. ]]--
-		.enccom = encpre[.encoder] or ""
-
-	-- [[ Copy the main GUI with some modifications for the config GUI. Helps to lower the amount of code duplication (???) ]]--
-	gui.conf = table.copy_deep gui.main
-	with gui.conf
-		.clippath, .linespath, .wconfig = nil
-		.encbin, .pref = table.copy(.pref), nil
-		.encbin.value, .encbin.name = global.encbin, "encbin"
-		.encbin.hint = "The full path to the encoder binary (unless it's in your PATH)"
-		.datalabel.label = "       Enter the path to your prefix here (include trailing slash)."
-		.preflabel.label = "First box: path to encoder binary; second box: encoder command."
-
-	for k, e in pairs conformdialog {
-			enccom:   {"textbox",  0, 17, 10, 4, value: global.enccom,                         name: "enccom",   hint: "The encoding command that will be used. If you change this, set the preset to \"custom\"."}
-			prefix:   {"textbox",  0, 1, 10, 4, value: global.prefix,                         name: "prefix",   hint: "The folder to which all generated files will be written."}
-			encoder:  {"dropdown", 0, 11, 2, 1, value: global.encoder,                        name: "encoder",
-			                                 items: {"x264", "ffmpeg", "avs2yuv", "custom"},                 hint: "Choose one of the encoding command presets (set to custom if you have made any modifications to the defaults)"}
-			delsourc: {"checkbox", 0, 21, 2, 1, value: global.delsourc, label: "Delete",      name: "delsourc", hint: "Delete the source lines instead of commenting them out."}
-			autocopy: {"checkbox", 3, 21, 3, 1, value: global.autocopy, label: "Autocopy",    name: "autocopy", hint: "Automatically copy the contents of the clipboard into the tracking data box on script run."}
-			acfilter: {"checkbox", 7, 21, 3, 1, value: global.acfilter, label: "Copy Filter", name: "acfilter", hint: "Only automatically copy the clipboard if it appears to contain tracking data."}
-		}
-		gui.conf[k] = e
-
-	-- [[ A table of all override tags that can be looped through. For detecting dupes in cleanup. ]]--
 	alltags = {
 		xscl:  [[\fscx([%d%.]+)]]
 		yscl:  [[\fscy([%d%.]+)]]
@@ -156,35 +122,12 @@ onetime_init = ->
 	-- "style key" is the key to get the style value, and
 	-- don't write specifies not to write the tag if the style default is that value.
 	importanttags = {
-		['\\fscx']: {opt:{a:"scale",   b:"scale"},    key:"scale_x", skip:0}
-		['\\fscy']: {opt:{a:"scale",   b:"scale"},    key:"scale_y", skip:0}
-		['\\bord']: {opt:{a:"border",  b:"scale"},    key:"outline", skip:0}
-		['\\shad']: {opt:{a:"shadow",  b:"scale"},    key:"shadow",  skip:0}
-		['\\frz']:  {opt:{a:"rotation", b:"rotation"}, key:"angle"}
+		['\\fscx']: { opt:{ a:"scale",    b:"scale" },    key:"scale_x", skip:0 }
+		['\\fscy']: { opt:{ a:"scale",    b:"scale" },    key:"scale_y", skip:0 }
+		['\\bord']: { opt:{ a:"border",   b:"scale" },    key:"outline", skip:0 }
+		['\\shad']: { opt:{ a:"shadow",   b:"scale" },    key:"shadow",  skip:0 }
+		['\\frz']:  { opt:{ a:"rotation", b:"rotation" }, key:"angle" }
 	}
-
-	-- A table of config keys whose values should be written to the
-	-- configurtion file. structure is [header] = {keys...} ]]--
-	guiconf = {
-		main: {
-			"sortd",
-			"xpos", "ypos", "origin", "clip", "posround",
-			"scale", "border", "shadow", "blur", "sclround",
-			"rotation", "rotround",
-			"relative", "stframe",
-			"linear", --"export",
-		}
-		clip: {
-			"xpos", "ypos", "scale", "rotation",
-			"relative", "stframe",
-		}
-	}
-
-	-- [[ Stick the global config keys in the above table. ]]--
-	for k, v in pairs global
-		table.insert guiconf, k
-
--------------------------------------------------------------------------------
 
 init_input = (sub, sel) -> -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
 
@@ -218,19 +161,19 @@ init_input = (sub, sel) -> -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
 			when btns.main.ok, btns.clip.ok
 				config.clip = config.clip or {} -- solve indexing errors
 				for field in *guiconf.clip
-					if config.clip[field] == nil then config.clip[field] = gui.clip[field].value
+					if config.clip[field] == nil then config.clip[field] = interface.clip[field].value
 				config.main.linespath = false if config.main.linespath == ""
 
 				writeconf conf, {main: config.main, clip: config.clip, global: global} if config.main.wconfig
 
-				config.main.stframe   = 1 if config.main.stframe == 0 -- TODO: fix this horrible clusterfuck
+				config.main.stframe = 1 if config.main.stframe == 0 -- TODO: fix this horrible clusterfuck
 				config.clip.stframe = 1 if config.clip.stframe == 0
 
-				config.main.position   = true if config.main.xpos or config.main.ypos
+				config.main.position = true if config.main.xpos or config.main.ypos
 				config.clip.position = true if config.clip.xpos or config.clip.ypos
 
-				config.main.yconst   = not config.main.ypos
-				config.main.xconst   = not config.main.xpos
+				config.main.yconst = not config.main.ypos
+				config.main.xconst = not config.main.xpos
 				config.clip.yconst = not config.clip.ypos
 				config.clip.xconst = not config.clip.xpos -- TODO: remove unnecessary logic inversion
 
@@ -266,8 +209,6 @@ init_input = (sub, sel) -> -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
 
 	setundo "Motion Data"
 	printmem "Closing"
-
--------------------------------------------------------------------------------
 
 parse_input = (mocha_table, input, shx, shy) ->
 
@@ -328,31 +269,27 @@ parse_input = (mocha_table, input, shx, shy) ->
 
 	printmem "End of input parsing"
 
--------------------------------------------------------------------------------
-
 populateInputBox = ->
 
 	if global.autocopy
 		paste = clipboard.get() or "" -- if there's nothing on the clipboard, clipboard.get retuns nil
 		if global.acfilter
 			if paste\match("^Adobe After Effects 6.0 Keyframe Data")
-				gui.main.linespath.value = paste
+				interface.main.linespath.value = paste
 		else
-			gui.main.linespath.value = paste
-
--------------------------------------------------------------------------------
+			interface.main.linespath.value = paste
 
 dialogPreproc = (sub, sel) ->
 
 	aegisub.progress.title "Selecting Gerbils"
 	accd = getSelInfo sub, sel
-	for f in *{gui.main.stframe, gui.clip.stframe}
+	for f in *{interface.main.stframe, interface.clip.stframe}
 		f.min = -accd.totframes
 		f.max =  accd.totframes
 
 	local conf -- the scope of assignment in conditionals is limited to that conditional by default.
 	if conf = configscope()
-		if not readconf conf, {main: gui.main, clip: gui.clip, global: global}
+		if not readconf conf, {main: interface.main, clip: interface.clip, global: global}
 			warn "Failed to read config!"
 
 	if global.prefix\sub(#global.prefix) ~= pathSep
@@ -360,10 +297,8 @@ dialogPreproc = (sub, sel) ->
 
 	populateInputBox!
 
-	gui.main.pref.value = aegisub.decode_path global.prefix
+	interface.main.pref.value = aegisub.decode_path global.prefix
 	return conf, accd
-
--------------------------------------------------------------------------------
 
 getSelInfo = (sub, sel) ->
 
@@ -413,31 +348,6 @@ getSelInfo = (sub, sel) ->
 	printmem "End of preproc loop"
 	return accd
 
--------------------------------------------------------------------------------
-
-spoof_table = (parsed_table, opts, len) ->
-
-	with parsed_table
-		len = len or #.xpos
-		.xpos = .xpos or {}
-		.ypos = .ypos or {}
-		.xscl = .xscl or {}
-		.yscl = .yscl or {}
-		.zrot = .zrot or {}
-
-		if not opts.position
-			for k = 1, len do .xpos[k], .ypos[k] = 0, 0
-		else
-			if opts.yconst then for k = 1, len do .ypos[k] = 0
-			if opts.xconst then for k = 1, len do .xpos[k] = 0
-
-		if not opts.scale then for k = 1, len do .xscl[k], .yscl[k] = 100, 100
-		if not opts.rotation then for k = 1, len do .zrot[k] = 0
-
-		.s = 1
-		.s = .flength if opts.reverse
-
--------------------------------------------------------------------------------
 
 extraLineMetrics = (line) ->
 
@@ -445,17 +355,11 @@ extraLineMetrics = (line) ->
 	fstart, fend = line.text\match "\\fad%((%d+),(%d+)%)" -- only uses the first one
 	line.text = line.text\gsub globaltags.fad, "" -- kill them all
 
-	lextrans = ( transform ) ->
-		transStart, transEnd, transExp, transEffect = transform\match "%(([%-%d]*),?([%-%d]*),?([%d%.]*),?(.+)%)"
-		transExp = tonumber( transExp ) or 1
-		transStart = tonumber( transStart ) or 0
-
-		transEnd = tonumber( transEnd ) or line.duration
-		if transEnd == 0
-			transEnd = line.duration
-
-		table.insert line.trans, { transStart, transEnd, transExp, transEffect }
-		debug "Line %d: \\t(%g,%g,%g,%s) found", line.hnum, transStart, transEnd, transExp, transEffect
+	lextrans = (trans) ->
+		t_start, t_end, t_exp, t_eff = trans\sub(2, -2)\match "([%-%d]+),([%-%d]+),([%d%.]*),?(.+)"
+		t_exp = tonumber(t_exp) or 1 -- set to 1 if unspecified
+		table.insert line.trans, {tonumber(t_start), tonumber(t_end), t_exp, t_eff}
+		debug "Line %d: \\t(%g,%g,%g,%s) found", line.hnum, t_start, t_end, t_exp, t_eff
 
 	alphafunc = (alpha) ->
 		str = ""
@@ -500,8 +404,6 @@ extraLineMetrics = (line) ->
 		'\\'..clip..'('..line.clip..')'
 	return line
 
--------------------------------------------------------------------------------
-
 ensuretags = (line, opts, styles, dim) ->
 
 	with line
@@ -542,8 +444,6 @@ ensuretags = (line, opts, styles, dim) ->
 			(before, rstyle, rest) ->
 				styletab = styles[rstyle] or .styleref -- if \\r[stylename] is not a real style, reverts to regular \r
 				"{"..before..rstyle..reformatblock("", styletab)..rest.."}"
-
--------------------------------------------------------------------------------
 
 frame_by_frame = (sub, accd, opts, clipopts) ->
 
@@ -707,8 +607,6 @@ frame_by_frame = (sub, accd, opts, clipopts) ->
 
 	main!
 
--------------------------------------------------------------------------------
-
 mochaRatios = (mocha, x) ->
 	with mocha
 		.ratx = .xscl[x] / .xscl[.start]
@@ -719,8 +617,6 @@ mochaRatios = (mocha, x) ->
 		.currx = .xpos[x]
 		.curry = .ypos[x]
 
--------------------------------------------------------------------------------
-
 possify = (pos, line, mocha, opts) ->
 	oxpos, oypos = pos\match "([%-%d%.]+),([%-%d%.]+)"
 	nxpos, nypos = makexypos(tonumber(oxpos), tonumber(oypos), mocha)
@@ -730,22 +626,16 @@ possify = (pos, line, mocha, opts) ->
 	debug "pos: (%f,%f) -> (%f,%f)", oxpos, oypos, nxpos, nypos
 	return ("(%g,%g)")\format round(nxpos, opts.posround), round(nypos,opts.posround)
 
--------------------------------------------------------------------------------
-
 orginate = (opos, line, mocha, opts) ->
 	oxpos,oypos = opos\match("([%-%d%.]+),([%-%d%.]+)")
 	nxpos,nypos = makexypos(tonumber(oxpos), tonumber(oypos), mocha)
 	debug "org: (%f,%f) -> (%f,%f)", oxpos, oypos, nxpos, nypos
 	return ("(%g,%g)")\format round(nxpos, opts.posround), round(nypos, opts.posround)
 
--------------------------------------------------------------------------------
-
 makexypos = (xpos, ypos, mocha) ->
 	nxpos = (xpos + mocha.diffx)*mocha.ratx + (1 - mocha.ratx)*mocha.currx
 	nypos = (ypos + mocha.diffy)*mocha.raty + (1 - mocha.raty)*mocha.curry
 	return nxpos, nypos
-
--------------------------------------------------------------------------------
 
 clippinate = (line, clipa, iter) ->
 	local cx, cy, ratx, raty, diffrz
@@ -790,8 +680,6 @@ rotate = (rot, line, mocha, opts) ->
 	debug "frz: -> %f", zrot
 	return round(zrot, opts.rotround)
 
--------------------------------------------------------------------------------
-
 munch = (sub, sel) ->
 	changed = false
 	for num in *sel
@@ -805,8 +693,6 @@ munch = (sub, sel) ->
 			sub.delete num
 			changed = true
 	return changed
-
--------------------------------------------------------------------------------
 
 cleanup = (sub, sel, opts, origselcnt) -> -- make into its own macro eventually.
 
@@ -857,8 +743,6 @@ cleanup = (sub, sel, opts, origselcnt) -> -- make into its own macro eventually.
 
 	sel = dialog_sort sub, sel, opts.sortd, origselcnt if opts.sortd != "Default"
 
--------------------------------------------------------------------------------
-
 dialog_sort = (sub, sel, sor, origselcnt) ->
 	sortF = ({
 		Time:   (l, n) -> {key: l.start_time, num: n, data: l }
@@ -879,93 +763,18 @@ dialog_sort = (sub, sel, sor, origselcnt) ->
 	ok, _ = pcall -> sub.delete unpack sel
 	if ok
 		sub.insert strt, unpack [v.data for v in *lines]
-	else --pay the price
+	else
 		for i = #sel, 1, -1
-			sub.delete sel[i] -- BALEET (in reverse because they are not necessarily contiguous)
+			sub.delete sel[i]
 			check_user_cancelled!
 
 		for i, v in ipairs lines
 			aegisub.progress.set i/#lines*100
-			sub.insert strt, v.data -- not sure this is the best place to do this but owell
+			sub.insert strt, v.data
 			strt += 1
 			check_user_cancelled!
 
 	return newsel
-
--------------------------------------------------------------------------------
-
-readconf = (conf, guitab) ->
-	debug "Opening config file: %s", conf
-	cf = io.open conf, 'r'
-	return nil if not cf
-
-	valtab = {}
-	thesection = nil
-	debug "Reading config file..."
-	for line in cf\lines()
-		section = line\match "#(%w+)"
-		if section
-			valtab[section] = {}
-			thesection = section
-			debug "Section: %s", thesection
-		elseif thesection == nil
-			return nil
-		else
-			key, val = splitconf line
-			debug "Read: %s -> %s", key, tostring(val\tobool())
-			valtab[thesection][key\gsub("^ +", "")] = val\tobool()
-
-	cf\close()
-
-	for section, sectab in pairs guitab
-		for ident, value in pairs valtab[section]
-			if section == "global"
-				debug "Set: global.%s = %s (%s)", ident, tostring(value), type(value)
-				sectab[ident] = value
-			else
-				if sectab[ident]
-					debug "Set: gui.%s.%s = %s (%s)", section, ident, tostring(value), type(value)
-					sectab[ident].value = value
-	return true
-
-writeconf = (conf, optab) ->
-	cf = io.open conf, 'w+'
-	if not cf
-		warn 'Config write failed! Check that %s exists and has write permission.\n', cf
-		return nil
-
-	configlines = {}
-	for section, tab in pairs optab
-		table.insert configlines, ("#%s\n")\format(section)
-		if section == "global"
-			for ident, value in pairs tab
-				table.insert configlines, ("  %s:%s\n")\format(ident, tostring(value))
-		else
-			for field in *(guiconf[section])
-				if tab[field] ~= nil
-					-- (e.g. when clipconf == {}, don't overwrite all the config with "nil")
-					table.insert configlines, ("  %s:%s\n")\format(field, tostring(tab[field]))
-
-	for v in *configlines
-		debug "Write: %s -> config", v\gsub("^ +", "")
-		cf\write v
-
-	cf\close()
-	debug "Config written to %s", conf
-	return true
-
-splitconf = (s) ->
-	s\gsub("[\r\n]+", "")\match("^(.-):(.*)$")
-
-configscope = ->
-	return config_file if not config_file or re.match(tostring(config_file), [[^(?:/|[A-Z]:\\)]], re.ICASE)
-	cfs = aegisub.decode_path("?script/"..config_file)
-	if f = io.open(cfs)
-		f\close()
-		return cfs
-	return aegisub.decode_path("?user/"..config_file)
-
--------------------------------------------------------------------------------
 
 confmaker = ->
 
@@ -973,15 +782,15 @@ confmaker = ->
 
 	lvaltab = {}
 	conf = configscope()
-	if not readconf conf, {main: gui.conf, clip: gui.clip, global: global}
+	if not readconf conf, {main: interface.conf, clip: interface.clip, global: global}
 		warn "Config read failed!"
 
 	if global.prefix\sub(#global.prefix) ~= pathSep
 		global.prefix ..= pathSep
 
 	for key, value in pairs global
-		gui.conf[key].value = value if gui.conf[key]
-	gui.conf.enccom.value = encpre[global.encoder] or gui.conf.enccom.value
+		interface.conf[key].value = value if interface.conf[key]
+	interface.conf.enccom.value = encpre[global.encoder] or interface.conf.enccom.value
 
 	btns = {
 			conf: makebuttons {{ok:"&Write"}, {local:"Write &local"}, {clip:"&\\clip..."}, {cancel:"&Abort"}}
@@ -1010,7 +819,7 @@ confmaker = ->
 					config[key] = nil
 
 				for field in *guiconf.clip
-					clipconf[field] = gui.clip[field].value if clipconf[field] == nil
+					clipconf[field] = interface.clip[field].value if clipconf[field] == nil
 
 				writeconf conf, {main: config, clip: clipconf, global: global}
 				break
@@ -1021,8 +830,6 @@ confmaker = ->
 				else
 					dlg = "conf"
 					continue
-
--------------------------------------------------------------------------------
 
 trimnthings = (sub, sel) ->
 
@@ -1068,8 +875,6 @@ trimnthings = (sub, sel) ->
 	-- debug outputstr
 	-- output\close!
 
--------------------------------------------------------------------------------
-
 collecttrim = (sub, sel, tokens) ->
 	with tokens
 		s = sub[sel[1]]
@@ -1085,9 +890,7 @@ collecttrim = (sub, sel, tokens) ->
 		.lenf = .endf - .startf + 1
 		.lent = .endt - .startt
 
--------------------------------------------------------------------------------
-
--- [[ borrowed from the lua-users wiki (single character split ONLY) ]]--
+-- borrowed from the lua-users wiki (single character split ONLY)
 string.split = (sep) =>
 	sep, fields = sep or ":", {}
 	string.gsub @, "([^#{sep}]+)", (c) -> table.insert fields, c
@@ -1117,9 +920,7 @@ table.tostring = (t) ->
 
 	return '{'..s..'}'
 
--------------------------------------------------------------------------------
-
--- [[ Functions for more easily handling angles specified in degrees ]]--
+-- Functions for more easily handling angles specified in degrees
 dcos  = (a) -> math.cos math.rad a
 dacos = (a) -> math.deg math.acos a
 dsin  = (a) -> math.sin math.rad a
@@ -1150,7 +951,7 @@ fix = {
 check_user_cancelled = ->
 	error "User cancelled" if aegisub.progress.is_cancelled()
 
--- [[ expand compact dialog definition {"class",x,y,w,h} to standard key:value pairs]]--
+-- expand compact dialog definition {"class",x,y,w,h} to standard key:value pair
 conformdialog = (dlg) ->
 	for _, e in pairs dlg
 		for k, v in pairs {class:e[1], x:e[2], y:e[3], width:e[4], height:e[5]}
@@ -1166,9 +967,9 @@ makebuttons = (extendedlist) -> -- example: {{ok:'&Add'}, {load:'Loa&d...'}, {ca
 			table.insert btns.__list, v
 	btns
 
-windowerr = (bool, message) ->
+windowAssert = (bool, message) ->
 	if not bool
-		aegisub.dialog.display {{class:"label", label:message}}, {"&Close"}, {cancel:"&Close"}
+		aegisub.dialog.display { { class:"label", label:message } }, { "&Close" }, { cancel:"&Close" }
 		error message
 
 printmem = (a) ->
@@ -1202,8 +1003,6 @@ getvideoname = (sub) ->
 isvideo = ->
 	return true if aegisub.frame_from_ms(0)
 	return false, "Validation failed: you don't have a video loaded."
-
--------------------------------------------------------------------------------
 
 aegisub.register_macro "Motion Data - Apply", "Applies properly formatted motion tracking data to selected subtitles.",
 	init_input, isvideo
