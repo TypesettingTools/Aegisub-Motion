@@ -54,14 +54,14 @@ onetime_init = ->
 		}
 		clip: {
 			-- mnemonics: xySRe + GCA
-			clippath: { class: "textbox",   x: 0, y: 1, width: 10, height: 4,               name:  "clippath", hint: "Paste data or the path to a file containing it. No quotes or escapes." }
-			label:    { class: "label",     x: 0, y: 0, width: 10, height: 1,              label: "                 Paste data or enter a filepath." }
-			xpos:     { class: "checkbox",  x: 0, y: 6, width: 1,  height: 1, config: true, name:  "xpos",     value: true,  label: "&x", hint: "Apply x position data to the selected lines." }
-			ypos:     { class: "checkbox",  x: 1, y: 6, width: 1,  height: 1, config: true, name:  "ypos",     value: true,  label: "&y", hint: "Apply y position data to the selected lines." }
-			scale:    { class: "checkbox",  x: 0, y: 7, width: 2,  height: 1, config: true, name:  "scale",    value: true,  label: "&Scale" }
-			rotation: { class: "checkbox",  x: 0, y: 8, width: 3,  height: 1, config: true, name:  "rotation", value: false, label: "&Rotation" }
-			relative: { class: "checkbox",  x: 4, y: 6, width: 3,  height: 1, config: true, name:  "relative", value: true,  label: "R&elative" }
-			stframe:  { class: "intedit",   x: 7, y: 6, width: 3,  height: 1, config: true, name:  "stframe",  value: 1 }
+			clippath: { class: "textbox",   x: 0, y: 1,  width: 10, height: 4,               name:  "clippath", hint: "Paste data or the path to a file containing it. No quotes or escapes." }
+			label:    { class: "label",     x: 0, y: 0,  width: 10, height: 1,              label: "                 Paste data or enter a filepath." }
+			xpos:     { class: "checkbox",  x: 0, y: 6,  width: 1,  height: 1, config: true, name:  "xpos",     value: true,  label: "&x", hint: "Apply x position data to the selected lines." }
+			ypos:     { class: "checkbox",  x: 1, y: 6,  width: 1,  height: 1, config: true, name:  "ypos",     value: true,  label: "&y", hint: "Apply y position data to the selected lines." }
+			scale:    { class: "checkbox",  x: 0, y: 7,  width: 2,  height: 1, config: true, name:  "scale",    value: true,  label: "&Scale" }
+			rotation: { class: "checkbox",  x: 0, y: 8,  width: 3,  height: 1, config: true, name:  "rotation", value: false, label: "&Rotation" }
+			relative: { class: "checkbox",  x: 4, y: 6,  width: 3,  height: 1, config: true, name:  "relative", value: true,  label: "R&elative" }
+			stframe:  { class: "intedit",   x: 7, y: 6,  width: 3,  height: 1, config: true, name:  "stframe",  value: 1 }
 		}
 		trim: {
 			encoder:  { config: true, value: "x264" }
@@ -209,65 +209,6 @@ init_input = (sub, sel) -> -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
 
 	setundo "Motion Data"
 	printmem "Closing"
-
-parse_input = (mocha_table, input, shx, shy) ->
-
-	printmem "Start of input parsing"
-	sect, care = 0, 0
-	ftab, mocha_table.xpos, mocha_table.ypos, mocha_table.xscl, mocha_table.yscl, mocha_table.zrot = {}, {}, {}, {}, {}, {}
-
-	datams = io.open input, "r" -- a terrible idea? Doesn't seem to be so far.
-	datastring = ""
-	if datams
-		for line in datams\lines()
-			line = line\gsub "[\r\n]*", "" -- FUCK YOU CRLF
-			datastring ..= line.."\n"
-			table.insert ftab, line -- dump the lines from the file into a table.
-		datams\close()
-	else
-		input = input\gsub "[\r]*", "" -- SERIOUSLY FUCK THIS SHIT
-		datastring = input
-		ftab = input\split("\n")
-
-	for pattern in *{"Position", "Scale", "Rotation", "Source Width\t%d+", "Source Height\t%d+", "Adobe After Effects 6.0 Keyframe Data"}
-		windowerr datastring\match(pattern), 'Error parsing data. "After Effects Transform Data [anchor point, position, scale and rotation]" expected.'
-
-	xmult = shx/tonumber(datastring\match "Source Width\t([0-9]+)")
-	ymult = shy/tonumber(datastring\match "Source Height\t([0-9]+)")
-
-	with mocha_table
-		for keys, valu in ipairs ftab -- idk it might be more flexible now or something
-			if not valu\match("^\t")
-				switch valu
-					when "Position" then sect = 1
-					when "Scale" then sect += 2
-					when "Rotation" then sect += 4
-			else
-				val = valu\split "\t"
-				switch sect
-					when 1
-						if valu\match("%d")
-							table.insert .xpos, tonumber(val[2])*xmult
-							table.insert .ypos, tonumber(val[3])*ymult
-					when 3
-						if valu\match("%d")
-							table.insert .xscl, tonumber(val[2])
-							table.insert .yscl, tonumber(val[3])
-					when 7
-						if valu\match("%d")
-							table.insert .zrot, -tonumber(val[2])
-		.flength = #.xpos
-		for x in *{#.ypos, #.xscl, #.yscl, #.zrot}
-			windowerr x == .flength, 'Error parsing data. "After Effects Transform Data [anchor point, position, scale and rotation]" expected.'
-
-	for prefix, field in pairs {x: "xpos", y: "ypos", xs: "xscl", ys: "yscl", r: "zrot"}
-		dummytab = table.copy mocha_table[field]
-		table.sort dummytab
-		mocha_table[prefix.."min"] = dummytab[1]
-		mocha_table[prefix.."max"] = dummytab[#dummytab]
-		debug "%smax: %g; %smin: %g", prefix, mocha_table[prefix.."max"], prefix, mocha_table[prefix.."min"]
-
-	printmem "End of input parsing"
 
 populateInputBox = ->
 
