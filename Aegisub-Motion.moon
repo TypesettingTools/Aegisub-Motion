@@ -17,12 +17,6 @@ re = require "re" unless success
 onetime_init = ->
 	-- Set up interface tables.
 	interface = {
-		global: {
-			prefix:   { value: "?video", config: true }
-			cfgver:   { value: 1,        config: true }
-			autocopy: { value: true,     config: true }
-			delsourc: { value: false,    config: true }
-		}
 		main: {
 			-- mnemonics: xyOCSBuRWen + G\A + Wl\A
 			linespath: { class: "textbox",  x: 0, y: 1,  width: 10, height: 4,               name:  "linespath", hint: "Paste data or the path to a file containing it. No quotes or escapes." }
@@ -64,9 +58,13 @@ onetime_init = ->
 			stframe:  { class: "intedit",   x: 7, y: 6,  width: 3,  height: 1, config: true, name:  "stframe",  value: 1 }
 		}
 		trim: {
+			prefix:   { config: true, value: "?video/" }
 			encoder:  { config: true, value: "x264" }
 			encbin:   { config: true, value: "" }
 			enccom:   { config: true, value: "" }
+		}
+		config: {
+			cfgver:   { config: true, value: 1 }
 		}
 	}
 
@@ -220,171 +218,6 @@ populateInputBox = ->
 		else
 			interface.main.linespath.value = paste
 
-dialogPreproc = (sub, sel) ->
-
-	aegisub.progress.title "Selecting Gerbils"
-	accd = getSelInfo sub, sel
-	for f in *{interface.main.stframe, interface.clip.stframe}
-		f.min = -accd.totframes
-		f.max =  accd.totframes
-
-	local conf -- the scope of assignment in conditionals is limited to that conditional by default.
-	if conf = configscope()
-		if not readconf conf, {main: interface.main, clip: interface.clip, global: global}
-			warn "Failed to read config!"
-
-	if global.prefix\sub(#global.prefix) ~= pathSep
-		global.prefix ..= pathSep
-
-	populateInputBox!
-
-	interface.main.pref.value = aegisub.decode_path global.prefix
-	return conf, accd
-
-getSelInfo = (sub, sel) ->
-
-	printmem "Initial"
-	local strt
-
-	for x = 1, #sub
-		if sub[x].class == "dialogue"
-			strt = x - 1 -- start line of dialogue subs
-			break
-
-	aegisub.progress.title "Collecting Gerbils"
-	_ = nil
-	accd = {}
-	accd.meta, accd.styles = karaskel.collect_head(sub, false) -- dump everything I need later into the table so I don't have to pass o9k variables to the other functions
-	accd.lines = {}
-	accd.endframe = aegisub.frame_from_ms sub[sel[1]].end_time -- get the end frame of the first selected line
-	accd.startframe = aegisub.frame_from_ms sub[sel[1]].start_time -- get the start frame of the first selected line
-
-	numlines = #sel
-	for i = #sel, 1, -1
-		with line = sub[sel[i]] -- CHK
-			.num = sel[i] -- for inserting lines later
-			.hnum = .num - strt -- humanized number
-
-			karaskel.preproc_line sub, accd.meta, accd.styles, line -- get linewidth/height and margins
-			.effect = "" if not .effect
-			sub[sel[i]] = extraLineMetrics line
-
-			.startframe = aegisub.frame_from_ms .start_time
-			.endframe   = aegisub.frame_from_ms .end_time
-			.is_comment = .comment == true
-
-			if .startframe < accd.startframe -- make timings flexible. Number of frames total has to match the tracked data but
-				debug "Line %d: startframe changed from %d to %d", .num - strt, accd.startframe, .startframe
-				accd.startframe = .startframe
-
-			if .endframe > accd.endframe -- individual lines can be shorter than the whole scene
-				debug "Line %d: endframe changed from %d to %d", .num - strt, accd.endframe, .endframe
-				accd.endframe = .endframe
-
-			if .endframe - .startframe > 1
-				table.insert accd.lines, line
-
-	accd.totframes = accd.endframe - accd.startframe
-	assert #accd.lines > 0, "You have to select at least one line that is longer than one frame long." -- pro error checking
-	printmem "End of preproc loop"
-	return accd
-
-
-extraLineMetrics = (line) ->
-
-	line.trans = {}
-	fstart, fend = line.text\match "\\fad%((%d+),(%d+)%)" -- only uses the first one
-	line.text = line.text\gsub globaltags.fad, "" -- kill them all
-
-	lextrans = (trans) ->
-		t_start, t_end, t_exp, t_eff = trans\sub(2, -2)\match "([%-%d]+),([%-%d]+),([%d%.]*),?(.+)"
-		t_exp = tonumber(t_exp) or 1 -- set to 1 if unspecified
-		table.insert line.trans, {tonumber(t_start), tonumber(t_end), t_exp, t_eff}
-		debug "Line %d: \\t(%g,%g,%g,%s) found", line.hnum, t_start, t_end, t_exp, t_eff
-
-	alphafunc = (alpha) ->
-		str = ""
-		if tonumber(fstart) > 0
-			str ..= ("\\alpha&HFF&\\t(%d,%s,1,\\alpha%s)")\format 0, fstart, alpha
-		if tonumber(fend) > 0
-			str ..= ("\\t(%d,%d,1,\\alpha&HFF&)")\format line.duration - tonumber(fend), line.duration
-		str
-
-	line.text = line.text\gsub "^{(.-)}", (block1) ->
-		if fstart
-			replaced = false
-			block1 = block1\gsub "\\alpha(&H%x%x&)", (alpha) ->
-				replaced = true
-				alphafunc alpha
-			unless replaced
-				block1 ..= alphafunc alpha_from_style(line.styleref.color1)
-		else
-			block1 = block1\gsub "\\fade%(([%d]+),([%d]+),([%d]+),([%-%d]+),([%-%d]+),([%-%d]+),([%-%d]+)%)",
-				(a, b, c, d, e, f, g) ->
-					("\\alpha&H%02X&\\t(%s,%s,1,\\alpha&H%02X&)\\t(%s,%s,1,\\alpha&H%02X&)")\format(a, d, e, b, f, g, c)
-		block1\gsub "\\t(%b())", lextrans
-		'{' .. block1 .. '}'
-	line.text = line.text\gsub "([^^])({.-})", (i, block) ->
-		if fstart
-			block = block\gsub "\\alpha(&H%x%x&)", alphafunc
-		block\gsub "\\t(%b())", lextrans
-		i..block
-
-	line.text = line.text\gsub "\\(i?clip)(%b())", (clip, points) ->
-		line.clips = clip
-		points = points\gsub "([%-%d%.]+),([%-%d%.]+),([%-%d%.]+),([%-%d%.]+)", (leftX, topY, rightX, botY) ->
-				("m %s %s l %s %s %s %s %s %s")\format(leftX, topY, rightX, topY, rightX, botY, leftX, botY),
-			1
-		points\gsub "%(([%d]*),?(.-)%)", (scl, clip) ->
-				if line.sclip = tonumber(scl)
-					line.rescaleclip = true
-				else
-					line.sclip = 1
-				line.clip = clip,
-			1
-		'\\'..clip..'('..line.clip..')'
-	return line
-
-ensuretags = (line, opts, styles, dim) ->
-
-	with line
-		._v = if .margin_v != 0 then .margin_v else .styleref.margin_v
-		._l = if .margin_l != 0 then .margin_l else .styleref.margin_l
-		._r = if .margin_r != 0 then .margin_r else .styleref.margin_r
-		.ali = .text\match("\\an([1-9])") or .styleref.align
-
-		.xpos, .ypos = .text\match "\\pos%(([%-%d%.]+),([%-%d%.]+)%)"
-		if not .xpos -- insert position into line if not present.
-			.xpos = fix.xpos[.ali%3+1] dim.x, ._l, ._r
-			.ypos = fix.ypos[math.ceil(.ali/3)] dim.y, ._v
-			.text = ("{\\pos(%d,%d)}%s")\format(.xpos, .ypos, .text)\gsub "^({.-)}{", "%1"
-
-		.oxpos, .oypos = .text\match "\\org%(([%-%d%.]+),([%-%d%.]+)%)"
-		.oxpos = .oxpos or .xpos
-		.oypos = .oypos or .ypos
-		.origindx = .xpos - .oxpos
-		.origindy = .ypos - .oypos
-
-		mergedtext = .text\gsub "}{", ""
-		ovr_at_start = mergedtext\match "^{(.-)}"
-		reformatblock = (block, rstyle=nil) ->
-			for tag, str in pairs importanttags
-				if opts[str.opt.a] and opts[str.opt.b]
-					if not ovr_at_start or not ovr_at_start\match(tag.."[%-%d%.]+")
-						scheck = line.styleref[str.key]
-						srepl = if rstyle then rstyle[str.key] else scheck
-						block ..= (tag.."%g")\format srepl if tonumber(scheck) != str.skip
-			block
-
-		block = reformatblock ""
-		.text = ("{%s}%s")\format block, .text
-		if ovr_at_start and block\len() > 0
-			.text = .text\gsub "^({.-)}{", "%1"
-
-		.text = .text\gsub "{([^}]*\\r)([^\\}]*)(.-)}",
-			(before, rstyle, rest) ->
-				styletab = styles[rstyle] or .styleref -- if \\r[stylename] is not a real style, reverts to regular \r
-				"{"..before..rstyle..reformatblock("", styletab)..rest.."}"
 
 frame_by_frame = (sub, accd, opts, clipopts) ->
 
@@ -772,95 +605,6 @@ confmaker = ->
 					dlg = "conf"
 					continue
 
-trimnthings = (sub, sel) ->
-
-	onetime_init!
-
-	conf = configscope()
-	if conf
-		if not readconf conf, {global: global}
-			warn "Failed to read config!"
-
-	if global.prefix\sub(#global.prefix) ~= pathSep
-		global.prefix ..= pathSep
-
-	tokens = {}
-	with tokens
-		.encbin = global.encbin
-		.prefix = aegisub.decode_path global.prefix
-		.nl = "\n"
-		collecttrim sub, sel, tokens
-
-		.input = getvideoname(sub)\gsub("[A-Z]:\\", "")\gsub(".+[^\\/]-[\\/]", "")
-		assert not .input\match("?dummy"), "No dummy videos allowed. Sorry."
-
-		.inpath = aegisub.decode_path "?video/"
-		.index = .input\match "(.+)%.[^%.]+$"
-		.output = .index -- huh.
-
-		.startt, .endt, .lent = .startt/1000, .endt/1000, .lent/1000
-
-	platform = ({
-			{pre: os.getenv('TEMP')..'\\', ext:'.bat', exec:'""%s""',  postexec:'\nif errorlevel 1 (echo Error & pause)'}
-			{pre: "/tmp/", ext:'.sh',  exec:'sh "%s"', postexec:' 2>&1'}
-		})[if winpaths then 1 else 2]
-
-	encsh = platform.pre.."a-mo.encode"..platform.ext
-	sh = io.open encsh, "w+"
-	assert sh, "Encoding command could not be written. Check your prefix."
-	sh\write( global.enccom\gsub("#(%b{})", (token) -> tokens[token\sub(2, -2)])..platform.postexec )
-	sh\close!
-	os.execute platform.exec\format encsh
-	-- output = io.popen platform.exec\format encsh
-	-- outputstr = output\read!
-	-- debug outputstr
-	-- output\close!
-
-collecttrim = (sub, sel, tokens) ->
-	with tokens
-		s = sub[sel[1]]
-		.startt, .endt = s.start_time, s.end_time
-		for v in *sel
-			l = sub[v]
-			lst, let = l.start_time, l.end_time
-			.startt = lst if lst < .startt
-			.endt = let if let > .endt
-
-		.startf = aegisub.frame_from_ms(.startt)
-		.endf   = aegisub.frame_from_ms(.endt) - 1
-		.lenf = .endf - .startf + 1
-		.lent = .endt - .startt
-
--- borrowed from the lua-users wiki (single character split ONLY)
-string.split = (sep) =>
-	sep, fields = sep or ":", {}
-	string.gsub @, "([^#{sep}]+)", (c) -> table.insert fields, c
-	fields
-
-string.tobool = =>
-	switch @\lower()
-		when 'true'  then true
-		when 'false' then false
-		else @
-
-table.tostring = (t) ->
-	return tostring(t) if type(t) != 'table'
-
-	s = ''
-	i = 1
-	while t[i] != nil
-		s ..= ', ' if #s != 0
-		s ..= table.tostring t[i]
-		i += 1
-
-	for k, v in pairs t
-		if type(k) != 'number' or k > i
-			s ..= ', ' if #s != 0
-			key = type(k) == 'string' and k or '['..table.tostring(k)..']'
-			s = s..key..'='..table.tostring(v)
-
-	return '{'..s..'}'
-
 -- Functions for more easily handling angles specified in degrees
 dcos  = (a) -> math.cos math.rad a
 dacos = (a) -> math.deg math.acos a
@@ -889,8 +633,10 @@ fix = {
 	}
 }
 
+-- \a is dumb and i should not support it. 1, 2, 3; 9, 10, 11; 5, 6, 7
+
 check_user_cancelled = ->
-	error "User cancelled" if aegisub.progress.is_cancelled()
+	error "User cancelled" if aegisub.progress.is_cancelled!
 
 -- expand compact dialog definition {"class",x,y,w,h} to standard key:value pair
 conformdialog = (dlg) ->
@@ -909,7 +655,7 @@ makebuttons = (extendedlist) -> -- example: {{ok:'&Add'}, {load:'Loa&d...'}, {ca
 	btns
 
 windowAssert = (bool, message) ->
-	if not bool
+	unless bool
 		aegisub.dialog.display { { class:"label", label:message } }, { "&Close" }, { cancel:"&Close" }
 		error message
 
