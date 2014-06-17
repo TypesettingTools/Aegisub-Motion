@@ -6,9 +6,8 @@ class DataHandler
 		@parsedData = {
 			xPosition: { }
 			yPosition: { }
-			xScale: { }
-			yScale: { }
-			zRotation: { }
+			scale: { }
+			rotation: { }
 			width: rawDataString\match "Source Width\t([0-9]+)"
 			height: rawDataString\match "Source Height\t([0-9]+)"
 		}
@@ -26,18 +25,21 @@ class DataHandler
 					if line == "Position" || line == "Scale" || line == "Rotation"
 						section += 1
 				else
-					line\gsub "^\t([%d\.\-]+)\t([%d\.\-]+)\t", ( value1, value2 ) ->
-						switch secti
+					line\gsub "^\t([%d%.%-]+)\t([%d%.%-]+)\t", ( value1, value2 ) ->
+						switch section
 							when 1
-								table.insert .xpos, value1
-								table.insert .ypos, value2
+								table.insert .xPosition, tonumber value1
+								table.insert .yPosition, tonumber value2
 							when 2
-								table.insert .xscl, value1
-								table.insert .yscl, value2
+								table.insert .scale, tonumber value1
 							when 3
-								table.insert .zrot, -value1
+								table.insert .rotation, -tonumber value1
 
-			-- To do: add some sane error checking
-			-- .flength = #.xpos
-			-- for x in *{#.ypos, #.xscl, #.yscl, #.zrot}
-			-- 	windowerr x == .flength, 'Error parsing data. "After Effects Transform Data [anchor point, position, scale and rotation]" expected.'
+	-- Arguments: fieldsToRemove is a table of the following format:
+	-- { "xPosition", "yPosition", "scale", "rotation" }
+	-- where each value is a field to be removed from the tracking data.
+	stripFields: ( fieldsToRemove ) =>
+		defaults = { xPosition: 0, yPosition: 0, scale: 100, rotation: 0 }
+		for _index, field in ipairs fieldsToRemove
+			for index, _value in ipairs @parsedData[field]
+				@parsedData[field][index] = defaults[field]
