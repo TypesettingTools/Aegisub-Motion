@@ -6,12 +6,13 @@ class ConfigHandler
 	-- the config key exists because this is designed to be embedded in dialog
 	-- tables. Some dialog elements may not be intended to be saved to a
 	-- config file, or are labels that do not return a value.
-	new: ( optionTables, fileName = "aegisub-motion.conf" ) =>
-		@fileName = aegisub.decode_path "?script/#{fileName}"
+	new: ( optionTables, filePath = "?user", fileName = "aegisub-motion.conf" ) =>
+		@fileName = aegisub.decode_path "#{filePath}/#{fileName}"
 		@fileHandle = nil
-		@configuration = {}
+		@loadDefault optionTables
 
-	loadDefault: =>
+	loadDefault: ( optionTables ) =>
+		@configuration = {}
 		for sectionName, configEntries in pairs optionTables
 			@configuration[sectionName] = {}
 			for optionTitle, configEntry in pairs configEntries
@@ -23,8 +24,7 @@ class ConfigHandler
 			@parse!
 			@fileHandle\close!
 		else
-			debug "Configuration file \"#{@fileName}\" can't be read. Writing defaults."
-			@loadDefault!
+			warn "Configuration file \"#{@fileName}\" can't be read. Writing defaults."
 			@write!
 
 	write: =>
