@@ -250,3 +250,82 @@ class LineCollection
 									("%.2f %.2f")\format x, y
 							points
 					"\\#{clip}(#{points})"
+
+	cleanup: =>
+
+		cleantrans = ( transform ) -> -- internal function because that's the only way to pass the line difference to it
+			transStart, transEnd, transExp, transEffect = cont\sub(2,-2)\match "([%-%d]+),([%-%d]+),([%d%.]*),?(.+)"
+			if tonumber( transEnd ) <= 0
+				return ("%s")\format transEffect
+			elseif tonumber( transStart ) > linediff or tonumber( transEnd ) < tonumber( transStart )
+				return ""
+			elseif tonumber( transExp ) == 1 or transExp == ""
+				return ("\\t(%s,%s,%s)")\format transStart, transEnd, transEffect
+			else
+				return ("\\t(%s,%s,%s,%s)")\format transStart, transEnd, transExp, transEffect
+
+		ns = {}
+		aegisub.progress.title ("Castrating %d gerbils...")\format #sel
+		for i, v in ipairs sel
+			aegisub.progress.set i/#sel*100
+			lnum = sel[#sel - i + 1]
+			with line = sub[lnum] -- iterate backwards (makes line deletion sane)
+				linediff = .end_time - .start_time
+				.text = .text\gsub "}"..string.char(6).."{", "" -- merge sequential override blocks if they are marked as being the ones we wrote
+				.text = .text\gsub string.char(6), "" -- remove superfluous marker characters for when there is no override block at the beginning of the original line
+				.text = .text\gsub "\\t(%b())", cleantrans -- clean up transformations (remove transformations that have completed)
+				.text = .text\gsub "{}", "" -- I think this is irrelevant. But whatever.
+
+				for a in .text\gmatch "{(.-)}"
+					transforms = {}
+					.text = .text\gsub "\\(i?clip)%(1,m", "\\%1(m"
+
+					a = a\gsub "(\\t%b())",
+						(transform) ->
+							debug "Cleanup: %s found", transform
+							table.insert transforms, transform
+							string.char(3)
+
+					for k, v in pairs alltags
+						_, num = a\gsub(v, "")
+						a = a\gsub v, "", num - 1
+
+					for trans in *transforms
+						a = a\gsub string.char(3), trans, 1
+
+					.text = .text\gsub "{.-}", string.char(1)..a..string.char(2), 1 -- I think...
+
+				.text = .text\gsub string.char(1), "{"
+				.text = .text\gsub string.char(2), "}"
+				.effect = .effect\gsub "aa%-mou", "", 1
+				sub[lnum] = line
+
+		sel = dialog_sort sub, sel, opts.sortd, origselcnt if opts.sortd != "Default"
+
+	sort: =>
+		sortF = ({
+			Time:   (l, n) -> { key: l.start_time, num: n, data: l }
+			Actor:  (l, n) -> { key: l.actor,      num: n, data: l }
+			Effect: (l, n) -> { key: l.effect,     num: n, data: l }
+			Style:  (l, n) -> { key: l.style,      num: n, data: l }
+			Layer:  (l, n) -> { key: l.layer,      num: n, data: l }
+		})[sor]
+
+		table.sort lines, (a, b) -> a.key < b.key or (a.key == b.key and a.num < b.num)
+
+		strt = sel[1] + origselcnt - 1
+		newsel = [i for i = strt, strt + #lines - 1]
+
+	munch: (sub, sel) ->
+		changed = false
+		for num in *sel
+			check_user_cancelled!
+			l1 = sub[num - 1]
+			l2 = sub[num]
+			if l1.text == l2.text and l1.effect == l2.effect
+				l1.end_time = l2.end_time
+				debug "Munched line %d", num
+				sub[num - 1] = l1
+				sub.delete num
+				changed = true
+		return changed

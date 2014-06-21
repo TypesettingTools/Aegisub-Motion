@@ -7,7 +7,7 @@ export script_author      = "torque"
 export script_version     = "0xDEADBEEF"
 
 local *
-local gui, guiconf, winpaths, pathSep, encpre, global, alltags, globaltags, importanttags
+local interface, alltags
 
 require "karaskel"
 require "clipboard"
@@ -106,17 +106,11 @@ onetime_init = ->
 		fay:   [[\fay([%-%d%.]+)]]
 	}
 
-	globaltags = {
-		fad:  "\\fad%([%d]+,[%d]+%)"
-		fade: "\\fade%(([%d]+),([%d]+),([%d]+),([%-%d]+),([%-%d]+),([%-%d]+),([%-%d]+)%)"
-		clip: ""
-	}
-
-init_input = (sub, sel) -> -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
+init_input = (sub, sel) ->
 
 	onetime_init!
 
-	setundo = aegisub.set_undo_point -- ugly workaround for a problem that was causing random crashes
+	setundo = aegisub.set_undo_point
 	printmem "GUI startup"
 
 	conf, accd = dialogPreproc sub, sel
@@ -439,102 +433,6 @@ rotate = (rot, line, mocha, opts) ->
 	debug "frz: -> %f", zrot
 	return round(zrot, opts.rotround)
 
-munch = (sub, sel) ->
-	changed = false
-	for num in *sel
-		check_user_cancelled!
-		l1 = sub[num - 1]
-		l2 = sub[num]
-		if l1.text == l2.text and l1.effect == l2.effect
-			l1.end_time = l2.end_time
-			debug "Munched line %d", num
-			sub[num - 1] = l1
-			sub.delete num
-			changed = true
-	return changed
-
-cleanup = (sub, sel, opts, origselcnt) -> -- make into its own macro eventually.
-
-	opts = opts or {}
-	local linediff
-	cleantrans = (cont) -> -- internal function because that's the only way to pass the line difference to it
-		t_s, t_e, ex, eff = cont\sub(2,-2)\match "([%-%d]+),([%-%d]+),([%d%.]*),?(.+)"
-		return ("%s")\format eff if tonumber(t_e) <= 0 -- if the end time is less than or equal to zero, the transformation has finished. Replace it with only its contents.
-		return "" if tonumber(t_s) > linediff or tonumber(t_e) < tonumber(t_s) -- if the start time is greater than the length of the line, the transform has not yet started, and can be removed from the line.
-		return ("\\t(%s,%s,%s)")\format t_s, t_e, eff if tonumber(ex) == 1 or ex == "" -- if the exponential factor is equal to 1 or isn't there, remove it (just makes it look cleaner)
-		return ("\\t(%s,%s,%s,%s)")\format t_s, t_e, ex, eff -- otherwise, return an untouched transform.
-
-	ns = {}
-	aegisub.progress.title ("Castrating %d gerbils...")\format #sel
-	for i, v in ipairs sel
-		aegisub.progress.set i/#sel*100
-		lnum = sel[#sel - i + 1]
-		with line = sub[lnum] -- iterate backwards (makes line deletion sane)
-			linediff = .end_time - .start_time
-			.text = .text\gsub "}"..string.char(6).."{", "" -- merge sequential override blocks if they are marked as being the ones we wrote
-			.text = .text\gsub string.char(6), "" -- remove superfluous marker characters for when there is no override block at the beginning of the original line
-			.text = .text\gsub "\\t(%b())", cleantrans -- clean up transformations (remove transformations that have completed)
-			.text = .text\gsub "{}", "" -- I think this is irrelevant. But whatever.
-
-			for a in .text\gmatch "{(.-)}"
-				transforms = {}
-				.text = .text\gsub "\\(i?clip)%(1,m", "\\%1(m"
-
-				a = a\gsub "(\\t%b())",
-					(transform) ->
-						debug "Cleanup: %s found", transform
-						table.insert transforms, transform
-						string.char(3)
-
-				for k, v in pairs alltags
-					_, num = a\gsub(v, "")
-					a = a\gsub v, "", num - 1
-
-				for trans in *transforms
-					a = a\gsub string.char(3), trans, 1
-
-				.text = .text\gsub "{.-}", string.char(1)..a..string.char(2), 1 -- I think...
-
-			.text = .text\gsub string.char(1), "{"
-			.text = .text\gsub string.char(2), "}"
-			.effect = .effect\gsub "aa%-mou", "", 1
-			sub[lnum] = line
-
-	sel = dialog_sort sub, sel, opts.sortd, origselcnt if opts.sortd != "Default"
-
-dialog_sort = (sub, sel, sor, origselcnt) ->
-	sortF = ({
-		Time:   (l, n) -> {key: l.start_time, num: n, data: l }
-		Actor:  (l, n) -> {key: l.actor,      num: n, data: l }
-		Effect: (l, n) -> {key: l.effect,     num: n, data: l }
-		Style:  (l, n) -> {key: l.style,      num: n, data: l }
-		Layer:  (l, n) -> {key: l.layer,      num: n, data: l }
-	})[sor] -- thanks, tophf //np
-
-	aegisub.progress.title ("Sorting %d gerbils...")\format #sel
-
-	lines = [sortF(sub[v], v) for v in *sel]
-	table.sort lines, (a, b) -> a.key < b.key or (a.key == b.key and a.num < b.num)
-
-	strt = sel[1] + origselcnt - 1
-	newsel = [i for i = strt, strt + #lines - 1]
-
-	ok, _ = pcall -> sub.delete unpack sel
-	if ok
-		sub.insert strt, unpack [v.data for v in *lines]
-	else
-		for i = #sel, 1, -1
-			sub.delete sel[i]
-			check_user_cancelled!
-
-		for i, v in ipairs lines
-			aegisub.progress.set i/#lines*100
-			sub.insert strt, v.data
-			strt += 1
-			check_user_cancelled!
-
-	return newsel
-
 confmaker = ->
 
 	onetime_init!
@@ -598,28 +496,6 @@ dasin = (a) -> math.deg math.asin a
 dtan  = (a) -> math.tan math.rad a
 datan = (y, x) -> math.deg math.atan2 y, x
 
--- Functions for giving the default position of a line, given its alignment
--- and margins. The alignment can be split into x and y as follows:
--- x = an%3+1 -> 1 = right aligned (3,6,9), 2 = left aligned (1,4,7),
--- and 3 = centered (2,5,8); y = math.ceil(an/3) -> 1 = bottom (1,2,3),
--- 2 = middle (4,5,6), 3 = top (7,8,9). In the below functions, `sx` is the
--- script width, `sy` is the script height, `l` is the line's left margin,
--- `r` is the line's right margin, and `v` is the line's vertical margin.
-fix = {
-	xpos: {
-		(sx, l, r) -> sx - r
-		(sx, l, r) -> l
-		(sx, l, r) -> sx/2
-	}
-	ypos: {
-		(sy, v) -> sy - v
-		(sy, v) -> sy/2
-		(sy, v) -> v
-	}
-}
-
--- \a is dumb and i should not support it. 1, 2, 3; 9, 10, 11; 5, 6, 7
-
 check_user_cancelled = ->
 	error "User cancelled" if aegisub.progress.is_cancelled!
 
@@ -648,26 +524,15 @@ warn = (...) ->
 	aegisub.log 2, ...
 	aegisub.log 2, '\n'
 
-round = (num, idp) -> -- borrowed from the lua-users wiki (all of the intelligent code you see in here is)
+round = (num, idp) ->
 	mult = 10^(idp or 0)
 	math.floor(num * mult + 0.5) / mult
 
-getvideoname = (sub) ->
-	if aegisub.project_properties
-		video = aegisub.project_properties!.video_file
-		if video\len! == 0
-			windowerr false, "Theoretically it should be impossible to get this error."
-		else
-			return video
-	else
-		for x = 1, #sub
-			if sub[x].key == "Video File"
-				return sub[x].value\gsub "^ ", ""
-		windowerr false, "Could not find 'Video File'. Try saving your script before rerunning the macro."
-
 isvideo = ->
-	return true if aegisub.frame_from_ms(0)
-	return false, "Validation failed: you don't have a video loaded."
+	if aegisub.frame_from_ms 0
+		return true
+	else
+		return false, "Validation failed: you don't have a video loaded."
 
 aegisub.register_macro "Motion Data - Apply", "Applies properly formatted motion tracking data to selected subtitles.",
 	init_input, isvideo
