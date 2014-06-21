@@ -112,21 +112,6 @@ onetime_init = ->
 		clip: ""
 	}
 
-	-- This is a rather messy table of tags that is used to verify that
-	-- style defaults are inserted at the beginning the selected line(s)
-	-- if the corresponding options are selected. The structure is:
-	-- [tag] = {{"opt1","opt2"}, "style key", don't write}
-	-- where "opt1" and "opt2" are the options that both must be true,
-	-- "style key" is the key to get the style value, and
-	-- don't write specifies not to write the tag if the style default is that value.
-	importanttags = {
-		['\\fscx']: { opt:{ a:"scale",    b:"scale" },    key:"scale_x", skip:0 }
-		['\\fscy']: { opt:{ a:"scale",    b:"scale" },    key:"scale_y", skip:0 }
-		['\\bord']: { opt:{ a:"border",   b:"scale" },    key:"outline", skip:0 }
-		['\\shad']: { opt:{ a:"shadow",   b:"scale" },    key:"shadow",  skip:0 }
-		['\\frz']:  { opt:{ a:"rotation", b:"rotation" }, key:"angle" }
-	}
-
 init_input = (sub, sel) -> -- THIS IS PROPRIETARY CODE YOU CANNOT LOOK AT IT
 
 	onetime_init!
@@ -637,13 +622,6 @@ fix = {
 
 check_user_cancelled = ->
 	error "User cancelled" if aegisub.progress.is_cancelled!
-
--- expand compact dialog definition {"class",x,y,w,h} to standard key:value pair
-conformdialog = (dlg) ->
-	for _, e in pairs dlg
-		for k, v in pairs {class:e[1], x:e[2], y:e[3], width:e[4], height:e[5]}
-			e[k] = v
-	dlg
 
 makebuttons = (extendedlist) -> -- example: {{ok:'&Add'}, {load:'Loa&d...'}, {cancel:'&Cancel'}}
 	btns = {__list:{}, __namedlist:{}}
