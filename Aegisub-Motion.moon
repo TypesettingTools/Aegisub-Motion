@@ -513,11 +513,17 @@ extraLineMetrics = (line) ->
 	fstart, fend = line.text\match "\\fad%((%d+),(%d+)%)" -- only uses the first one
 	line.text = line.text\gsub globaltags.fad, "" -- kill them all
 
-	lextrans = (trans) ->
-		t_start, t_end, t_exp, t_eff = trans\sub(2, -2)\match "([%-%d]+),([%-%d]+),([%d%.]*),?(.+)"
-		t_exp = tonumber(t_exp) or 1 -- set to 1 if unspecified
-		table.insert line.trans, {tonumber(t_start), tonumber(t_end), t_exp, t_eff}
-		debug "Line %d: \\t(%g,%g,%g,%s) found", line.hnum, t_start, t_end, t_exp, t_eff
+	lextrans = ( transform ) ->
+		transStart, transEnd, transExp, transEffect = transform\match "%(([%-%d]*),?([%-%d]*),?([%d%.]*),?(.+)%)"
+		transExp = tonumber( transExp ) or 1
+		transStart = tonumber( transStart ) or 0
+
+		transEnd = tonumber( transEnd ) or line.duration
+		if transEnd == 0
+			transEnd = line.duration
+
+		table.insert line.trans, { transStart, transEnd, transExp, transEffect }
+		debug "Line %d: \\t(%g,%g,%g,%s) found", line.hnum, transStart, transEnd, transExp, transEffect
 
 	alphafunc = (alpha) ->
 		str = ""

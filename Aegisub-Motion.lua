@@ -923,16 +923,21 @@ extraLineMetrics = function(line)
   local fstart, fend = line.text:match("\\fad%((%d+),(%d+)%)")
   line.text = line.text:gsub(globaltags.fad, "")
   local lextrans
-  lextrans = function(trans)
-    local t_start, t_end, t_exp, t_eff = trans:sub(2, -2):match("([%-%d]+),([%-%d]+),([%d%.]*),?(.+)")
-    t_exp = tonumber(t_exp) or 1
+  lextrans = function(transform)
+    local transStart, transEnd, transExp, transEffect = transform:match("%(([%-%d]*),?([%-%d]*),?([%d%.]*),?(.+)%)")
+    transExp = tonumber(transExp) or 1
+    transStart = tonumber(transStart) or 0
+    transEnd = tonumber(transEnd) or line.duration
+    if transEnd == 0 then
+      transEnd = line.duration
+    end
     table.insert(line.trans, {
-      tonumber(t_start),
-      tonumber(t_end),
-      t_exp,
-      t_eff
+      transStart,
+      transEnd,
+      transExp,
+      transEffect
     })
-    return debug("Line %d: \\t(%g,%g,%g,%s) found", line.hnum, t_start, t_end, t_exp, t_eff)
+    return debug("Line %d: \\t(%g,%g,%g,%s) found", line.hnum, transStart, transEnd, transExp, transEffect)
   end
   local alphafunc
   alphafunc = function(alpha)
