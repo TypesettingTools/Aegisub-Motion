@@ -516,14 +516,6 @@ windowAssert = (bool, message) ->
 printmem = (a) ->
 	debug "%s memory usage: %gkB", tostring(a), collectgarbage "count"
 
-debug = (...) ->
-	aegisub.log 4, ...
-	aegisub.log 4, '\n'
-
-warn = (...) ->
-	aegisub.log 2, ...
-	aegisub.log 2, '\n'
-
 round = (num, idp) ->
 	mult = 10^(idp or 0)
 	math.floor(num * mult + 0.5) / mult
