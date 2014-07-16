@@ -1,7 +1,5 @@
--- should put all of these under a common namespace so bad naming
--- choices won't cause conflicts with other libraries
-ConfigHandler = require 'ConfigHandler'
-log = require 'logging'
+ConfigHandler = require 'a-mo.ConfigHandler'
+log = require 'a-mo.logging'
 
 testConfigHandler = ( subtitles, selectedLines, activeLine ) ->
 	interface = {

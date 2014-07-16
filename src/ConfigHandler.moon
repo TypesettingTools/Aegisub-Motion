@@ -1,5 +1,5 @@
 json = require "json"
-log = require "logging"
+log = require "a-mo.logging"
 
 class ConfigHandler
 

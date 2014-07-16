@@ -1,3 +1,6 @@
+ffi = require "ffi"
+log = require "a-mo.logging"
+
 class TrimHandler
 
 	windows: aegisub.decode_path( "/" ) ~= "/"
