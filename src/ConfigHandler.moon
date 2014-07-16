@@ -51,12 +51,15 @@ class ConfigHandler
 	updateInterface: ( optionTables, sectionName ) =>
 		if sectionName
 			log.debug "Section name: #{sectionName}"
-			for configKey, configValue in pairs @configuration[sectionName]
-				optionTables[sectionName][configKey].value = configValue
+			for tableKey, tableValue in pairs optionTables[sectionName]
+				if tableValue.config and @configuration[sectionName][tableKey] != nil
+					tableValue.value = @configuration[sectionName][tableKey]
 		else
-			for sectionName, section in pairs @configuration
-				for configKey, configValue in pairs section
-					optionTables[sectionName][configKey].value = configValue
+			for sectionName, section in pairs optionTables
+				if @configuration[sectionName] != nil
+					for tableKey, tableValue in pairs section
+						if tableValue.config and @configuration[sectionName][tableKey] != nil
+							tableValue.value = @configuration[sectionName][tableKey]
 
 	-- maybe updateConfigurationFromDialog (but then we're getting into
 	-- obj-c identifier verbosity territory, and I'd rather not go there)
