@@ -19,7 +19,6 @@ testConfigHandler = ( subtitles, selectedLines, activeLine ) ->
 			posround:  { class: "intedit",  x: 7, y: 7-5,  width: 3,  height: 1, config: true, name:  "posround",  min: 0, max: 5,         value: 2,      hint: "How many decimal places of accuracy the resulting positions should have." }
 			sclround:  { class: "intedit",  x: 7, y: 8-5,  width: 3,  height: 1, config: true, name:  "sclround",  min: 0, max: 5,         value: 2,      hint: "How many decimal places of accuracy the resulting scales should have (also applied to border, shadow, and blur)." }
 			rotround:  { class: "intedit",  x: 7, y: 9-5,  width: 3,  height: 1, config: true, name:  "rotround",  min: 0, max: 5,         value: 2,      hint: "How many decimal places of accuracy the resulting rotations should have." }
-			wconfig:   { class: "checkbox", x: 0, y: 11-5, width: 4,  height: 1,               name:  "wconfig",   label: "&Write config", value: false,  hint: "Write current settings to the configuration file." }
 			relative:  { class: "checkbox", x: 4, y: 11-5, width: 3,  height: 1, config: true, name:  "relative",  label: "R&elative",     value: true,   hint: "Start frame should be relative to the line's start time rather than to the start time of all selected lines" }
 			stframe:   { class: "intedit",  x: 7, y: 11-5, width: 3,  height: 1, config: true, name:  "stframe",                           value: 1,      hint: "Frame used as the starting point for the tracking data. \"-1\" corresponds to the last frame." }
 			linear:    { class: "checkbox", x: 4, y: 12-5, width: 2,  height: 1, config: true, name:  "linear",    label: "Li&near",       value: false,  hint: "Use transforms and \\move to create a linear transition, instead of frame-by-frame." }
@@ -40,10 +39,6 @@ testConfigHandler = ( subtitles, selectedLines, activeLine ) ->
 		}
 	}
 
-	configuration = ConfigHandler interface, "ConfigHandlerTest.json"
-	configuration\read!
-	configuration\updateInterface interface, "main"
-
 	buttons = {
 		list: {
 			"&Ok"
@@ -55,17 +50,27 @@ testConfigHandler = ( subtitles, selectedLines, activeLine ) ->
 		}
 	}
 
+	-- initialize configuration
+	configuration = ConfigHandler interface, "ConfigHandlerTest.json"
+	-- load previously serialized configuration from disk
+	configuration\read!
+	-- update the interface fields with the configuration that was just read.
+	configuration\updateInterface interface, "main"
+
+	-- display the interface
 	button, result = aegisub.dialog.display interface.main, buttons.list, buttons.namedList
 
 	if button == buttons.namedList.ok
 
+		-- update the stored configuration with the results from the dialog
 		configuration\updateConfiguration result, "main"
 
-		-- for key, value in pairs configuration.configuration
-		-- 	log.warn "Section: #{key}"
-		-- 	for name, val in pairs value
-		-- 		log.warn "#{name} = #{value}"
+		for key, value in pairs configuration.configuration
+			log.warn "Section: #{key}"
+			for name, val in pairs value
+				log.warn "#{name} = #{val} = #{result[name]}"
 
+		-- serialize the newly updated configuration to disk for next time.
 		configuration\write!
 
 aegisub.register_macro "Test Config", "Tests config handler class.", testConfigHandler
