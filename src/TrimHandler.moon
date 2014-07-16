@@ -3,7 +3,7 @@ log = require "a-mo.logging"
 
 class TrimHandler
 
-	windows: aegisub.decode_path( "/" ) ~= "/"
+	windows: ffi.os == "Windows"
 
 	tokens: {
 		encbin: true
