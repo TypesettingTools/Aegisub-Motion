@@ -1,4 +1,3 @@
-karaskel = require "karaskel"
 util = require "util"
 
 class LineCollection
@@ -32,21 +31,33 @@ class LineCollection
 	new: ( sub, sel ) =>
 		@lines = {}
 		@collectLines sub, sel
+	generateMetaAndStyles: ( sub ) =>
+		@styles = { }
+		@meta   = { }
+		for i = 1, #subs
+			line = subs[i]
+
+			if line.class == "style"
+				@styles[l.name] = l
+			-- not going to bother porting all the special-case bullshit over
+			-- from karaskel.
+			elseif line.class == "info"
+				@meta[l.key] = l.value
 
 	collectLines: ( sub, sel ) =>
-		local dialogueStart
+		dialogueStart = 0
+		frame_from_ms = aegisub.frame_from_ms
+		ms_from_frame = aegisub.ms_from_frame
+
 		for x = 1, #sub
 			if sub[x].class == "dialogue"
 				dialogueStart = x - 1 -- start line of dialogue subs
 				break
 
-		@meta, @styles = karaskel.collect_head sub, false
-		@endFrame = aegisub.frame_from_ms sub[sel[1]].end_time
-		@startFrame = aegisub.frame_from_ms sub[sel[1]].start_time
-
-		preproc_line = karaskel.preproc_line
-		frame_from_ms = aegisub.frame_from_ms
-		ms_from_frame = aegisub.ms_from_frame
+		@startTime  = sub[sel[1]].start_time
+		@endTime    = sub[sel[1]].end_time
+		@startFrame = frame_from_ms @startTime
+		@endFrame   = frame_from_ms @endTime
 
 		for i = #sel, 1, -1
 			with line = sub[sel[i]]
