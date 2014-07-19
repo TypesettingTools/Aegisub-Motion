@@ -1,7 +1,7 @@
 script_name = "Aegisub-Motion"
 script_description = "A set of tools for simplifying the process of creating and applying motion tracking data with Aegisub."
 script_author = "torque"
-script_version = "0.5.0"
+script_version = "0.9.9"
 local config_file = "aegisub-motion.conf"
 local success, re, onetime_init, init_input, parse_input, populateInputBox, dialogPreproc, getSelInfo, spoof_table, extraLineMetrics, ensuretags, frame_by_frame, mochaRatios, possify, orginate, makexypos, clippinate, transformate, scalify, rotate, munch, cleanup, dialog_sort, readconf, writeconf, splitconf, configscope, confmaker, trimnthings, collecttrim, dcos, dacos, dsin, dasin, dtan, datan, fix, check_user_cancelled, conformdialog, makebuttons, windowerr, printmem, debug, warn, round, getvideoname, isvideo
 local gui, guiconf, winpaths, pathSep, encpre, global, alltags, globaltags, importanttags
