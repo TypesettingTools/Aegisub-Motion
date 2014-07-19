@@ -178,12 +178,12 @@ class Line
 		-- Perform operations on the first override block of the line.
 		@text = @text\gsub "^{(.-)}", ( tagBlock ) ->
 
-			if @parentCollection.config.xPosition or @parentCollection.config.yPosition and not @xPosition
 				@xPosition = @xPosition[alignment%3+1] @parentCollection.meta.res_x, leftMargin, rightMargin
 				@yPosition = @yPosition[math.ceil alignment/3] @parentCollection.meta.res_y, verticalMargin
 				tagBlock = ("\\pos(%.3g,%.3g)")\format( @xPosition, @yPosition ) .. tagBlock
+			unless @xPosition
 
-			if @parentCollection.config.origin and not @xOrigin
+			unless @xOrigin
 				@xOrigin = @xPosition
 				@yOrigin = @yPosition
 				tagBlock = ("\\org(%.3g,%.3g)")\format( @xOrigin, @yOrigin ) .. tagBlock
