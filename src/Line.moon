@@ -176,7 +176,9 @@ class Line
 		@text = @text\gsub "}{", combineChar
 
 		-- Perform operations on the first override block of the line.
+		startingBlock = false
 		@text = @text\gsub "^{(.-)}", ( tagBlock ) ->
+			startingBlock = true
 
 				tagBlock = ("\\pos(%.3g,%.3g)")\format( @xPosition, @yPosition ) .. tagBlock
 			unless @xPosition
@@ -276,6 +278,9 @@ class Line
 							("%.3g %.3g")\format x, y
 					points
 			"\\#{clip}(#{points})"
+
+		if startingBlock
+			@text = "{" .. @text
 
 	cleanText: =>
 		cleantrans = ( transform ) ->
