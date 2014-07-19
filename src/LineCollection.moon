@@ -96,3 +96,7 @@ class LineCollection
 
 		table.insert newLineTable, lastLine
 		@lines = newLineTable
+
+	replaceLines: =>
+		for line in *@lines
+			@sub[line.number] = line
