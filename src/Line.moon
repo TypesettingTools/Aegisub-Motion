@@ -109,6 +109,12 @@ class Line
 
 		lexTransforms = ( transform ) ->
 			transStart, transEnd, transExp, transEffect = transform\match "%(([%-%d]*),?([%-%d]*),?([%d%.]*),?(.+)%)"
+			-- Catch the case of \\t(2.345,\\1c&H0000FF&), where the 2 gets
+			-- matched to transStart and the .345 gets matched to transEnd.
+			if tonumber( transStart ) and not tonumber( transEnd )
+				transExp = transStart .. transExp
+				transStart = ""
+
 			transExp = tonumber( transExp ) or 1
 			transStart = tonumber( transStart ) or 0
 
