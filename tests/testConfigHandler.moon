@@ -71,4 +71,4 @@ testConfigHandler = ( subtitles, selectedLines, activeLine ) ->
 		-- serialize the newly updated configuration to disk for next time.
 		configuration\write!
 
-aegisub.register_macro "Test Config", "Tests config handler class.", testConfigHandler
+aegisub.register_macro "Test ConfigHandler", "Tests ConfigHandler class.", testConfigHandler
