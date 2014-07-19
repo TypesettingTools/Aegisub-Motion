@@ -165,7 +165,7 @@ class Line
 		-- when they are turned into \t.
 		local fadStartTime, fadEndTime
 		if shortFadeStartPos
-			fadStartTime, fadEndTime = @text\sub( shortFadeStartPos+5, shortFadeEndPos-1 )\match( "(\d+),(\d+)" )
+			fadStartTime, fadEndTime = @text\sub( shortFadeStartPos+5, shortFadeEndPos-1 )\match( "(%d+),(%d+)" )
 			fadStartTime, fadEndTime = tonumber( fadStartTime ), tonumber( fadEndTime )
 			@text = "{#{@text\sub shortFadeStartPos, shortFadeEndPos}}#{@text\gsub shortFade, ""}"
 		if longFadeStartPos
