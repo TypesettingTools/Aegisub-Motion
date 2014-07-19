@@ -3,32 +3,6 @@ log = require "a-mo.logging"
 
 class LineCollection
 
-	-- This table is used to verify that style defaults are inserted at
-	-- the beginning the selected line(s) if the corresponding options are
-	-- selected. The structure is: [tag] = { opt:"opt", key:"style key",
-	-- skip:val } where "opt" is the option that must be enabled, "style
-	-- key" is the key to get the value from the style, and skip specifies
-	-- not to write the tag if the style default is that value.
-	importantTags: {
-		["\\fscx"]: { opt: "scale",    key: "scale_x", skip: 0 }
-		["\\fscy"]: { opt: "scale",    key: "scale_y", skip: 0 }
-		["\\bord"]: { opt: "border",   key: "outline", skip: 0 }
-		["\\shad"]: { opt: "shadow",   key: "shadow",  skip: 0 }
-		["\\frz"]:  { opt: "rotation", key: "angle" }
-	}
-
-	xPosition: {
-		(sx, l, r) -> sx - r
-		(sx, l, r) -> l
-		(sx, l, r) -> sx/2
-	}
-
-	yPosition: {
-		(sy, v) -> sy - v
-		(sy, v) -> sy/2
-		(sy, v) -> v
-	}
-
 	new: ( @sub, sel ) =>
 		@lines = { }
 		@collectLines sel
