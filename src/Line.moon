@@ -79,6 +79,8 @@ class Line
 		(sy, v) -> v
 	}
 
+	combineChar: string.char 6
+
 	new: ( line, @parentCollection ) =>
 		for _, field in ipairs @fieldsToCopy
 			@[field] = line[field]
@@ -92,7 +94,6 @@ class Line
 		shortFade = "\\fad%(([%d]+),([%d]+)%)"
 		longFade  = "\\fade%(([%d]+),([%d]+),([%d]+),([%-%d]+),([%-%d]+),([%-%d]+),([%-%d]+)%)"
 		alpha_from_style = util.alpha_from_style
-		combineChar = string.char 6
 		@transformations = { }
 		pow = math.pow
 
@@ -172,8 +173,10 @@ class Line
 			@text = "{" .. @text\sub( longFadeStartPos, longFadeEndPos ) .. "}" .. @text\gsub longFade, ''
 
 		-- Merge all contiguous comment/override blocks. This will make
-		-- pretty much everything that follows a lot more sane.
-		@text = @text\gsub "}{", combineChar
+		-- pretty much everything that follows a lot more sane. Note: this
+		-- will mess up \r in certain situations. Need to test. Consider
+		-- adding \ to beginning of combineChar.
+		@text = @text\gsub "}{", @combineChar
 
 		-- Perform operations on the first override block of the line.
 		startingBlock = false
@@ -297,10 +300,8 @@ class Line
 			else
 				return ("\\t(%s,%s,%s,%s)")\format transStart, transEnd, transExp, transEffect
 
-		-- merge sequential override blocks if they are marked as being the ones we wrote
-		@text = @text\gsub "}"..string.char(6).."{", ""
-		-- remove superfluous marker characters for when there is no override block at the beginning of the original line
-		@text = @text\gsub string.char(6), ""
+		-- Split merged override blocks back up
+		@text = @text\gsub @combineChar, "}{"
 		-- clean up transformations (remove transformations that have completed)
 		@text = @text\gsub "\\t(%b())", cleantrans
 		-- I think this is irrelevant. But whatever.
