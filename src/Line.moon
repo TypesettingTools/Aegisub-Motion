@@ -263,6 +263,7 @@ class Line
 			@hasClip = true
 			if points\match "[%-%d%.]+, *[%-%d%.]+, *[%-%d%.]+"
 				@hasRectangularClip = true
+				points = points\sub 2, -2
 			else
 				@hasVectorClip = true
 				points = points\gsub "%(([%d]*),?(.-)%)", ( scaleFactor, points ) ->
