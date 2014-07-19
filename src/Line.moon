@@ -46,8 +46,9 @@ class Line
 	}
 
 	new: ( line, @parentCollection ) =>
-		for field in ipairs fieldsToCopy
+		for _, field in ipairs @fieldsToCopy
 			@[field] = line[field]
+		@styleRef = @parentCollection.styles[@style]
 		@duration = @end_time - @start_time
 
 		-- This function is way longer than it should be, but it performs all
