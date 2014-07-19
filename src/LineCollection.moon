@@ -5,6 +5,7 @@ class LineCollection
 
 	new: ( @sub, sel ) =>
 		@lines = { }
+		@generateMetaAndStyles!
 		@collectLines sel
 
 	generateMetaAndStyles: =>
