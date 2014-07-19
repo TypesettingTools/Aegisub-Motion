@@ -167,9 +167,9 @@ class Line
 		if shortFadeStartPos
 			fadStartTime, fadEndTime = @text\sub( shortFadeStartPos+5, shortFadeEndPos-1 )\match( "(%d+),(%d+)" )
 			fadStartTime, fadEndTime = tonumber( fadStartTime ), tonumber( fadEndTime )
-			@text = "{#{@text\sub shortFadeStartPos, shortFadeEndPos}}#{@text\gsub shortFade, ""}"
+			@text = "{" .. @text\sub( shortFadeStartPos, shortFadeEndPos ) .. "}" .. @text\gsub shortFade, ''
 		if longFadeStartPos
-			@text = "{#{@text\sub longFadeStartPos, longFadeEndPos}}#{@text\gsub longFade, ""}"
+			@text = "{" .. @text\sub( longFadeStartPos, longFadeEndPos ) .. "}" .. @text\gsub longFade, ''
 
 		-- Merge all contiguous comment/override blocks. This will make
 		-- pretty much everything that follows a lot more sane.
