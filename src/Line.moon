@@ -200,7 +200,7 @@ class Line
 					fadToTransform fadStartTime, fadEndTime, alpha, @duration
 				unless replaced
 					-- Has the same problem mentioned above.
-					tagBlock ..= fadToTransform fadStartTime, fadEndTime, alpha_from_style( @styleref.color1 ), @duration
+					tagBlock ..= fadToTransform fadStartTime, fadEndTime, alpha_from_style( @styleRef.color1 ), @duration
 			elseif longFadeStartPos
 				-- This is also completely wrong, as existing alpha tags
 				-- aren't even taken into account. However, in this case,
@@ -220,7 +220,7 @@ class Line
 			-- code, so in theory, it will do the wrong thing in certain
 			-- scenarios. However, if you are putting \r[style] at the
 			-- beginning of your line you are an idiot.
-			tagBlock = appendMissingTags tagBlock, @styleref
+			tagBlock = appendMissingTags tagBlock, @styleRef
 
 			-- Purposefully leave the opening tag off so that the first block
 			-- will not get picked up in the following block manipulations.
@@ -239,9 +239,11 @@ class Line
 				lexTransforms tContents, line
 
 			-- The scope abuse inside of this gsub is pretty awkward.
-			tagBlock\gsub "\\r([^\\}#{combineChar}]*)", ( resetStyle ) ->
-				styleRef = @parentCollection.styles[rstyle] or @styleref
-				tagBlock = appendMissingTags( tagBlock, styleRef )
+			tagBlock\gsub "\\r([^\\}#{@combineChar}]*)", ( resetStyle ) ->
+				styleTable = @parentCollection.styles[resetStyle] or @styleRef
+				tagBlock = appendMissingTags tagBlock, styleTable
+
+			"{"..tagBlock.."}"
 
 		-- It is possible to have both a rectangular and vector clip in
 		-- the same line. This is useful for masking lines with
