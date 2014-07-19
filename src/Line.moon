@@ -33,6 +33,40 @@ class Line
 		"\\frz":  { opt: "rotation", key: "angle" }
 	}
 
+	-- Should these helper functions be moved out of the class and just be
+	-- file-local? They're shared between instances of the class, so I
+	-- don't know how much of a difference it would make one way or
+	-- another.
+	allTags: {
+		xscl:  [[\fscx([%d%.]+)]]
+		yscl:  [[\fscy([%d%.]+)]]
+		ali:   [[\an([1-9])]]
+		zrot:  [[\frz?([%-%d%.]+)]]
+		bord:  [[\bord([%d%.]+)]]
+		xbord: [[\xbord([%d%.]+)]]
+		ybord: [[\ybord([%d%.]+)]]
+		shad:  [[\shad([%-%d%.]+)]]
+		xshad: [[\xshad([%-%d%.]+)]]
+		yshad: [[\yshad([%-%d%.]+)]]
+		reset: [[\r([^\\}]*)]]
+		alpha: [[\alpha&H(%x%x)&]]
+		l1a:   [[\1a&H(%x%x)&]]
+		l2a:   [[\2a&H(%x%x)&]]
+		l3a:   [[\3a&H(%x%x)&]]
+		l4a:   [[\4a&H(%x%x)&]]
+		l1c:   [[\c&H(%x+)&]]
+		l1c2:  [[\1c&H(%x+)&]]
+		l2c:   [[\2c&H(%x+)&]]
+		l3c:   [[\3c&H(%x+)&]]
+		l4c:   [[\4c&H(%x+)&]]
+		clip:  [[\clip%((.-)%)]]
+		iclip: [[\iclip%((.-)%)]]
+		be:    [[\be([%d%.]+)]]
+		blur:  [[\blur([%d%.]+)]]
+		fax:   [[\fax([%-%d%.]+)]]
+		fay:   [[\fay([%-%d%.]+)]]
+	}
+
 	defaultXPosition: {
 		(sx, l, r) -> sx - r
 		(sx, l, r) -> l
