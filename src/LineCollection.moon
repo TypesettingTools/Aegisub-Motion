@@ -45,16 +45,16 @@ class LineCollection
 				.startFrame = frame_from_ms .start_time
 				.endFrame   = frame_from_ms .end_time
 
-				if .startframe < @startFrame
-					@startFrame = .startframe
+				if .startFrame < @startFrame
+					@startFrame = .startFrame
 					@startTime = ms_from_frame .startFrame
 
-				if .endframe > @endFrame
-					@endFrame = .endframe
+				if .endFrame > @endFrame
+					@endFrame = .endFrame
 					@startTime = ms_from_frame .endFrame
 
-				if .endframe - .startframe > 1 and not .comment
-					line.transformations = { }
+				if .endFrame - .startFrame > 1 and not .comment
+					.transformations = { }
 					table.insert @lines, line
 
 		@totalFrames = @endFrame - @startFrame + 1
