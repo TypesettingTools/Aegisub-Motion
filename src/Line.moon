@@ -93,6 +93,7 @@ class Line
 		longFade  = "\\fade%(([%d]+),([%d]+),([%d]+),([%-%d]+),([%-%d]+),([%-%d]+),([%-%d]+)%)"
 		alpha_from_style = util.alpha_from_style
 		combineChar = string.char 6
+		@transformations = { }
 		pow = math.pow
 
 		-- A style table is passed to this function so that it can cope with
@@ -106,17 +107,18 @@ class Line
 						block ..= (tag.."%.2f")\format styleDefault
 			block
 
-		lexTransforms = ( transform, line ) ->
+		lexTransforms = ( transform ) ->
 			transStart, transEnd, transExp, transEffect = transform\match "%(([%-%d]*),?([%-%d]*),?([%d%.]*),?(.+)%)"
 			transExp = tonumber( transExp ) or 1
 			transStart = tonumber( transStart ) or 0
 
 			transEnd = tonumber( transEnd ) or 0
 			if transEnd == 0
-				transEnd = line.duration
+				transEnd = @duration
 
-			table.insert line.transformations, { transStart, transEnd, transExp, transEffect }
-			debug "Line %d: \\t(%g,%g,%g,%s) found", transStart, transEnd, transExp, transEffect
+			-- Might want to structure this table differently.
+			table.insert @transformations, { transStart, transEnd, transExp, transEffect }
+			log.debug "Line %d: \\t(%g,%g,%g,%s) found", transStart, transEnd, transExp, transEffect
 
 		fadToTransform = ( fadStart, fadEnd, alpha, duration ) ->
 			local str
