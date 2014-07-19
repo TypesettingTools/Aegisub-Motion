@@ -95,10 +95,13 @@ class Line
 		combineChar = string.char 6
 		pow = math.pow
 
-		appendMissingTags = ( block, styleRef ) ->
+		-- A style table is passed to this function so that it can cope with
+		-- \r.
+		appendMissingTags = ( block, styleTable ) ->
 			for tag, str in pairs @importantTags
-				if opts[str.opt] and not block\match tag .. "[%-%d%.]+"
-					styleDefault = styleRef[str.key]
+				-- @parentCollection.options[str.opt]
+				if not block\match tag .. "[%-%d%.]+"
+					styleDefault = styleTable[str.key]
 					if tonumber( styleDefault ) != str.skip
 						block ..= (tag.."%.2f")\format styleDefault
 			block
