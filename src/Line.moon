@@ -105,7 +105,7 @@ class Line
 				if not block\match tag .. "[%-%d%.]+"
 					styleDefault = styleTable[str.key]
 					if tonumber( styleDefault ) != str.skip
-						block ..= (tag.."%.2f")\format styleDefault
+						block ..= tag .. ("%g")\format styleDefault
 			block
 
 		lexTransforms = ( transform ) ->
@@ -183,15 +183,15 @@ class Line
 		@text = @text\gsub "^{(.-)}", ( tagBlock ) ->
 			startingBlock = true
 
-				tagBlock = ("\\pos(%.3g,%.3g)")\format( @xPosition, @yPosition ) .. tagBlock
 			unless @xPosition
 				@xPosition = @defaultXPosition[alignment%3+1] @parentCollection.meta.PlayResX, leftMargin, rightMargin
 				@yPosition = @defaultYPosition[math.ceil alignment/3] @parentCollection.meta.PlayResY, verticalMargin
+				tagBlock = ("\\pos(%g,%g)")\format( @xPosition, @yPosition ) .. tagBlock
 
 			unless @xOrigin
 				@xOrigin = @xPosition
 				@yOrigin = @yPosition
-				tagBlock = ("\\org(%.3g,%.3g)")\format( @xOrigin, @yOrigin ) .. tagBlock
+				tagBlock = ("\\org(%g,%g)")\format( @xOrigin, @yOrigin ) .. tagBlock
 
 			if shortFadeStartPos
 				replaced = false
@@ -278,7 +278,7 @@ class Line
 							y = tonumber( y )/2^(scaleFactor - 1)
 							-- Round the calculated values so that they don't take
 							-- up huge amounts of space.
-							("%.3g %.3g")\format x, y
+							("%g %g")\format x, y
 					points
 			"\\#{clip}(#{points})"
 
