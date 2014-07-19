@@ -142,13 +142,12 @@ class Line
 		-- Make the position a property of the line table, since they'll be
 		-- used later to calculate the offset.
 		-- I refuse to support \a.
-		alignment = @text\match("\\an([1-9])") or @styleref.align
+		alignment = @text\match("\\an([1-9])") or @styleRef.align
 		@xPosition, @yPosition = @text\match "\\pos%(([%-%d%.]+),([%-%d%.]+)%)"
 		@xOrigin,   @yOrigin   = @text\match "\\org%(([%-%d%.]+),([%-%d%.]+)%)"
-		verticalMargin = if @margin_v == 0 then @styleref.margin_v else @margin_v
-		leftMargin     = if @margin_l == 0 then @styleref.margin_l else @margin_l
-		rightMargin    = if @margin_r == 0 then @styleref.margin_r else @margin_r
-
+		verticalMargin = if @margin_t == 0 then @styleRef.margin_t else @margin_t
+		leftMargin     = if @margin_l == 0 then @styleRef.margin_l else @margin_l
+		rightMargin    = if @margin_r == 0 then @styleRef.margin_r else @margin_r
 
 		-- If both \fad and \fade are present, then get rid of all
 		-- occurrences of whichever one does not come first.
