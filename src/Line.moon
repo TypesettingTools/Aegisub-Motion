@@ -87,7 +87,7 @@ class Line
 		@styleRef = @parentCollection.styles[@style]
 		@duration = @end_time - @start_time
 
-		-- This function is way longer than it should be, but it performs all
+	-- This function is way longer than it should be, but it performs all
 	-- of the necessary operations to get the lines ready for tracking,
 	-- which, as it turns out, is quite a lot.
 	mungeForFBF: ( ) =>
@@ -288,7 +288,7 @@ class Line
 
 	cleanText: =>
 		cleantrans = ( transform ) ->
-			transStart, transEnd, transExp, transEffect = cont\sub(2,-2)\match "([%-%d]+),([%-%d]+),([%d%.]*),?(.+)"
+			transStart, transEnd, transExp, transEffect = transform\sub( 2, -2 )\match "([%-%d]+),([%-%d]+),([%d%.]*),?(.+)"
 			-- This specific section only works on transforms we have
 			-- generated. Otherwise, an end time of 0 will mean the transform
 			-- runs to the end of the line.
@@ -305,19 +305,17 @@ class Line
 		@text = @text\gsub @combineChar, "}{"
 		-- clean up transformations (remove transformations that have completed)
 		@text = @text\gsub "\\t(%b())", cleantrans
-		-- I think this is irrelevant. But whatever.
-		@text = @text\gsub "{}", ""
 
 		for overrideBlock in @text\gmatch "{(.-)}"
 			transforms = {}
 			@text = @text\gsub "\\(i?clip)%(1,m", "\\%1(m"
 
 			overrideBlock = overrideBlock\gsub "(\\t%b())", (transform) ->
-				debug "Cleanup: %s found", transform
+				log.debug "Cleanup: %s found", transform
 				table.insert transforms, transform
 				string.char(3)
 
-			for k, v in pairs alltags
+			for k, v in pairs @allTags
 				_, num = overrideBlock\gsub(v, "")
 				overrideBlock = overrideBlock\gsub v, "", num - 1
 
@@ -328,4 +326,4 @@ class Line
 
 		@text = @text\gsub string.char(1), "{"
 		@text = @text\gsub string.char(2), "}"
-		.effect = .effect\gsub "aa%-mou", "", 1
+		@effect = @effect\gsub "aa%-mou", "", 1
