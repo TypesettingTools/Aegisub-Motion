@@ -1,5 +1,5 @@
-util = require "util"
 Line = require "a-mo.Line"
+log = require "a-mo.logging"
 
 class LineCollection
 
