@@ -178,10 +178,10 @@ class Line
 		-- Perform operations on the first override block of the line.
 		@text = @text\gsub "^{(.-)}", ( tagBlock ) ->
 
-				@xPosition = @xPosition[alignment%3+1] @parentCollection.meta.res_x, leftMargin, rightMargin
-				@yPosition = @yPosition[math.ceil alignment/3] @parentCollection.meta.res_y, verticalMargin
 				tagBlock = ("\\pos(%.3g,%.3g)")\format( @xPosition, @yPosition ) .. tagBlock
 			unless @xPosition
+				@xPosition = @defaultXPosition[alignment%3+1] @parentCollection.meta.PlayResX, leftMargin, rightMargin
+				@yPosition = @defaultYPosition[math.ceil alignment/3] @parentCollection.meta.PlayResY, verticalMargin
 
 			unless @xOrigin
 				@xOrigin = @xPosition
