@@ -81,16 +81,18 @@ class LineCollection
 		strt = sel[1] + origselcnt - 1
 		newsel = [i for i = strt, strt + #lines - 1]
 
-	combineLines: =>
-		changed = false
-		for num in *sel
-			check_user_cancelled!
-			l1 = sub[num - 1]
-			l2 = sub[num]
-			if l1.text == l2.text and l1.effect == l2.effect
-				l1.end_time = l2.end_time
-				debug "Munched line %d", num
-				sub[num - 1] = l1
-				sub.delete num
-				changed = true
-		return changed
+	combineIdenticalLines: =>
+		lastLine = @lines[1]
+		lastIndex = lastLine.number
+		newLineTable = { }
+		for i = 2,#@lines
+			error "User cancelled" if aegisub.progress.is_cancelled!
+
+			if lastLine\combineWithLine @lines[i]
+				continue
+			else
+				table.insert newLineTable, lastline
+				lastLine = @lines[i]
+
+		table.insert newLineTable, lastLine
+		@lines = newLineTable
