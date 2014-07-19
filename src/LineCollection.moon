@@ -15,11 +15,11 @@ class LineCollection
 			line = @sub[i]
 
 			if line.class == "style"
-				@styles[l.name] = l
+				@styles[line.name] = line
 			-- not going to bother porting all the special-case bullshit over
 			-- from karaskel.
 			elseif line.class == "info"
-				@meta[l.key] = l.value
+				@meta[line.key] = line.value
 
 	collectLines: ( sel ) =>
 		dialogueStart = 0
