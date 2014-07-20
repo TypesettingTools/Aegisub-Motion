@@ -1,3 +1,5 @@
+log = require 'a-mo.logging'
+
 class DataHandler
 
 	new: ( rawDataString ) =>

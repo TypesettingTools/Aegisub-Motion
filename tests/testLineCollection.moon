@@ -1,5 +1,4 @@
 LineCollection = require 'a-mo.LineCollection'
-Line = require 'a-mo.Line'
 log = require 'a-mo.logging'
 
 ourLines = {

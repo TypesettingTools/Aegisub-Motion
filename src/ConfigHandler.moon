@@ -17,9 +17,9 @@ class ConfigHandler
 
 	-- Private methods (I probably shouldn't have bothered to do this!)
 	loadDefault = ( optionTables ) =>
-		@configuration = {}
+		@configuration = { }
 		for sectionName, configEntries in pairs optionTables
-			@configuration[sectionName] = {}
+			@configuration[sectionName] = { }
 			for optionName, configEntry in pairs configEntries
 				if configEntry.config
 					@configuration[sectionName][optionName] = configEntry.value

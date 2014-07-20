@@ -90,6 +90,8 @@ class Line
 	-- This function is way longer than it should be, but it performs all
 	-- of the necessary operations to get the lines ready for tracking,
 	-- which, as it turns out, is quite a lot.
+
+	-- operations:
 	mungeForFBF: ( ) =>
 		shortFade = "\\fad%(([%d]+),([%d]+)%)"
 		longFade  = "\\fade%(([%d]+),([%d]+),([%d]+),([%-%d]+),([%-%d]+),([%-%d]+),([%-%d]+)%)"
@@ -196,10 +198,10 @@ class Line
 			if shortFadeStartPos
 				replaced = false
 				-- Not pedantically correct, as output will not be properly
-				-- preserved with lines that set specific alpha values, such
-				-- as \1a and so on. Additionally, doesn't handle the case
-				-- of multiple alpha tags being placed in the same override
-				-- block, and so can spawn more transforms than necessary.
+				-- preserved with lines that set specific alpha values, such as
+				-- \1a and so on. Additionally, doesn't handle the case of
+				-- multiple alpha tags being placed in the same override block,
+				-- and so can spawn more transforms than necessary.
 				tagBlock = tagBlock\gsub "\\alpha(&H%x%x&)", ( alpha ) ->
 					replaced = true
 					fadToTransform fadStartTime, fadEndTime, alpha, @duration
@@ -207,13 +209,16 @@ class Line
 					-- Has the same problem mentioned above.
 					tagBlock ..= fadToTransform fadStartTime, fadEndTime, alpha_from_style( @styleRef.color1 ), @duration
 			elseif longFadeStartPos
-				-- This is also completely wrong, as existing alpha tags
-				-- aren't even taken into account. However, in this case,
-				-- properly handling the fade is much more complex, as alpha
-				-- tags influence both the starting and ending transparency
-				-- of the fade in an additive fashion. Given that very few
-				-- (if any) people use \fade, I don't think the effort
-				-- necessary to fix this behavior is worth it at the moment.
+				-- This is also completely wrong, as existing alpha tags aren't
+				-- even taken into account. However, in this case, properly
+				-- handling the fade is much more complex, as alpha tags
+				-- influence both the starting and ending transparency of the
+				-- fade in an additive fashion. Given that very few (if any)
+				-- people use \fade, I don't think the effort necessary to fix
+				-- this behavior is worth it at the moment. NEW IDEA: since
+				-- \fade has all of the times specified, we should be able to
+				-- give it the FBF treatment without converting it to
+				-- transforms.
 				tagBlock = tagBlock\gsub "\\fade%(([%d]+),([%d]+),([%d]+),([%-%d]+),([%-%d]+),([%-%d]+),([%-%d]+)%)",
 					(a, b, c, d, e, f, g) ->
 						("\\alpha&H%02X&\\t(%s,%s,1,\\alpha&H%02X&)\\t(%s,%s,1,\\alpha&H%02X&)")\format(a, d, e, b, f, g, c)
