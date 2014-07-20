@@ -16,14 +16,13 @@ class DataHandler
 			table.insert @rawData, line
 
 	parse: =>
-		with @parsedData
-			section = 0
-			for _index, line in ipairs @parsedData
-				unless line\match("^\t")
-					if line == "Position" || line == "Scale" || line == "Rotation"
-						section += 1
-				else
-					line\gsub "^\t([%d%.%-]+)\t([%d%.%-]+)\t", ( value1, value2 ) ->
+		section = 0
+		for _index, line in ipairs @rawData
+			unless line\match("^\t")
+				if line == "Position" or line == "Scale" or line == "Rotation"
+					section += 1
+			else
+				line\gsub "^\t([%d%.%-]+)\t([%d%.%-e]+)(.*)", ( value1, value2, remainder ) ->
 					switch section
 						when 1
 							table.insert @xPosition, tonumber value2
