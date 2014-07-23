@@ -55,14 +55,15 @@ class TrimHandler
 					postExec: " 2>&1"
 					execFunc: ( encodeScript ) ->
 						output = io.popen encodeScript
-						debug output\read '*a'
+						log.debug output\read '*a'
 						output\close!
 				}
 			})[@windows]
 
-			encodingScript = aegisub.decode_path "#{.pre}/a-mo.encode#{.ext}"
-			encodingScriptFile = io.open encsh, "w+"
-			windowAssert encodingScriptFile, "Encoding script could not be written. Something is wrong with your temp dir."
-			sh\write global.enccom\gsub( "#(%b{})", (token) -> tokens[token\sub(2, -2)] ) .. .postExec
-			sh\close!
-			.execFunc .exec\format encsh
+			encodeScript = aegisub.decode_path "#{.pre}/a-mo.encode#{.ext}"
+			encodeScriptFile = io.open encodeScript, "w+"
+			unless encodeScriptFile
+				log.windowError "Encoding script could not be written.\nSomething is wrong with your temp dir (#{.pre})."
+			encodeScriptFile\write @encodeCommand\gsub( "#(%b{})", ( token ) -> @tokens[token\sub 2, -2] ) .. .postExec
+			encodeScriptFile\close!
+			.execFunc .exec\format encodeScript
