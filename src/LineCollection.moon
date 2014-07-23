@@ -5,7 +5,6 @@ class LineCollection
 
 	new: ( @sub, sel ) =>
 		@lines = { }
-		@generateMetaAndStyles!
 		@collectLines sel
 
 	generateMetaAndStyles: =>
@@ -22,6 +21,9 @@ class LineCollection
 				@meta[line.key] = line.value
 
 	collectLines: ( sel ) =>
+		unless @meta and @styles
+			@generateMetaAndStyles!
+
 		dialogueStart = 0
 		frame_from_ms = aegisub.frame_from_ms
 		ms_from_frame = aegisub.ms_from_frame
