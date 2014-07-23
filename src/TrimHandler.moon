@@ -15,11 +15,19 @@ class TrimHandler
 
 	-- trimConfig is just the trim subtable of the config table collection.
 	new: ( trimConfig ) =>
+		@tokens = { }
+		@encodeCommand = trimConfig.enccom
 		with @tokens
 			.encbin = trimConfig.encbin
-			.enccom = trimConfig.enccom
 			.prefix = trimConfig.prefix
 			.inpath = aegisub.decode_path "?video/"
+		getVideoName!
+
+	getVideoName = =>
+		with @tokens
+			video = aegisub.project_properties!.video_file
+			assert video\len! != 0, "Theoretically it should be impossible to get this error."
+			tokens.input = video\sub .inpath\len! + 1
 
 	calculateTrimLength: ( lineCollection ) =>
 		with @tokens
@@ -29,19 +37,6 @@ class TrimHandler
 			.startf = lineCollection.startFrame
 			.endf   = lineCollection.endFrame
 			.lenf   = lineCollection.totalFrames
-
-	getVideoName: ( sub ) =>
-		with @tokens
-			if aegisub.project_properties
-				video = aegisub.project_properties!.video_file
-				windowerr video\len! ~= 0, "Theoretically it should be impossible to get this error."
-				.input = video\sub .inpath\len! + 1
-			else
-				for x = 1, #sub
-					if sub[x].key == "Video File"
-						.input = sub[x].value\gsub("^ ", "")\gsub("[A-Z]:\\", "")\gsub(".+[^\\/]-[\\/]", "")
-						return
-				windowerr false, "Could not find 'Video File'. Try saving your script before rerunning the macro."
 
 	performTrim: =>
 		with platform = ({
