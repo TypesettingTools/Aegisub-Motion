@@ -90,7 +90,8 @@ class Line
 	-- of the necessary operations to get the lines ready for tracking,
 	-- which, as it turns out, is quite a lot.
 
-	-- operations:
+	-- operations: convert fad/fade, detect/clean transforms, append
+	-- missing tags (calculate position/origin), fixing \r
 	mungeForFBF: ( ) =>
 		@styleRef = @parentCollection.styles[@style]
 		shortFade = "\\fad%(([%d]+),([%d]+)%)"
@@ -137,8 +138,8 @@ class Line
 				str ..= ("\\t(%d,%d,1,\\alpha&HFF&)")\format duration - fadEnd, duration
 			str
 
-		-- The first fad or fade that is found in the line is the one
-		-- that is used.
+		-- The first fad or fade that is found in the line is the one that
+		-- is used.
 		shortFadeStartPos, shortFadeEndPos = @text\find shortFade
 		longFadeStartPos, longFadeEndPos   = @text\find longFade
 
@@ -164,8 +165,8 @@ class Line
 
 		-- For both \fad and \fade, make sure that there are not repeat
 		-- occurrences of the tag and move them to the beginning of the
-		-- line. This should theoretically ensure identical behavior
-		-- when they are turned into \t.
+		-- line. This should theoretically ensure identical behavior when
+		-- they are turned into \t.
 		local fadStartTime, fadEndTime
 		if shortFadeStartPos
 			fadStartTime, fadEndTime = @text\sub( shortFadeStartPos+5, shortFadeEndPos-1 )\match( "(%d+),(%d+)" )
@@ -226,10 +227,10 @@ class Line
 			tagBlock\gsub "\\t(%b())", ( tContents ) ->
 				lexTransforms tContents, line
 
-			-- There is no check for \r in the first tag block in this
-			-- code, so in theory, it will do the wrong thing in certain
-			-- scenarios. However, if you are putting \r[style] at the
-			-- beginning of your line you are an idiot.
+			-- There is no check for \r in the first tag block in this code,
+			-- so in theory, it will do the wrong thing in certain scenarios.
+			-- However, if you are putting \r[style] at the beginning of your
+			-- line you are an idiot.
 			tagBlock = appendMissingTags tagBlock, @styleRef
 
 			-- Purposefully leave the opening tag off so that the first block
@@ -248,22 +249,20 @@ class Line
 			tagBlock\gsub "\\t(%b())", ( tContents ) ->
 				lexTransforms tContents, line
 
-			-- The scope abuse inside of this gsub is pretty awkward.
 			tagBlock\gsub "\\r([^\\}#{@combineChar}]*)", ( resetStyle ) ->
 				styleTable = @parentCollection.styles[resetStyle] or @styleRef
 				tagBlock = appendMissingTags tagBlock, styleTable
 
 			"{"..tagBlock.."}"
 
-		-- It is possible to have both a rectangular and vector clip in
-		-- the same line. This is useful for masking lines with
-		-- gradients. In order to be able to support this (even though
-		-- motion tracking gradients is a bad idea and not endorsed by
-		-- this author), we need to both support multiple clips in one
-		-- line, as well as not convert rectangular-style clips to
-		-- vector clips. To make our lives easier, we'll just not
-		-- enforce any limits on the number of clips in a line and
-		-- assume the user knows what they're doing.
+		-- It is possible to have both a rectangular and vector clip in the
+		-- same line. This is useful for masking lines with gradients. In
+		-- order to be able to support this (even though motion tracking
+		-- gradients is a bad idea and not endorsed by this author), we need
+		-- to both support multiple clips in one line, as well as not
+		-- convert rectangular-style clips to vector clips. To make our
+		-- lives easier, we'll just not enforce any limits on the number of
+		-- clips in a line and assume the user knows what they're doing.
 		@text = @text\gsub "\\(i?clip)(%b())", ( clip, points ) ->
 			@hasClip = true
 			if points\match "[%-%d%.]+, *[%-%d%.]+, *[%-%d%.]+"
@@ -274,11 +273,11 @@ class Line
 				points = points\gsub "%(([%d]*),?(.-)%)", ( scaleFactor, points ) ->
 					if scaleFactor ~= ""
 						scaleFactor = tonumber scaleFactor
-						-- Other number separators such as ',' are valid in
-						-- vector clips, but standard tools don't create them.
-						-- Ignore that parser flexibility to make our lives less
-						-- difficult. Convert everything to floating point
-						-- values for simplicity's sake.
+						-- Other number separators such as ',' are valid in vector
+						-- clips, but standard tools don't create them. Ignore that
+						-- parser flexibility to make our lives less difficult.
+						-- Convert everything to floating point values for
+						-- simplicity's sake.
 						points = points\gsub "([%.%d%-]+) ([%.%d%-]+)", ( x, y ) ->
 							x = tonumber( x )/2^(scaleFactor - 1)
 							y = tonumber( y )/2^(scaleFactor - 1)
@@ -313,9 +312,8 @@ class Line
 
 		for overrideBlock in @text\gmatch "{(.-)}"
 			transforms = {}
-			@text = @text\gsub "\\(i?clip)%(1,m", "\\%1(m"
 
-			overrideBlock = overrideBlock\gsub "(\\t%b())", (transform) ->
+			overrideBlock = overrideBlock\gsub "(\\t%b())", ( transform ) ->
 				log.debug "Cleanup: %s found", transform
 				table.insert transforms, transform
 				string.char(3)
