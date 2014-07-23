@@ -6,8 +6,9 @@ class DataHandler
 		-- (length-22)/4
 		@xPosition = { }
 		@yPosition = { }
-		@scale = { }
-		@rotation = { }
+		@xScale = { }
+		@yScale = @xScale
+		@zRotation = { }
 		if rawDataString
 			@tableize rawDataString
 			@width  = @rawData[4]\match "Source Width\t([0-9]+)"
@@ -33,9 +34,14 @@ class DataHandler
 							table.insert @xPosition, tonumber value2
 							table.insert @yPosition, tonumber remainder\match "\t([%d%.%-e]+)"
 						when 2
-							table.insert @scale, tonumber value2
+							-- Sort of future proof against having different scale
+							-- values for different axes.
+							table.insert @xScale, tonumber value2
+							-- table.insert @yScale, tonumber value2
 						when 3
-							table.insert @rotation, -tonumber value2
+							-- Sort of future proof having rotation around different
+							-- axes.
+							table.insert @zRotation, -tonumber value2
 
 	-- Arguments: fieldsToRemove is a table of the following format:
 	-- { "xPosition", "yPosition", "scale", "rotation" }
