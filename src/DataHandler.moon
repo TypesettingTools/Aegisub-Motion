@@ -4,13 +4,16 @@ class DataHandler
 
 	new: ( rawDataString ) =>
 		-- (length-22)/4
-		@tableize rawDataString
 		@xPosition = { }
 		@yPosition = { }
 		@scale = { }
 		@rotation = { }
-		@width  = rawDataString\match "Source Width\t([0-9]+)"
-		@height = rawDataString\match "Source Height\t([0-9]+)"
+		if rawDataString
+			@tableize rawDataString
+			@width  = @rawData[4]\match "Source Width\t([0-9]+)"
+			@height = @rawData[5]\match "Source Height\t([0-9]+)"
+			unless @width and @height
+				log.windowError "Your tracking data is either missing the Width/Height fields,\nor they are not where I expected them."
 
 	tableize: ( rawDataString ) =>
 		@rawData = { }
