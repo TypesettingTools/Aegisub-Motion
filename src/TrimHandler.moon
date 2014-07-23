@@ -5,21 +5,6 @@ class TrimHandler
 
 	windows: ffi.os == "Windows"
 
-	tokens: {
-		encbin: true
-		enccom: true
-		prefix: true
-		inpath: true
-		input:  true
-		index:  true
-		output: true
-		nl:     "\n"
-		startt: 0
-		endt:   0
-		lent:   0
-		startf: 0
-		endf:   0
-		lenf:   0
 	}
 
 	-- trimConfig is just the trim subtable of the config table collection.
