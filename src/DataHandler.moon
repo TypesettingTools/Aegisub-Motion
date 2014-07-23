@@ -51,3 +51,16 @@ class DataHandler
 		for _index, field in ipairs fieldsToRemove
 			for index, value in ipairs @[field]
 				@[field][index] = defaults[field]
+
+	addReferenceFrame: ( frame ) =>
+		@startFrame = frame
+		@xStartPosition = @xPosition[frame]
+		@yStartPosition = @yPosition[frame]
+		@zStartRotation = @zRotation[frame]
+		@xStartScale    = @xScale[frame]
+		@yStartScale    = @yScale[frame]
+
+	calculateCurrentState: ( frame ) =>
+		@xRatio = @xScale[frame]/@xStartScale
+		@yRatio = @yScale[frame]/@yStartScale
+		@zRotationDiff = @zRotation[frame] - @zStartRotation
