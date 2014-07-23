@@ -84,7 +84,6 @@ class Line
 	new: ( line, @parentCollection ) =>
 		for _, field in ipairs @fieldsToCopy
 			@[field] = line[field]
-		@styleRef = @parentCollection.styles[@style]
 		@duration = @end_time - @start_time
 
 	-- This function is way longer than it should be, but it performs all
@@ -93,6 +92,7 @@ class Line
 
 	-- operations:
 	mungeForFBF: ( ) =>
+		@styleRef = @parentCollection.styles[@style]
 		shortFade = "\\fad%(([%d]+),([%d]+)%)"
 		longFade  = "\\fade%(([%d]+),([%d]+),([%d]+),([%-%d]+),([%-%d]+),([%-%d]+),([%-%d]+)%)"
 		alpha_from_style = util.alpha_from_style
