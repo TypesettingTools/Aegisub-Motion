@@ -8,8 +8,7 @@ class TrimHandler
 	-- Set up encoder presets.
 	defaults: {
 		x264:    '"#{encbin}" --crf 16 --tune fastdecode -i 250 --fps 23.976 --sar 1:1 --index "#{prefix}#{index}.index" --seek #{startf} --frames #{lenf} -o "#{prefix}#{output}[#{startf}-#{endf}].mp4" "#{inpath}#{input}"'
-		--"#{encbin}" -ss #{startt} -i "#{inpath}#{input}" -vframes #{lenf} "#{prefix}#{output}[#{startf}-#{endf}]-%%05d.jpg"
-		ffmpeg:  '"#{encbin}" -ss #{startt} -t #{lent} -sn -i "#{inpath}#{input}" "#{prefix}#{output}[#{startf}-#{endf}]-%%05d.jpg"'
+		ffmpeg:  '"#{encbin}" -ss #{startt} -i "#{inpath}#{input}" -vframes #{lenf} "#{prefix}#{output}[#{startf}-#{endf}]-%%05d.jpg"'
 		avs2yuv: 'echo FFVideoSource("#{inpath}#{input}",cachefile="#{prefix}#{index}.index").trim(#{startf},#{endf}).ConvertToRGB.ImageWriter("#{prefix}#{output}-[#{startf}-#{endf}]\\",type="png").ConvertToYV12 > "#{prefix}encode.avs"\nmkdir "#{prefix}#{output}-[#{startf}-#{endf}]"\n"#{encbin}" -o NUL "#{prefix}encode.avs"\ndel "#{prefix}encode.avs"'
 	}
 
