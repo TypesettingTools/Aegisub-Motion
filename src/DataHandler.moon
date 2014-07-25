@@ -22,6 +22,7 @@ class DataHandler
 			table.insert @rawData, line
 
 	parse: =>
+		@length = 0
 		section = 0
 		for _index, line in ipairs @rawData
 			unless line\match("^\t")
@@ -33,6 +34,7 @@ class DataHandler
 						when 1
 							table.insert @xPosition, tonumber value2
 							table.insert @yPosition, tonumber remainder\match "\t([%d%.%-e]+)"
+							@length += 1
 						when 2
 							-- Sort of future proof against having different scale
 							-- values for different axes.
@@ -51,6 +53,10 @@ class DataHandler
 		for _index, field in ipairs fieldsToRemove
 			for index, value in ipairs @[field]
 				@[field][index] = defaults[field]
+
+	sanityCheck: ( lineCollection ) =>
+		if lineCollection.totalFrames != @length
+			log.windowError ("Number of frames selected (%d) does not match\nparsed line tracking data length (%d).")\format lineCollection.totalFrames, @length
 
 	addReferenceFrame: ( frame ) =>
 		@startFrame = frame
