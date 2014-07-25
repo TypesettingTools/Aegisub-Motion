@@ -1,4 +1,6 @@
 LineCollection = require 'a-mo.LineCollection'
+Line = require 'a-mo.Line'
+Math = require 'a-mo.Math'
 log = require 'a-mo.Log'
 
 class MotionHandler
@@ -15,7 +17,7 @@ class MotionHandler
 			-- do in main: spoof lineTrackingData if it doesn't exist.
 			-- Probably requires some modification to DataHandler
 
-		elseif lineCollection.options.clip
+		elseif @options.main.clip
 			@clipTrackingData = @lineTrackingData
 
 	setCallbacks: =>
@@ -49,6 +51,8 @@ class MotionHandler
 			@work = doNonlinearTrack
 
 	applyMotion: =>
+		-- The lines are collected in reverse order in LineCollection so
+		-- that we don't need to do things in reverse here.
 		for line in *@lineCollection.lines
 			with line
 				if @options.clip and .hasClip
@@ -64,10 +68,9 @@ class MotionHandler
 				if @options.origin
 					.beta  = -datan .yOrigin - @lineTrackingData.yStartPosition, .xOrigin - @lineTrackingData.xStartPosition
 
-				-- this situation is kind of weird and i need to test it.
-				@work @, line
+				@work line
 
-				return @resultingCollection
+		@resultingCollection
 
 	linearmodo = ( line ) =>
 		with line
@@ -128,6 +131,14 @@ class MotionHandler
 					finish = .transformations[i][2] - .timeDelta
 					("\\t(%d,%d,%g,%s)")\format start, finish, .transformations[i][3], .transformations[i][4]
 
+				-- In theory, this is more optimal if we loop over the frames on
+				-- the outside loop and over the lines on the inside loop, as
+				-- this only needs to be calculated once for each frame, whereas
+				-- currently it is being calculated for each frame for each
+				-- line. However, if the loop structure is changed, then
+				-- inserting lines into the resultingCollection would need to be
+				-- more clever to compensate for the fact that lines would no
+				-- longer be added to it in order.
 				@lineTrackingData\calculateCurrentState frame
 
 				-- iterate through the necessary operations
