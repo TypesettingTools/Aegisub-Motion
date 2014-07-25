@@ -1,5 +1,5 @@
 DataHandler = require 'a-mo.DataHandler'
-log = require 'a-mo.logging'
+log = require 'a-mo.Log'
 
 oldStyleData = [=[
 Adobe After Effects 6.0 Keyframe Data

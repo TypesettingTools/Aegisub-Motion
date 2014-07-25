@@ -1,5 +1,5 @@
 Line = require "a-mo.Line"
-log = require "a-mo.logging"
+log = require "a-mo.Log"
 
 class LineCollection
 

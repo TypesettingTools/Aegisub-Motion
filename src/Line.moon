@@ -1,5 +1,5 @@
 util = require "aegisub.util"
-log = require "a-mo.logging"
+log = require "a-mo.Log"
 
 class Line
 	fieldsToCopy: {

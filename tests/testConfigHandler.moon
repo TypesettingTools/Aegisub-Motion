@@ -1,5 +1,5 @@
 ConfigHandler = require 'a-mo.ConfigHandler'
-log = require 'a-mo.logging'
+log = require 'a-mo.Log'
 
 testConfigHandler = ( subtitles, selectedLines, activeLine ) ->
 	interface = {
