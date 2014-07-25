@@ -19,33 +19,33 @@ class MotionHandler
 			@clipTrackingData = @lineTrackingData
 
 	setCallbacks: =>
-
 		@callbacks = { }
 
 		if @options.main.position
 
-			@callbacks["(\\pos)%(([%-%d%.]+,[%-%d%.]+)%)"] = @possify
-			if @options.origin
-				@callbacks["(\\org)%(([%-%d%.]+,[%-%d%.]+)%)"] = @orginate
+			@callbacks["(\\pos)%(([%-%d%.]+,[%-%d%.]+)%)"] = possify
 
-		if @options.scale then
-			@callbacks["(\\fsc[xy])([%d%.]+)"] = @scalify
-			if @options.border
-				@callbacks["(\\[xy]?bord)([%d%.]+)"] = @scalify
-			if @options.shadow
-				@callbacks["(\\[xy]?shad)([%-%d%.]+)"] = @scalify
-			if @options.blur
-				@callbacks["(\\blur)([%d%.]+)"] = @scalify
+			if @options.main.origin and not @options.main.linear
+				@callbacks["(\\org)%(([%-%d%.]+,[%-%d%.]+)%)"] = orginate
 
-		if @options.rotation
-			@callbacks["(\\frz?)([%-%d%.]+)"] = @rotate
+		if @options.main.scale then
+			@callbacks["(\\fsc[xy])([%d%.]+)"] = scalify
+			if @options.main.border
+				@callbacks["(\\[xy]?bord)([%d%.]+)"] = scalify
+			if @options.main.shadow
+				@callbacks["(\\[xy]?shad)([%-%d%.]+)"] = scalify
+			if @options.main.blur
+				@callbacks["(\\blur)([%d%.]+)"] = scalify
 
-		if @options.linear
-			@resultingCollection = LineCollection @lineCollection.sub
-			@resultingCollection.shouldInsertLines = true
+		if @options.main.rotation
+			@callbacks["(\\frz?)([%-%d%.]+)"] = rotate
+
+		if @options.main.linear
+			@resultingCollection = @lineCollection
 			@work = doLinearTrack
 		else
-			@resultingCollection = @lineCollection
+			@resultingCollection = LineCollection @lineCollection.sub
+			@resultingCollection.shouldInsertLines = true
 			@work = doNonlinearTrack
 
 	applyMotion: =>
@@ -137,7 +137,7 @@ class MotionHandler
 
 				@resultingCollection.addLine newLine
 
-	possify: ( pos, frame ) =>
+	possify = ( pos, frame ) =>
 		x, y = pos\match "([%-%d%.]+),([%-%d%.]+)"
 		radius = math.sqrt (@lineTrackingData.xRatio*(x - @lineTrackingData.xStartPosition))^2 + (@lineTrackingData.yRatio*(y - @lineTrackingData.yStartPosition))^2
 		x = @lineTrackingData.xPosition[frame] + radius*dcos line.alpha + @lineTrackingData.zRotationDiff
@@ -145,17 +145,17 @@ class MotionHandler
 		return ("(%g,%g)")\format round( x, @options.main.posround ), round( y, @options.main.posround )
 
 	-- Needs to be fixed.
-	orginate: ( origin, frame ) =>
+	orginate = ( origin, frame ) =>
 		ox, oy = opos\match("([%-%d%.]+),([%-%d%.]+)")
 		ox = @lineTrackingData.xRatio*(ox - @lineTrackingData.xStartPosition)
 		oy = @lineTrackingData.yRatio*(oy - @lineTrackingData.yStartPosition)
 		return ("(%g,%g)")\format round( nxpos, @opts.main.posround ), round( nypos, @opts.main.posround )
 
-	scalify: ( scale, frame ) =>
 		scale = scale*@lineTrackingData.xRatio
 		return round newScale, @options.main.sclround
+	scalify = ( scale, frame ) =>
 
-	rotate: ( rotation, frame ) =>
+	rotate = ( rotation, frame ) =>
 		rotation += @lineTrackingData.zRotationDiff
 		return round rotation, @options.main.rotround
 
