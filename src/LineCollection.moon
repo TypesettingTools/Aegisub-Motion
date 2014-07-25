@@ -60,7 +60,7 @@ class LineCollection
 					.transformations = { }
 					table.insert @lines, line
 
-		@totalFrames = @endFrame - @startFrame + 1
+		@totalFrames = @endFrame - @startFrame
 
 	mungeLinesForFBF: =>
 		for line in *@lines
