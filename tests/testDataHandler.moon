@@ -1,6 +1,9 @@
 DataHandler = require 'a-mo.DataHandler'
 log = require 'a-mo.Log'
 
+export script_name = "Test DataHandler"
+export script_description = "Tests DataHandler class."
+
 oldStyleData = [=[
 Adobe After Effects 6.0 Keyframe Data
 
@@ -101,4 +104,4 @@ testDataHandler = ( subtitles, selectedLines, activeLine ) ->
 				log.warn "  #{val}"
 
 
-aegisub.register_macro "Test DataHandler", "Tests DataHandler class.", testDataHandler
+aegisub.register_macro script_name, script_description, testDataHandler

@@ -1,6 +1,9 @@
 ConfigHandler = require 'a-mo.ConfigHandler'
 log = require 'a-mo.Log'
 
+export script_name = "Test ConfigHandler"
+export script_description = "Tests ConfigHandler class."
+
 testConfigHandler = ( subtitles, selectedLines, activeLine ) ->
 	interface = {
 		main: {
@@ -71,4 +74,4 @@ testConfigHandler = ( subtitles, selectedLines, activeLine ) ->
 		-- serialize the newly updated configuration to disk for next time.
 		configuration\write!
 
-aegisub.register_macro "Test ConfigHandler", "Tests ConfigHandler class.", testConfigHandler
+aegisub.register_macro script_name, script_description, testConfigHandler

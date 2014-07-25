@@ -1,6 +1,9 @@
 LineCollection = require 'a-mo.LineCollection'
 log = require 'a-mo.Log'
 
+export script_name = "Test LineCollection"
+export script_description = "Tests LineCollection and Line classes."
+
 ourLines = {
 	defaults: {
 		actor: "", class: "dialogue", comment: false, effect: "banner",
@@ -77,4 +80,4 @@ testLineCollection = ( subtitles, selectedLines, activeLine ) ->
 	-- Do an in-place replace of the lines we have just abused.
 	ourLineCollection\replaceLines!
 
-aegisub.register_macro "Test LineCollection", "Tests LineCollection and Line classes.", testLineCollection
+aegisub.register_macro script_name, script_description, testLineCollection
