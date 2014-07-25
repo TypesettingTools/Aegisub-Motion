@@ -72,7 +72,7 @@ class MotionHandler
 
 		@resultingCollection
 
-	linearmodo = ( line ) =>
+	linear = ( line ) =>
 		with line
 			startFrameTime = aegisub.ms_from_frame aegisub.frame_from_ms .start_time
 			frameAfterStartTime = aegisub.ms_from_frame aegisub.frame_from_ms(.start_time) + 1
@@ -86,37 +86,27 @@ class MotionHandler
 			-- line is on and the end time of the line.
 			endTime = math.floor 0.5*(frameBeforeEndTime + endFrameTime) - .start_time
 
-			-- figure out a good way to attach this somewhere
-			moveinate = ( tag, val, line ) ->
-				output = "\\move("
-				for frame in *{line.relativeStart, line.relativeEnd}
-					@lineTrackingData\calculateCurrentState frame
-					x, y = val\match("([%-%d%.]+),([%-%d%.]+)")
-					radius = math.sqrt (@lineTrackingData.xRatio*(x - @lineTrackingData.xStartPosition))^2 + (@lineTrackingData.yRatio*(x - @lineTrackingData.yStartPosition))^2
-					x = @lineTrackingData.xPosition[frame] + radius*dcos(.alpha + @lineTrackingData.zRotationDiff)
-					y = @lineTrackingData.yPosition[frame] - radius*dsin(.alpha + @lineTrackingData.zRotationDiff)
-					output ..= ("%g,%g,")\format round( x, @options.main.posround ), round( y, @options.main.posround )
-				s ..= ("%d,%d)")\format beginTime, endTime
-				s
-
-			-- figure out a better way to do this without special-casing pos
-			for pattern, func in pairs operations
+			for pattern, callback in pairs operations
 				check_user_cancelled!
-				.text = .text\gsub pattern, ( tag, val ) ->
-					values = {}
-					for frame in *{.relativeStart, .relativeEnd}
-						@lineTrackingData\calculateCurrentState frame
-						table.insert values, func val, frame
-					("%s%g\\t(%d,%d,1,%s%g)")\format tag, values[1], beginTime, endTime, tag, values[2]
+				.text = .text\gsub pattern, ( tag, value ) ->
+					values = { }
+					for frame in *{ line.relativeStart, line.relativeEnd }
+						table.insert values, callback @, value
+					("%s%s\\t(%d,%d,%s%s)")\format tag, values[1], beginTime, endTime, tag, values[2]
 
-			sub[.num] = line
+					callback @, tag, val, line
 
-	nonlinearmodo = ( line ) =>
+			if @options.main.position
+				.text = .text\gsub "\\pos(%b())\\t%((%d,%d),\\pos(%b())%)", ( start, time, finish ) ->
+					"\\move" .. start\sub( 1, -2 ) .. finish\sub( 2, -2 ) .. time .. ")"
+
+	nonlinear = ( line ) =>
 		for frame = line.relativeEnd, line.relativeStart, -1
 			with newLine = Line line
 				aegisub.progress.set (frame - .rstartf)/(.rendf - .rstartf) * 100
 				check_user_cancelled!
 
+				-- have to set line.number so that insertion will work later.
 				.number = line.number
 
 				.start_time = aegisub.ms_from_frame @lineCollection.startFrame + frame - 1
@@ -142,9 +132,9 @@ class MotionHandler
 				@lineTrackingData\calculateCurrentState frame
 
 				-- iterate through the necessary operations
-				for pattern, func in pairs operations
-					.text = .text\gsub pattern, ( tag, val ) ->
-						tag .. func val, frame
+				for pattern, callback in pairs operations
+					.text = .text\gsub pattern, ( tag, value ) ->
+						tag .. callback @, value, frame
 
 				@resultingCollection.addLine newLine
 
@@ -153,20 +143,20 @@ class MotionHandler
 		radius = math.sqrt (@lineTrackingData.xRatio*(x - @lineTrackingData.xStartPosition))^2 + (@lineTrackingData.yRatio*(y - @lineTrackingData.yStartPosition))^2
 		x = @lineTrackingData.xPosition[frame] + radius*dcos line.alpha + @lineTrackingData.zRotationDiff
 		y = @lineTrackingData.yPosition[frame] - radius*dsin line.alpha + @lineTrackingData.zRotationDiff
-		return ("(%g,%g)")\format round( x, @options.main.posround ), round( y, @options.main.posround )
+		("(%g,%g)")\format Math.round( x, @options.main.posround ), Math.round( y, @options.main.posround )
 
 	-- Needs to be fixed.
 	orginate = ( origin, frame ) =>
 		ox, oy = opos\match("([%-%d%.]+),([%-%d%.]+)")
 		ox = @lineTrackingData.xRatio*(ox - @lineTrackingData.xStartPosition)
 		oy = @lineTrackingData.yRatio*(oy - @lineTrackingData.yStartPosition)
-		return ("(%g,%g)")\format round( nxpos, @opts.main.posround ), round( nypos, @opts.main.posround )
+		("(%g,%g)")\format Math.round( nxpos, @opts.main.posround ), Math.round( nypos, @opts.main.posround )
 
-		scale = scale*@lineTrackingData.xRatio
-		return round newScale, @options.main.sclround
 	scalify = ( scale, frame ) =>
+		scale *= @lineTrackingData.xRatio
+		tostring Math.round scale, @options.main.sclround
 
 	rotate = ( rotation, frame ) =>
 		rotation += @lineTrackingData.zRotationDiff
-		return round rotation, @options.main.rotround
+		tostring Math.round rotation, @options.main.rotround
 
