@@ -18,15 +18,17 @@ class TrimHandler
 		@encodeCommand = trimConfig.enccom
 		with @tokens
 			.encbin = trimConfig.encbin
-			.prefix = trimConfig.prefix
+			.prefix = aegisub.decode_path trimConfig.prefix
 			.inpath = aegisub.decode_path "?video/"
-		getVideoName!
+		getVideoName @
 
 	getVideoName = =>
 		with @tokens
 			video = aegisub.project_properties!.video_file
 			assert video\len! != 0, "Theoretically it should be impossible to get this error."
-			tokens.input = video\sub .inpath\len! + 1
+			.input = video\sub .inpath\len! + 1
+			.index = .input\match "(.+)%.[^%.]+$"
+			.output = .index
 
 	calculateTrimLength: ( lineCollection ) =>
 		with @tokens
@@ -34,7 +36,7 @@ class TrimHandler
 			.endt   = lineCollection.endTime
 			.lent   = .endt - .startt
 			.startf = lineCollection.startFrame
-			.endf   = lineCollection.endFrame
+			.endf   = lineCollection.endFrame - 1
 			.lenf   = lineCollection.totalFrames
 
 	performTrim: =>
@@ -63,6 +65,8 @@ class TrimHandler
 			encodeScriptFile = io.open encodeScript, "w+"
 			unless encodeScriptFile
 				log.windowError "Encoding script could not be written.\nSomething is wrong with your temp dir (#{.pre})."
-			encodeScriptFile\write @encodeCommand\gsub( "#(%b{})", ( token ) -> @tokens[token\sub 2, -2] ) .. .postExec
+			encodeString = @encodeCommand\gsub( "#(%b{})", ( token ) -> @tokens[token\sub 2, -2] ) .. .postExec
+			log.debug encodeString
+			encodeScriptFile\write encodeString
 			encodeScriptFile\close!
 			.execFunc .exec\format encodeScript
