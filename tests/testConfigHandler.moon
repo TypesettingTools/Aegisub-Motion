@@ -7,6 +7,8 @@ export script_description = "Tests ConfigHandler class."
 testConfigHandler = ( subtitles, selectedLines, activeLine ) ->
 	interface = {
 		main: {
+			-- note: the name field of the dialog entry needs to be the same
+			-- as the key for this to work at all.
 			rndlabel:  { class: "label",    x: 7, y: 1, width: 3,  height: 1,                                   label: "Rounding" }
 			xpos:      { class: "checkbox", x: 0, y: 2, width: 1,  height: 1, config: true, name:  "xpos",      label: "&x",            value: true,   hint: "Apply x position data to the selected lines." }
 			ypos:      { class: "checkbox", x: 1, y: 2, width: 1,  height: 1, config: true, name:  "ypos",      label: "&y",            value: true,   hint: "Apply y position data to the selected lines." }
@@ -56,7 +58,7 @@ testConfigHandler = ( subtitles, selectedLines, activeLine ) ->
 	-- load previously serialized configuration from disk
 	configuration\read!
 	-- update the interface fields with the configuration that was just read.
-	configuration\updateInterface interface, "main"
+	configuration\updateInterface!
 
 	-- display the interface
 	button, result = aegisub.dialog.display interface.main, buttons.list, buttons.namedList

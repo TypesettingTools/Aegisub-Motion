@@ -10,15 +10,15 @@ class ConfigHandler
 	-- config file, or are labels that do not return a value.
 
 	-- Constructor
-	new: ( optionTables, fileName, hasSections, @version = "0.0.1", filePath = "?user" ) =>
+	new: ( @optionTables, fileName, hasSections, @version = "0.0.1", filePath = "?user" ) =>
 		@fileName = aegisub.decode_path "#{filePath}/#{fileName}"
 		@fileHandle = nil
-		loadDefault @, optionTables
+		loadDefault @
 
 	-- Private methods (I probably shouldn't have bothered to do this!)
-	loadDefault = ( optionTables ) =>
+	loadDefault = =>
 		@configuration = { }
-		for sectionName, configEntries in pairs optionTables
+		for sectionName, configEntries in pairs @optionTables
 			@configuration[sectionName] = { }
 			for optionName, configEntry in pairs configEntries
 				if configEntry.config
@@ -48,14 +48,14 @@ class ConfigHandler
 
 	-- todo: find keys missing from either @conf or interface, and warn
 	-- (maybe error?) about mismatching config versions.
-	updateInterface: ( optionTables, sectionName ) =>
+	updateInterface: ( sectionName ) =>
 		if sectionName
 			log.debug "Section name: #{sectionName}"
-			for tableKey, tableValue in pairs optionTables[sectionName]
+			for tableKey, tableValue in pairs @optionTables[sectionName]
 				if tableValue.config and @configuration[sectionName][tableKey] != nil
 					tableValue.value = @configuration[sectionName][tableKey]
 		else
-			for sectionName, section in pairs optionTables
+			for sectionName, section in pairs @optionTables
 				if @configuration[sectionName] != nil
 					for tableKey, tableValue in pairs section
 						if tableValue.config and @configuration[sectionName][tableKey] != nil
