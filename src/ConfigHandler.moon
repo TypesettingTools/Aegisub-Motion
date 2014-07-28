@@ -71,7 +71,8 @@ class ConfigHandler
 			-- contains no information about which ones should be and which
 			-- ones should not be.
 			for configKey, configValue in pairs @configuration[sectionName]
-				@configuration[sectionName][configKey] = resultTable[configKey]
+				if resultTable[configKey] != nil
+					@configuration[sectionName][configKey] = resultTable[configKey]
 		else
 			log.warn "Section Name not provided. You are doing it wrong."
 
