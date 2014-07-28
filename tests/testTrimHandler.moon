@@ -13,11 +13,23 @@ testTrimHandler = ( subtitles, selectedLines, activeLine ) ->
 		encpre: "x264"
 	}
 
+	otherTrimSettings = {
+		prefix: "?video/"
+		encbin: "/usr/local/bin/ffmpeg"
+		encpre: "ffmpeg"
+	}
+
 	ourLineCollection = LineCollection subtitles, selectedLines
 
 	ourTrimHandler = TrimHandler trimSettings
 	ourTrimHandler\calculateTrimLength ourLineCollection
 	ourTrimHandler\performTrim!
+
+	otherTrimHandler = TrimHandler otherTrimSettings
+	otherTrimHandler\calculateTrimLength ourLineCollection
+	-- otherTrimHandler\performTrim!
+
+	selectedLines
 
 canRun = ( sub, sel ) ->
 	if not aegisub.frame_from_ms 0
