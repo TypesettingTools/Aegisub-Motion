@@ -88,4 +88,11 @@ testLineCollection = ( subtitles, selectedLines, activeLine ) ->
 	-- Do an in-place replace of the lines we have just abused.
 	ourLineCollection\replaceLines!
 
-aegisub.register_macro script_name, script_description, testLineCollection
+canRun = ( sub, sel ) ->
+	if not aegisub.frame_from_ms 0
+		return false, "You must have a video loaded to run this macro."
+	elseif 0 == #sel
+		return false, "You must have lines selected to use this macro."
+	true
+
+aegisub.register_macro script_name, script_description, testLineCollection, canRun

@@ -19,10 +19,11 @@ testTrimHandler = ( subtitles, selectedLines, activeLine ) ->
 	ourTrimHandler\calculateTrimLength ourLineCollection
 	ourTrimHandler\performTrim!
 
-isVideoLoaded = ->
-	if aegisub.frame_from_ms 0
-		return true
-	else
-		return false, "Validation failed: you don't have a video loaded."
+canRun = ( sub, sel ) ->
+	if not aegisub.frame_from_ms 0
+		return false, "You must have a video loaded to run this macro."
+	elseif 0 == #sel
+		return false, "You must have lines selected to use this macro."
+	true
 
-aegisub.register_macro script_name, script_description, testTrimHandler, isVideoLoaded
+aegisub.register_macro script_name, script_description, testTrimHandler, canRun
