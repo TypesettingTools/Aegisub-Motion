@@ -26,9 +26,9 @@ ourLines = {
 		{ start_time: 3000, end_time:3500
 		  text: "We are Identical." }
 		{ start_time: 5000, end_time:6000
-		  text: "{\\pos(280,237)\\clip(80,185,425,247.5)}I have been clipped" }
+		  text: '{\\pos(0,0)\\an7\\c&H000000&\\clip(80,185,425,247.5)}#{fullFrame}' }
 		{ start_time: 6000, end_time:7000
-		  text: "{\\pos(280,237)\\clip(3,m 80 185 l 320 212 425 247 45 244)}I have been clipped too" }
+		  text: '{\\pos(0,0)\\an7\\c&H000000&\\clip(3,m 80 185 l 320 212 425 247 45 244)}#{fullFrame}' }
 	}
 
 	iterator: =>
@@ -40,7 +40,15 @@ ourLines = {
 				i += 1
 				for k,v in pairs @defaults
 					theLine[k] = theLine[k] or v
+
+				theLine.text = theLine.text\gsub "#%{fullFrame%}", ->
+					@fullFrame!
+
 				return theLine
+
+	fullFrame: ->
+		width, height = aegisub.video_size!
+		("{\\p1}m 0 0 l %d 0 %d %d 0 %d{\\p0}")\format width, width, height, height
 }
 
 
