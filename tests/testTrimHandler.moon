@@ -19,7 +19,7 @@ testTrimHandler = ( subtitles, selectedLines, activeLine ) ->
 		encpre: "ffmpeg"
 	}
 
-	ourLineCollection = LineCollection subtitles, selectedLines
+	ourLineCollection = LineCollection subtitles, nil, selectedLines
 
 	ourTrimHandler = TrimHandler trimSettings
 	ourTrimHandler\calculateTrimLength ourLineCollection

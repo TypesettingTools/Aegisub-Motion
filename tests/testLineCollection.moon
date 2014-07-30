@@ -68,7 +68,7 @@ testLineCollection = ( subtitles, selectedLines, activeLine ) ->
 	newSelLines = [ i for i = first, #theLines + first - 1 ]
 
 	-- Instantiate our LineCollection class.
-	ourLineCollection = LineCollection subtitles, newSelLines
+	ourLineCollection = LineCollection subtitles, nil, newSelLines
 
 	-- test munging.
 	ourLineCollection\mungeLinesForFBF!
