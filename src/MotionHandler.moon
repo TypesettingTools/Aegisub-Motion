@@ -140,7 +140,7 @@ class MotionHandler
 
 				@resultingCollection.addLine newLine
 
-	possify = ( pos, frame ) =>
+	position = ( pos, frame ) =>
 		x, y = pos\match "([%-%d%.]+),([%-%d%.]+)"
 		radius = math.sqrt (@lineTrackingData.xRatio*(x - @lineTrackingData.xStartPosition))^2 + (@lineTrackingData.yRatio*(y - @lineTrackingData.yStartPosition))^2
 		x = @lineTrackingData.xPosition[frame] + radius*dcos line.alpha + @lineTrackingData.zRotationDiff
@@ -151,13 +151,13 @@ class MotionHandler
 		("(%g,%g)")\format Math.round( @lineTrackingData.xPosition[frame], @options.main.posround ), Math.round( @lineTrackingData.xPosition[frame], @options.main.posround )
 
 	-- Needs to be fixed.
-	orginate = ( origin, frame ) =>
+	origin = ( origin, frame ) =>
 		ox, oy = opos\match("([%-%d%.]+),([%-%d%.]+)")
 		ox = @lineTrackingData.xRatio*(ox - @lineTrackingData.xStartPosition)
 		oy = @lineTrackingData.yRatio*(oy - @lineTrackingData.yStartPosition)
 		("(%g,%g)")\format Math.round( nxpos, @opts.main.posround ), Math.round( nypos, @opts.main.posround )
 
-	scalify = ( scale, frame ) =>
+	scale = ( scale, frame ) =>
 		scale *= @lineTrackingData.xRatio
 		tostring Math.round scale, @options.main.sclround
 
