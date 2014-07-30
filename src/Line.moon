@@ -207,20 +207,6 @@ class Line
 				unless replaced
 					-- Has the same problem mentioned above.
 					tagBlock ..= fadToTransform fadStartTime, fadEndTime, alpha_from_style( @styleRef.color1 ), @duration
-			elseif longFadeStartPos
-				-- This is also completely wrong, as existing alpha tags aren't
-				-- even taken into account. However, in this case, properly
-				-- handling the fade is much more complex, as alpha tags
-				-- influence both the starting and ending transparency of the
-				-- fade in an additive fashion. Given that very few (if any)
-				-- people use \fade, I don't think the effort necessary to fix
-				-- this behavior is worth it at the moment. NEW IDEA: since
-				-- \fade has all of the times specified, we should be able to
-				-- give it the FBF treatment without converting it to
-				-- transforms.
-				tagBlock = tagBlock\gsub "\\fade%(([%d]+),([%d]+),([%d]+),([%-%d]+),([%-%d]+),([%-%d]+),([%-%d]+)%)",
-					(a, b, c, d, e, f, g) ->
-						("\\alpha&H%02X&\\t(%s,%s,1,\\alpha&H%02X&)\\t(%s,%s,1,\\alpha&H%02X&)")\format(a, d, e, b, f, g, c)
 
 			tagBlock\gsub "\\t(%b())", ( tContents ) ->
 				lexTransforms tContents, line
