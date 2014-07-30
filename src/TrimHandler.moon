@@ -15,7 +15,11 @@ class TrimHandler
 	-- trimConfig is just the trim subtable of the config table collection.
 	new: ( trimConfig ) =>
 		@tokens = { }
-		@encodeCommand = trimConfig.enccom
+		if trimConfig.encodeCommand != nil and trimConfig.encodeCommand != ""
+			@encodeCommand = trimConfig.encodeCommand
+		else
+	 		@encodeCommand = @defaults[trimConfig.preset]
+
 		with @tokens
 			if @windows
 				.temp = os.getenv('TEMP')
