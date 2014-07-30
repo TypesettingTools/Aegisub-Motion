@@ -6,26 +6,29 @@ export script_description = "A set of tools for simplifying the process of creat
 export script_author      = "torque"
 export script_version     = "0xDEADBEEF"
 
-local *
-local interface, alltags
+local interface
 
-require "clipboard"
-success, re = pcall require, "aegisub.re"
-re = require "re" unless success
+ffi            = require 'ffi'
+clipboard      = require 'clipboard'
+re             = require 'aegisub.re'
+LineCollection = require 'a-mo.LineCollection'
+DataHandler    = require 'a-mo.DataHandler'
+MotionHandler  = require 'a-mo.MotionHandler'
+TrimHandler    = require 'a-mo.TrimHandler'
+log            = require 'a-mo.Log'
 
-onetime_init = ->
+initializeInterface = ->
+	return if interface
 	-- Set up interface tables.
 	interface = {
 		main: {
 			-- mnemonics: xyOCSBuRWen + G\A + Wl\A
-			linespath: { class: "textbox",  x: 0, y: 1,  width: 10, height: 4,               name:  "linespath", hint: "Paste data or the path to a file containing it. No quotes or escapes." }
-			preflabel: { class: "label",    x: 0, y: 13, width: 10, height: 1,                                   label: "                  Files will be written to this directory." }
-			prefix:    { class: "label",    x: 0, y: 14, width: 10, height: 1 }
-			datalabel: { class: "label",    x: 0, y: 0,  width: 10, height: 1,                                   label: "                       Paste data or enter a filepath." }
-			optlabel:  { class: "label",    x: 0, y: 6,  width: 5,  height: 1,                                   label: "Data to be applied:" }
-			rndlabel:  { class: "label",    x: 7, y: 6,  width: 3,  height: 1,                                   label: "Rounding" }
-			xpos:      { class: "checkbox", x: 0, y: 7,  width: 1,  height: 1, config: true, name:  "xpos",      label: "&x",            value: true,   hint: "Apply x position data to the selected lines." }
-			ypos:      { class: "checkbox", x: 1, y: 7,  width: 1,  height: 1, config: true, name:  "ypos",      label: "&y",            value: true,   hint: "Apply y position data to the selected lines." }
+			dataLabel: { class: "label",    x: 0, y: 0,  width: 10, height: 1,                                   label: "                       Paste data or enter a filepath." }
+			data:      { class: "textbox",  x: 0, y: 1,  width: 10, height: 4,               name:  "data", hint: "Paste data or the path to a file containing it. No quotes or escapes." }
+
+			optLabel:  { class: "label",    x: 0, y: 6,  width: 5,  height: 1,                                   label: "Data to be applied:" }
+			xPosition: { class: "checkbox", x: 0, y: 7,  width: 1,  height: 1, config: true, name:  "xPosition", label: "&x",            value: true,   hint: "Apply x position data to the selected lines." }
+			yPosition: { class: "checkbox", x: 1, y: 7,  width: 1,  height: 1, config: true, name:  "yPosition", label: "&y",            value: true,   hint: "Apply y position data to the selected lines." }
 			origin:    { class: "checkbox", x: 2, y: 7,  width: 2,  height: 1, config: true, name:  "origin",    label: "&Origin",       value: false,  hint: "Move the origin along with the position." }
 			clip:      { class: "checkbox", x: 4, y: 7,  width: 2,  height: 1, config: true, name:  "clip",      label: "&Clip",         value: false,  hint: "Move clip along with the position (note: will also be scaled and rotated if those options are selected)." }
 			scale:     { class: "checkbox", x: 0, y: 8,  width: 2,  height: 1, config: true, name:  "scale",     label: "&Scale",        value: true,   hint: "Apply scaling data to the selected lines." }
@@ -33,105 +36,161 @@ onetime_init = ->
 			shadow:    { class: "checkbox", x: 4, y: 8,  width: 2,  height: 1, config: true, name:  "shadow",    label: "&Shadow",       value: true,   hint: "Scale shadow with the line (only if Scale is also selected)." }
 			blur:      { class: "checkbox", x: 4, y: 9,  width: 2,  height: 1, config: true, name:  "blur",      label: "Bl&ur",         value: true,   hint: "Scale blur with the line (only if Scale is also selected, does not scale \\be)." }
 			rotation:  { class: "checkbox", x: 0, y: 9,  width: 3,  height: 1, config: true, name:  "rotation",  label: "&Rotation",     value: false,  hint: "Apply rotation data to the selected lines." }
-			posround:  { class: "intedit",  x: 7, y: 7,  width: 3,  height: 1, config: true, name:  "posround",  min: 0, max: 5,         value: 2,      hint: "How many decimal places of accuracy the resulting positions should have." }
-			sclround:  { class: "intedit",  x: 7, y: 8,  width: 3,  height: 1, config: true, name:  "sclround",  min: 0, max: 5,         value: 2,      hint: "How many decimal places of accuracy the resulting scales should have (also applied to border, shadow, and blur)." }
-			rotround:  { class: "intedit",  x: 7, y: 9,  width: 3,  height: 1, config: true, name:  "rotround",  min: 0, max: 5,         value: 2,      hint: "How many decimal places of accuracy the resulting rotations should have." }
-			wconfig:   { class: "checkbox", x: 0, y: 11, width: 4,  height: 1,               name:  "wconfig",   label: "&Write config", value: false,  hint: "Write current settings to the configuration file." }
+
+			rndLabel:  { class: "label",    x: 7, y: 6,  width: 3,  height: 1,                                   label: "Rounding" }
+			posRound:  { class: "intedit",  x: 7, y: 7,  width: 3,  height: 1, config: true, name:  "posRound",  min: 0, max: 5,         value: 2,      hint: "How many decimal places of accuracy the resulting positions should have." }
+			sclRound:  { class: "intedit",  x: 7, y: 8,  width: 3,  height: 1, config: true, name:  "sclRound",  min: 0, max: 5,         value: 2,      hint: "How many decimal places of accuracy the resulting scales should have (also applied to border, shadow, and blur)." }
+			rotRound:  { class: "intedit",  x: 7, y: 9,  width: 3,  height: 1, config: true, name:  "rotRound",  min: 0, max: 5,         value: 2,      hint: "How many decimal places of accuracy the resulting rotations should have." }
+
+			writeConf: { class: "checkbox", x: 0, y: 11, width: 4,  height: 1,               name:  "writeConf", label: "&Write config", value: false,  hint: "Write current settings to the configuration file." }
 			relative:  { class: "checkbox", x: 4, y: 11, width: 3,  height: 1, config: true, name:  "relative",  label: "R&elative",     value: true,   hint: "Start frame should be relative to the line's start time rather than to the start time of all selected lines" }
-			stframe:   { class: "intedit",  x: 7, y: 11, width: 3,  height: 1, config: true, name:  "stframe",                           value: 1,      hint: "Frame used as the starting point for the tracking data. \"-1\" corresponds to the last frame." }
+			startFrame:{ class: "intedit",  x: 7, y: 11, width: 3,  height: 1, config: true, name:  "startFrame",                           value: 1,      hint: "Frame used as the starting point for the tracking data. \"-1\" corresponds to the last frame." }
 			linear:    { class: "checkbox", x: 4, y: 12, width: 2,  height: 1, config: true, name:  "linear",    label: "Li&near",       value: false,  hint: "Use transforms and \\move to create a linear transition, instead of frame-by-frame." }
+
+			sortLabel: { class: "label",    x: 1, y: 5,  width: 4,  height: 1,               name:  "sortlabel", label: "      Sort Method:" }
 			sortd:     { class: "dropdown", x: 5, y: 5,  width: 4,  height: 1, config: true, name:  "sortd",     label: "Sort lines by", value: "Default", items: { "Default", "Time" }, hint: "The order to sort the lines after they have been tracked." }
-			sortlabel: { class: "label",    x: 1, y: 5,  width: 4,  height: 1,               name:  "sortlabel", label: "      Sort Method:" }
 			-- autocopy:  { class: "label",    x: 0, y: 0,  width: 0,  height: 0, config: true, label: "", value: true }
 			-- delsourc:  { class: "label",    x: 0, y: 0,  width: 0,  height: 0, config: true, label: "", value: false }
 		}
 		clip: {
 			-- mnemonics: xySRe + GCA
-			clippath: { class: "textbox",   x: 0, y: 1,  width: 10, height: 4,               name:  "clippath", hint: "Paste data or the path to a file containing it. No quotes or escapes." }
-			label:    { class: "label",     x: 0, y: 0,  width: 10, height: 1,              label: "                 Paste data or enter a filepath." }
-			xpos:     { class: "checkbox",  x: 0, y: 6,  width: 1,  height: 1, config: true, name:  "xpos",     value: true,  label: "&x", hint: "Apply x position data to the selected lines." }
-			ypos:     { class: "checkbox",  x: 1, y: 6,  width: 1,  height: 1, config: true, name:  "ypos",     value: true,  label: "&y", hint: "Apply y position data to the selected lines." }
-			scale:    { class: "checkbox",  x: 0, y: 7,  width: 2,  height: 1, config: true, name:  "scale",    value: true,  label: "&Scale" }
-			rotation: { class: "checkbox",  x: 0, y: 8,  width: 3,  height: 1, config: true, name:  "rotation", value: false, label: "&Rotation" }
-			relative: { class: "checkbox",  x: 4, y: 6,  width: 3,  height: 1, config: true, name:  "relative", value: true,  label: "R&elative" }
-			stframe:  { class: "intedit",   x: 7, y: 6,  width: 3,  height: 1, config: true, name:  "stframe",  value: 1 }
+			dataLabel: { class: "label",     x: 0, y: 0,  width: 10, height: 1,              label:  "                 Paste data or enter a filepath." }
+			data:      { class: "textbox",   x: 0, y: 1,  width: 10, height: 4,               name:  "clippath", hint: "Paste data or the path to a file containing it. No quotes or escapes." }
+			xPosition: { class: "checkbox",  x: 0, y: 6,  width: 1,  height: 1, config: true, name:  "xPosition",     value: true,  label: "&x", hint: "Apply x position data to the selected lines." }
+			yPosition: { class: "checkbox",  x: 1, y: 6,  width: 1,  height: 1, config: true, name:  "yPosition",     value: true,  label: "&y", hint: "Apply y position data to the selected lines." }
+			scale:     { class: "checkbox",  x: 0, y: 7,  width: 2,  height: 1, config: true, name:  "scale",    value: true,  label: "&Scale" }
+			rotation:  { class: "checkbox",  x: 0, y: 8,  width: 3,  height: 1, config: true, name:  "rotation", value: false, label: "&Rotation" }
+			startFrame:{ class: "intedit",   x: 7, y: 6,  width: 3,  height: 1, config: true, name:  "startFrame",  value: 1 }
 		}
 		trim: {
-			prefix:   { config: true, value: "?video/" }
-			encoder:  { config: true, value: "x264" }
-			encbin:   { config: true, value: "" }
-			enccom:   { config: true, value: "" }
+			prefix:       { config: true, value: "?video/" }
+			preset:       { config: true, value: "x264" }
+			encbin:       { config: true, value: "" }
+			encodeCommand:{ config: true, value: "" }
 		}
 	}
 
-init_input = (sub, sel) ->
+fetchDataFromClipboard = ->
+	-- Make this less horrible.
+	if ffi.os != "Linux"
+		-- If there's nothing on the clipboard, clipboard.get returns nil.
+		paste = clipboard.get! or ""
+		if paste\match("^Adobe After Effects 6.0 Keyframe Data")
+			return paste
+		else
+			return ""
 
-	onetime_init!
+prepareConfig = ( config, lineCollection, mainData ) ->
 
-	setundo = aegisub.set_undo_point
-	printmem "GUI startup"
+	config.clip = config.clip or { }
 
-	conf, accd = dialogPreproc sub, sel
+	-- Check if the motion data pasted in the input box has changed
+	-- from that data grabbed off of the clipboard before the dialog
+	-- was displayed. If it did change, we need to re-parse it. Need
+	-- to try opening as file.
+	if config.main.data != rawInputData
+		mainData = DataHandler config.main.data
+
+	-- If no main tracking data is given, set mainData to nil.
+	if config.main.data == ""
+		mainData = nil
+
+	-- Nudge the start frames.
+	if config.main.startFrame == 0
+		config.main.startFrame = 1
+	if config.clip.startFrame == 0
+		config.clip.startFrame = 1
+
+	local clipData
+	-- Need to try opening config.clip.data as a file.
+	if config.clip.data != "" and config.clip.data != nil
+		clipData = DataHandler config.clip.data
+	elseif config.main.clip
+		clipData = mainData
+		config.clip.startFrame = config.main.startFrame
+
+	unless mainData or clipData
+		log.windowError "You have failed to provide any tracking\ndata, as far as I can tell."
+
+	-- Todo: modify configuration class to allow updating multiple
+	-- sections at once.
+	lineCollection.options\updateConfiguration config.main, "main"
+	lineCollection.options\updateConfiguration config.clip, "clip"
+
+	motionHandler = MotionHandler lineCollection, mainData, clipData
+	newLines = motionHandler\applyMotion!
+	newLines\replaceLines!
+
+applyProcessor = ( subtitles, selectedLines ) ->
+
+	initializeInterface!
+
+	-- Initialize the configuration
+	options = ConfigHandler interface, "aegisub-motion.json", true, script_version
+	options\read!
+	options\updateInterface "main"
+	options\updateInterface "clip"
+
+	lineCollection = LineCollection subtitles, options.configuration, selectedLines
+	-- remove the lines
+	lineCollection\deleteLines!
+
+	currentVideoFrame = aegisub.project_properties!.video_position
+
+	rawInputData = fetchDataFromClipboard!
+
+	local mainData
+	if rawInputData != ""
+		mainData = DataHandler rawInputData
+		interface.main.data = rawInputData
+
+	relativeFrame = currentVideoFrame - lineCollection.startFrame + 1
+	if relativeFrame > 0 and relativeFrame < lineCollection.totalFrames
+		interface.main.startFrame = relativeFrame
+		interface.clip.startFrame = relativeFrame
 
 	-- cancel:Abort in the main dialog tells Esc key to abort the entire macro
-	-- cancel:Cancel in \clip dialog tells Esc key to close it and go back to the main dialog
-	btns = {
-			main: makebuttons {{ok:"&Go"}, {clip:"&\\clip..."}, {cancel:"&Abort"}}
-			clip: makebuttons {{ok:"&Go clippin'"}, {cancel:"&Cancel"}, {abort:"&Abort"}}
+	-- cancel:Back in \clip dialog tells Esc key to close it and go back to the main dialog
+	buttons = {
+			main: {
+				list: {
+					{ "&Go" },
+					{ "&\\clip..." }
+					{ "&Abort" }
+				}
+				namedList: {
+					{ ok: "&Go" },
+					{ clip: "&\\clip..." }
+					{ cancel: "&Abort" }
+				}
+			clip: {
+				list: {
+					{ "&Go"}
+					{ "&Back" }
+					{ "&Abort" }
+				}
+				namedList: {
+					{ ok: "&Go"}
+					{ cancel: "&Back" }
+					{ abort: "&Abort" }
+				}
 		}
-	dlg = "main"
 
+	currentDialog = "main"
 	config = {}
 	while true
 		local button
 
-		with btns[dlg]
-			button, config[dlg] = aegisub.dialog.display(gui[dlg], .__list, .__namedlist)
+		with buttons[currentDialog]
+			button, config[currentDialog] = aegisub.dialog.display gui[currentDialog], .list, .namedList
 
 		switch button
-			when btns.main.clip
-				dlg = "clip"
+			when buttons.main.clip
+				currentDialog = "clip"
 				continue
 
-			when btns.main.ok, btns.clip.ok
-				config.clip = config.clip or {} -- solve indexing errors
-				for field in *guiconf.clip
-					if config.clip[field] == nil then config.clip[field] = interface.clip[field].value
-				config.main.linespath = false if config.main.linespath == ""
-
-				writeconf conf, {main: config.main, clip: config.clip, global: global} if config.main.wconfig
-
-				config.main.stframe = 1 if config.main.stframe == 0 -- TODO: fix this horrible clusterfuck
-				config.clip.stframe = 1 if config.clip.stframe == 0
-
-				config.main.position = true if config.main.xpos or config.main.ypos
-				config.clip.position = true if config.clip.xpos or config.clip.ypos
-
-				config.main.yconst = not config.main.ypos
-				config.main.xconst = not config.main.xpos
-				config.clip.yconst = not config.clip.ypos
-				config.clip.xconst = not config.clip.xpos -- TODO: remove unnecessary logic inversion
-
-				config.clip.stframe = config.main.stframe if config.main.clip
-				config.main.linear    = false if config.main.clip or config.clip.clippath
-
-				if config.clip.clippath == "" or config.clip.clippath == nil
-					if not config.main.linespath then windowerr false, "No tracking data was provided."
-					config.clip.clippath = false
-				else
-					config.main.clip = false -- set clip to false if clippath exists
-
-				aegisub.progress.title "Mincing Gerbils"
-				printmem "Go"
-
-				newsel = frame_by_frame sub, accd, config.main, config.clip
-				if munch sub, newsel
-					newsel = {}
-					for x = 1, #sub
-						table.insert newsel, x if tostring(sub[x].effect)\match("^aa%-mou")
-
-				aegisub.progress.title "Reformatting Gerbils"
-				cleanup sub, newsel, config.main, #accd.lines
+			when buttons.main.ok, buttons.clip.ok
+				prepareConfig config, mainData
 				break
 
 			else
@@ -145,86 +204,28 @@ init_input = (sub, sel) ->
 	setundo "Motion Data"
 	printmem "Closing"
 
-populateInputBox = ->
-
-	if global.autocopy
-		paste = clipboard.get() or "" -- if there's nothing on the clipboard, clipboard.get retuns nil
-		if global.acfilter
-			if paste\match("^Adobe After Effects 6.0 Keyframe Data")
-				interface.main.linespath.value = paste
-		else
-			interface.main.linespath.value = paste
-
-confmaker = ->
-
-	onetime_init!
-
-	lvaltab = {}
-	conf = configscope()
-	if not readconf conf, {main: interface.conf, clip: interface.clip, global: global}
-		warn "Config read failed!"
-
-	if global.prefix\sub(#global.prefix) ~= pathSep
-		global.prefix ..= pathSep
-
-	for key, value in pairs global
-		interface.conf[key].value = value if interface.conf[key]
-	interface.conf.enccom.value = encpre[global.encoder] or interface.conf.enccom.value
-
-	btns = {
-			conf: makebuttons {{ok:"&Write"}, {local:"Write &local"}, {clip:"&\\clip..."}, {cancel:"&Abort"}}
-			clip: makebuttons {{ok:"&Write"}, {local:"Write &local"}, {cancel:"&Cancel"}, {abort:"&Abort"}}
-		}
-	dlg = "conf"
-
-	while true
-		local clipconf, button, config
-
-		with btns[dlg]
-			button, config = aegisub.dialog.display(gui[dlg], .__list, .__namedlist)
-
-		switch button
-			when btns.conf.clip
-				dlg = "clip"
-				continue
-
-			when btns.conf.ok, btns.conf.local, btns.clip.ok, btns.clip.local
-				clipconf = clipconf or {}
-				conf = aegisub.decode_path("?script/"..config_file) if button == "Write local"
-				config.enccom = encpre[config.encoder] or config.enccom if global.encoder != config.encoder
-
-				for key, value in pairs global
-					global[key] = config[key]
-					config[key] = nil
-
-				for field in *guiconf.clip
-					clipconf[field] = interface.clip[field].value if clipconf[field] == nil
-
-				writeconf conf, {main: config, clip: clipconf, global: global}
-				break
-
-			else
-				if dlg == "conf" or button == btns.clip.abort
-					aegisub.cancel!
-				else
-					dlg = "conf"
-					continue
+applyTrim = ( subtitles, selectedLines ) ->
+	initializeInterface!
+	options = ConfigHandler interface, "aegisub-motion.json", true, script_version
+	options\read!
+	lineCollection = LineCollection subtitles, nil, selectedLines
+	trim = TrimHandler options.trim
+	trim\calculateTrimLength lineCollection
+	trim\performTrim!
 
 check_user_cancelled = ->
-	error "User cancelled" if aegisub.progress.is_cancelled!
+	if aegisub.progress.is_cancelled!
+		aegisub.cancel!
 
-isvideo = ->
-	if aegisub.frame_from_ms 0
-		return true
-	else
-		return false, "Validation failed: you don't have a video loaded."
+canRun = ( sub, selectedLines ) ->
+	if not aegisub.frame_from_ms 0
+		return false, "You must have a video loaded to run this macro."
+	elseif 0 == #selectedLines
+		return false, "You must have lines selected to use this macro."
+	true
 
 aegisub.register_macro "Motion Data - Apply", "Applies properly formatted motion tracking data to selected subtitles.",
-	init_input, isvideo
+	applyProcessor, canRun
 
 aegisub.register_macro "Motion Data - Trim", "Cuts and encodes the current scene for use with motion tracking software.",
-	trimnthings, isvideo
-
-if config_file
-	aegisub.register_macro "Motion Data - Config", "Full config management.",
-		confmaker
+	applyTrim, canRun
