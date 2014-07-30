@@ -20,7 +20,9 @@ class MotionHandler
 		elseif @options.main.clip
 			@clipTrackingData = @lineTrackingData
 
-	setCallbacks: =>
+		setCallbacks @
+
+	setCallbacks = =>
 		@callbacks = { }
 
 		if @options.main.position
