@@ -128,7 +128,7 @@ class Line
 
 			-- Might want to structure this table differently.
 			table.insert @transformations, { transStart, transEnd, transExp, transEffect }
-			log.debug "Line %d: \\t(%g,%g,%g,%s) found", transStart, transEnd, transExp, transEffect
+			log.debug "\\t(%g,%g,%g,%s)", transStart, transEnd, transExp, transEffect
 
 		fadToTransform = ( fadStart, fadEnd, alpha, duration ) ->
 			local str
