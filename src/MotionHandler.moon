@@ -147,6 +147,9 @@ class MotionHandler
 		y = @lineTrackingData.yPosition[frame] - radius*dsin line.alpha + @lineTrackingData.zRotationDiff
 		("(%g,%g)")\format Math.round( x, @options.main.posround ), Math.round( y, @options.main.posround )
 
+	absolutePosition = ( pos, frame ) =>
+		("(%g,%g)")\format Math.round( @lineTrackingData.xPosition[frame], @options.main.posround ), Math.round( @lineTrackingData.xPosition[frame], @options.main.posround )
+
 	-- Needs to be fixed.
 	orginate = ( origin, frame ) =>
 		ox, oy = opos\match("([%-%d%.]+),([%-%d%.]+)")
