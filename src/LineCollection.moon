@@ -92,6 +92,7 @@ class LineCollection
 			error "User cancelled" if aegisub.progress.is_cancelled!
 
 			if lastLine\combineWithLine @lines[i]
+				@shouldInsertLines = true
 				continue
 			else
 				table.insert newLineTable, lastline
@@ -100,6 +101,21 @@ class LineCollection
 		table.insert newLineTable, lastLine
 		@lines = newLineTable
 
-	replaceLines: =>
+	runCallback: ( callback ) =>
 		for line in *@lines
-			@sub[line.number] = line
+			callback @, line
+
+	deleteLines: =>
+		for line in *@lines
+			@sub[line.number] = nil
+
+	insertLines: =>
+		for line in *@lines
+			@sub.insert line.number + 1, line
+
+	replaceLines: =>
+		if @shouldInsertLines
+			@insertLines!
+		else
+			for line in *@lines
+				@sub[line.number] = line
