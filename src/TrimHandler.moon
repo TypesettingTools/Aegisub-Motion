@@ -17,6 +17,10 @@ class TrimHandler
 		@tokens = { }
 		@encodeCommand = trimConfig.enccom
 		with @tokens
+			if @windows
+				.temp = os.getenv('TEMP')
+			else
+				.temp = "/tmp"
 			.encbin = trimConfig.encbin
 			.prefix = aegisub.decode_path trimConfig.prefix
 			.inpath = aegisub.decode_path "?video/"
@@ -42,7 +46,7 @@ class TrimHandler
 	performTrim: =>
 		with platform = ({
 				[true]:  {
-					pre: os.getenv('TEMP')
+					pre: @tokens.temp
 					ext: ".bat"
 					exec: '""%s""'
 					postExec: "\nif errorlevel 1 (echo Error & pause)"
@@ -50,7 +54,7 @@ class TrimHandler
 						os.execute encodeScript
 				}
 				[false]: {
-					pre: "/tmp"
+					pre: @tokens.temp
 					ext: ".sh"
 					exec: 'sh "%s"'
 					postExec: " 2>&1"
