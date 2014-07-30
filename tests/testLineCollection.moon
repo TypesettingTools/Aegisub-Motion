@@ -79,7 +79,7 @@ testLineCollection = ( subtitles, selectedLines, activeLine ) ->
 		line.text = line.text\gsub "\\t%b()", ( transform ) ->
 			{ transStart, transEnd, transExp, transEffect } = line.transformations[i]
 			i+=1
-			return "\\t(#{transStart},#{transEnd},#{transExp},#{transEffect})"
+			"\\t(#{transStart},#{transEnd},#{transExp},#{transEffect})"
 
 	-- test cleanup (transforms must be in FBF Approved Format™ or this
 	-- does not work.)
