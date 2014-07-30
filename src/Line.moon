@@ -79,7 +79,7 @@ class Line
 		(sy, v) -> v
 	}
 
-	combineChar: string.char 6
+	combineChar: "\\\6"
 
 	new: ( line, @parentCollection ) =>
 		for _, field in ipairs @fieldsToCopy
@@ -176,9 +176,7 @@ class Line
 			@text = "{" .. @text\sub( longFadeStartPos, longFadeEndPos ) .. "}" .. @text\gsub longFade, ''
 
 		-- Merge all contiguous comment/override blocks. This will make
-		-- pretty much everything that follows a lot more sane. Note: this
-		-- will mess up \r in certain situations. Need to test. Consider
-		-- adding \ to beginning of combineChar.
+		-- pretty much everything that follows a lot more sane.
 		@text = @text\gsub "}{", @combineChar
 
 		-- Perform operations on the first override block of the line.
