@@ -313,7 +313,6 @@ class Line
 
 		@text = @text\gsub string.char(1), "{"
 		@text = @text\gsub string.char(2), "}"
-		@effect = @effect\gsub "aa%-mou", "", 1
 
 	combineWithLine: ( line ) =>
 		if @text == line.text and @style == line.style and (@start_time == line.end_time or @end_time == line.start_time)
