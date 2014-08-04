@@ -8,6 +8,9 @@ class LineCollection
 		if sel
 			@collectLines sel
 
+	addLine: ( line ) =>
+		table.insert @lines, line
+
 	generateMetaAndStyles: =>
 		@styles = { }
 		@meta   = { }
