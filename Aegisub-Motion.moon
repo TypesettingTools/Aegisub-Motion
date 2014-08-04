@@ -84,9 +84,7 @@ fetchDataFromClipboard = ->
 		else
 			return ""
 
-prepareConfig = ( config, lineCollection, mainData ) ->
-
-	config.clip = config.clip or { }
+prepareConfig = ( config, mainData, clipData, totalFrames ) ->
 
 	-- Check if the motion data pasted in the input box has changed
 	-- from that data grabbed off of the clipboard before the dialog
@@ -100,16 +98,17 @@ prepareConfig = ( config, lineCollection, mainData ) ->
 		mainData = nil
 
 	-- Nudge the start frames.
-	if config.main.startFrame == 0
-		config.main.startFrame = 1
-	if config.clip.startFrame == 0
-		config.clip.startFrame = 1
+	for context in *{ 'main', 'clip' }
+		if config[context].startFrame
+			if config[context].startFrame == 0
+				config[context].startFrame = 1
+			elseif config[context].startFrame < 0
+				config[context].startFrame = totalFrames - config[context].startFrame + 1
 
-	local clipData
 	-- Need to try opening config.clip.data as a file.
 	if config.clip.data != "" and config.clip.data != nil
-		clipData = DataHandler config.clip.data
-	elseif config.main.clip
+		clipData\parseRawDataString config.clip.data
+	else
 		clipData = mainData
 		config.clip.startFrame = config.main.startFrame
 
