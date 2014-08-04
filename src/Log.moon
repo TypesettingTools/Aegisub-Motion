@@ -49,5 +49,5 @@ return {
 
 	windowError: ( errorMessage ) ->
 		aegisub.dialog.display { { class: "label", label: errorMessage } }, { "&Close" }, { cancel: "&Close" }
-		aegusb.cancel!
+		aegisub.cancel!
 }
