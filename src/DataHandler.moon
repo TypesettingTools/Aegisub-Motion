@@ -10,15 +10,19 @@ class DataHandler
 		@yScale = @xScale
 		@zRotation = { }
 		if rawDataString
-			@tableize rawDataString
-			@width  = @rawData[4]\match "Source Width\t([0-9]+)"
-			@height = @rawData[5]\match "Source Height\t([0-9]+)"
-			unless @width and @height
-				log.windowError "Your tracking data is either missing the Width/Height fields,\nor they are not where I expected them."
+			@parseRawDataString rawDataString
 
-	tableize: ( rawDataString ) =>
+	parseRawDataString: ( rawDataString ) =>
+		tableize @, rawDataString
+		@width  = @rawData[3]\match "Source Width\t([0-9]+)"
+		@height = @rawData[4]\match "Source Height\t([0-9]+)"
+		unless @width and @height
+			log.windowError "Your tracking data is either missing the Width/Height fields,\nor they are not where I expected them."
+		parse @
+
+	tableize = ( rawDataString ) =>
 		@rawData = { }
-		rawDataString\gsub "([^\n]+)", ( line ) ->
+		rawDataString\gsub "([^\r\n]+)", ( line ) ->
 			table.insert @rawData, line
 
 	parse: =>
