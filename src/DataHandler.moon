@@ -58,9 +58,11 @@ class DataHandler
 			for index, value in ipairs @[field]
 				@[field][index] = defaults[field]
 
-	sanityCheck: ( lineCollection ) =>
-		if lineCollection.totalFrames != @length
-			log.windowError ("Number of frames selected (%d) does not match\nparsed line tracking data length (%d).")\format lineCollection.totalFrames, @length
+	checkLength: ( lineCollection ) =>
+		if lineCollection.totalFrames == @length
+			true
+		else
+			false
 
 	addReferenceFrame: ( frame ) =>
 		@startFrame = frame
