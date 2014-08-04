@@ -274,33 +274,33 @@ class Line
 		if startingBlock
 			@text = "{" .. @text
 
-	cleanText: =>
+	cleanText: ( methods ) =>
 		cleantrans = ( transform ) ->
-			transStart, transEnd, transExp, transEffect = transform\sub( 2, -2 )\match "([%-%d]+),([%-%d]+),([%d%.]*),?(.+)"
+			transStart, transEnd, transExp, transEffect = transform\match "([%-%d]+),([%-%d]+),([%d%.]*),?(.+)"
 			-- This specific section only works on transforms we have
 			-- generated. Otherwise, an end time of 0 will mean the transform
 			-- runs to the end of the line.
 			if tonumber( transEnd ) <= 0
-				return ("%s")\format transEffect
+				return ("%s")\format transEffect\sub 1, -2
 			elseif tonumber( transStart ) > @duration or tonumber( transEnd ) < tonumber( transStart )
 				return ""
 			elseif tonumber( transExp ) == 1 or transExp == ""
-				return ("\\t(%s,%s,%s)")\format transStart, transEnd, transEffect
+				return ("\\t(%s,%s,%s")\format transStart, transEnd, transEffect
 			else
-				return ("\\t(%s,%s,%s,%s)")\format transStart, transEnd, transExp, transEffect
+				return ("\\t(%s,%s,%s,%s")\format transStart, transEnd, transExp, transEffect
 
 		-- Split merged override blocks back up
 		@text = @text\gsub @combineChar, "}{"
 		-- clean up transformations (remove transformations that have completed)
 		@text = @text\gsub "\\t(%b())", cleantrans
 
-		for overrideBlock in @text\gmatch "{(.-)}"
+		@text = @text\gsub "{(.-)}", ( overrideBlock ) ->
 			transforms = {}
 
 			overrideBlock = overrideBlock\gsub "(\\t%b())", ( transform ) ->
 				log.debug "Cleanup: %s found", transform
 				table.insert transforms, transform
-				string.char(3)
+				"\3"
 
 			for k, v in pairs @allTags
 				_, num = overrideBlock\gsub(v, "")
