@@ -25,7 +25,7 @@ class DataHandler
 		rawDataString\gsub "([^\r\n]+)", ( line ) ->
 			table.insert @rawData, line
 
-	parse: =>
+	parse = =>
 		@length = 0
 		section = 0
 		for _index, line in ipairs @rawData
@@ -33,11 +33,11 @@ class DataHandler
 				if line == "Position" or line == "Scale" or line == "Rotation"
 					section += 1
 			else
-				line\gsub "^\t([%d%.%-]+)\t([%d%.%-e]+)(.*)", ( value1, value2, remainder ) ->
+				line\gsub "^\t([%d%.%-]+)\t([%d%.%-e%+]+)(.*)", ( value1, value2, remainder ) ->
 					switch section
 						when 1
 							table.insert @xPosition, tonumber value2
-							table.insert @yPosition, tonumber remainder\match "\t([%d%.%-e]+)"
+							table.insert @yPosition, tonumber remainder\match "\t([%d%.%-e%+]+)"
 							@length += 1
 						when 2
 							-- Sort of future proof against having different scale
