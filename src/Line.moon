@@ -17,6 +17,8 @@ class Line
 		"start_time"
 		"style"
 		"text"
+
+		"number"
 	}
 
 	-- This table is used to verify that style defaults are inserted at
