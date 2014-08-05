@@ -115,11 +115,6 @@ prepareConfig = ( config, mainData, clipData, totalFrames ) ->
 	unless mainData or clipData
 		log.windowError "You have failed to provide any tracking\ndata, as far as I can tell."
 
-
-	motionHandler = MotionHandler lineCollection, mainData, clipData
-	newLines = motionHandler\applyMotion!
-	newLines\replaceLines!
-
 applyProcessor = ( subtitles, selectedLines ) ->
 
 	initializeInterface!
@@ -204,6 +199,10 @@ applyProcessor = ( subtitles, selectedLines ) ->
 
 	setundo "Motion Data"
 	printmem "Closing"
+	motionHandler = MotionHandler lineCollection, mainData, clipData
+	newLines = motionHandler\applyMotion!
+	newLines\cleanLines!
+	newLines\replaceLines!
 
 applyTrim = ( subtitles, selectedLines ) ->
 	initializeInterface!
