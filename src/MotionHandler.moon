@@ -65,10 +65,10 @@ class MotionHandler
 				-- end frame of line relative to start frame of tracked data
 				.relativeEnd = .endFrame - @lineCollection.startFrame
 
-				.alpha = -datan .yPosition - @lineTrackingData.yStartPosition, .xPosition - @lineTrackingData.xStartPosition
+				.alpha = -Math.dAtan .yPosition - @lineTrackingData.yStartPosition, .xPosition - @lineTrackingData.xStartPosition
 
 				if @options.origin
-					.beta  = -datan .yOrigin - @lineTrackingData.yStartPosition, .xOrigin - @lineTrackingData.xStartPosition
+					.beta  = -Math.dAtan .yOrigin - @lineTrackingData.yStartPosition, .xOrigin - @lineTrackingData.xStartPosition
 
 				@work line
 
@@ -143,8 +143,8 @@ class MotionHandler
 	position = ( pos, frame ) =>
 		x, y = pos\match "([%-%d%.]+),([%-%d%.]+)"
 		radius = math.sqrt (@lineTrackingData.xRatio*(x - @lineTrackingData.xStartPosition))^2 + (@lineTrackingData.yRatio*(y - @lineTrackingData.yStartPosition))^2
-		x = @lineTrackingData.xPosition[frame] + radius*dcos line.alpha + @lineTrackingData.zRotationDiff
-		y = @lineTrackingData.yPosition[frame] - radius*dsin line.alpha + @lineTrackingData.zRotationDiff
+		x = @lineTrackingData.xPosition[frame] + radius*Math.dCos( line.alpha + @lineTrackingData.zRotationDiff )
+		y = @lineTrackingData.yPosition[frame] - radius*Math.dSin( line.alpha + @lineTrackingData.zRotationDiff )
 		("(%g,%g)")\format Math.round( x, @options.main.posround ), Math.round( y, @options.main.posround )
 
 	absolutePosition = ( pos, frame ) =>
