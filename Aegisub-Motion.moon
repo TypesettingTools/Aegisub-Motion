@@ -122,8 +122,7 @@ applyProcessor = ( subtitles, selectedLines ) ->
 	-- Initialize the configuration
 	options = ConfigHandler interface, "aegisub-motion.json", true, script_version
 	options\read!
-	options\updateInterface "main"
-	options\updateInterface "clip"
+	options\updateInterface { "main", "clip" }
 
 	lineCollection = LineCollection subtitles, options.configuration, selectedLines
 	-- remove the lines
