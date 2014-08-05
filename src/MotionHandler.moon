@@ -165,3 +165,18 @@ class MotionHandler
 		rotation += @lineTrackingData.zRotationDiff
 		tostring Math.round rotation, @options.main.rotround
 
+	vectorClip = ( clip, frame ) =>
+		-- This is redundant if clipTrackingData is the same as
+		-- lineTrackingData.
+		@clipTrackingData\calculateCurrentState frame
+
+		clip = clip\gsub "([%.%d%-]+) ([%.%d%-]+)", ( x, y ) ->
+			x = (tonumber( x ) - @clipTrackingData.xStartPosition)*@lineTrackingData.xRatio
+			y = (tonumber( y ) - @clipTrackingData.yStartPosition)*@lineTrackingData.yRatio
+			radius = math.sqrt x^2 + y^2
+			alpha = Math.dAtan y, x
+			x += radius*Math.dCos( alpha - @lineTrackingData.zRotationDiff )
+			y += radius*Math.dSin( alpha - @lineTrackingData.zRotationDiff )
+			("%d %d")\format round( x, 2 ), round( y, 2 )
+
+		("(%s)")\format clip
