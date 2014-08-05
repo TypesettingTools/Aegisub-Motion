@@ -120,6 +120,16 @@ class MotionHandler
 					finish = .transformations[i][2] - timeDelta
 					("\\t(%d,%d,%g,%s)")\format start, finish, .transformations[i][3], .transformations[i][4]
 
+				newText = newText\gsub "\\fade(%b())", ( fade ) ->
+					a1, a2, a3, t1, t2, t3, t4 = fade\match("(%d+),(%d+),(%d+),(%d+),(%d+),(%d+),(%d+)")
+					t1, t2, t3, t4 = tonumber( t1 ), tonumber( t2 ), tonumber( t3 ), tonumber( t4 )
+					-- beautiful.
+					t1 -= timeDelta
+					t2 -= timeDelta
+					t3 -= timeDelta
+					t4 -= timeDelta
+					("\\fade(%s,%s,%s,%d,%d,%d,%d)")\format a1, a2, a3, t1, t2, t3, t4
+
 				-- In theory, this is more optimal if we loop over the frames on
 				-- the outside loop and over the lines on the inside loop, as
 				-- this only needs to be calculated once for each frame, whereas
