@@ -104,12 +104,9 @@ class MotionHandler
 
 	nonlinear = ( line ) =>
 		for frame = line.relativeEnd, line.relativeStart, -1
-			with newLine = Line line
-				aegisub.progress.set (frame - .rstartf)/(.rendf - .rstartf) * 100
 				check_user_cancelled!
-
-				-- have to set line.number so that insertion will work later.
-				.number = line.number
+			with line
+				aegisub.progress.set (frame - .relativeStart)/(.relativeEnd - .relativeStart) * 100
 
 				.start_time = aegisub.ms_from_frame @lineCollection.startFrame + frame - 1
 				.end_time   = aegisub.ms_from_frame @lineCollection.startFrame + frame
