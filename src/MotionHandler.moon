@@ -25,32 +25,32 @@ class MotionHandler
 	setCallbacks = =>
 		@callbacks = { }
 
-		if @options.main.position
+		if @options.main.xPosition or @options.main.yPosition
 
-			@callbacks["(\\pos)%(([%-%d%.]+,[%-%d%.]+)%)"] = possify
+			@callbacks["(\\pos)%(([%-%d%.]+,[%-%d%.]+)%)"] = position
 
 			if @options.main.origin and not @options.main.linear
-				@callbacks["(\\org)%(([%-%d%.]+,[%-%d%.]+)%)"] = orginate
+				@callbacks["(\\org)%(([%-%d%.]+,[%-%d%.]+)%)"] = origin
 
 		if @options.main.scale then
-			@callbacks["(\\fsc[xy])([%d%.]+)"] = scalify
+			@callbacks["(\\fsc[xy])([%d%.]+)"] = scale
 			if @options.main.border
-				@callbacks["(\\[xy]?bord)([%d%.]+)"] = scalify
+				@callbacks["(\\[xy]?bord)([%d%.]+)"] = scale
 			if @options.main.shadow
-				@callbacks["(\\[xy]?shad)([%-%d%.]+)"] = scalify
+				@callbacks["(\\[xy]?shad)([%-%d%.]+)"] = scale
 			if @options.main.blur
-				@callbacks["(\\blur)([%d%.]+)"] = scalify
+				@callbacks["(\\blur)([%d%.]+)"] = scale
 
 		if @options.main.rotation
 			@callbacks["(\\frz?)([%-%d%.]+)"] = rotate
 
 		if @options.main.linear
 			@resultingCollection = @lineCollection
-			@work = doLinearTrack
+			@work = linear
 		else
 			@resultingCollection = LineCollection @lineCollection.sub
 			@resultingCollection.shouldInsertLines = true
-			@work = doNonlinearTrack
+			@work = nonlinear
 
 	applyMotion: =>
 		-- The lines are collected in reverse order in LineCollection so
