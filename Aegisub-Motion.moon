@@ -132,10 +132,10 @@ applyProcessor = ( subtitles, selectedLines ) ->
 
 	rawInputData = fetchDataFromClipboard!
 
-	local mainData
+	mainData = DataHandler!
+	clipData = DataHandler!
 	if rawInputData != ""
-		mainData = DataHandler rawInputData
-		interface.main.data = rawInputData
+		mainData\parseRawDataString rawInputData
 
 	relativeFrame = currentVideoFrame - lineCollection.startFrame + 1
 	if relativeFrame > 0 and relativeFrame < lineCollection.totalFrames
