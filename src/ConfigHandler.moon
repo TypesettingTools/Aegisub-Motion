@@ -48,33 +48,46 @@ class ConfigHandler
 
 	-- todo: find keys missing from either @conf or interface, and warn
 	-- (maybe error?) about mismatching config versions.
-	updateInterface: ( sectionName ) =>
-		if sectionName
-			log.debug "Section name: #{sectionName}"
-			for tableKey, tableValue in pairs @optionTables[sectionName]
-				if tableValue.config and @configuration[sectionName][tableKey] != nil
-					tableValue.value = @configuration[sectionName][tableKey]
+	updateInterface: ( sectionNames ) =>
+		if sectionNames
+			if "table" == type sectionNames
+				for sectionName in *sectionNames
+					doInterfaceUpdate @, @optionTables[sectionName], sectionName
+			else
+				doInterfaceUpdate @, @optionTables[sectionNames], sectionNames
+
 		else
 			for sectionName, section in pairs @optionTables
 				if @configuration[sectionName] != nil
-					for tableKey, tableValue in pairs section
-						if tableValue.config and @configuration[sectionName][tableKey] != nil
-							tableValue.value = @configuration[sectionName][tableKey]
+					doInterfaceUpdate @, section, sectionName
+
+	doInterfaceUpdate = ( section, sectionName ) =>
+		for tableKey, tableValue in pairs section
+			log.debug "#{tableKey}: #{tableValue}"
+			if tableValue.config and @configuration[sectionName][tableKey] != nil
+				tableValue.value = @configuration[sectionName][tableKey]
 
 	-- maybe updateConfigurationFromDialog (but then we're getting into
 	-- obj-c identifier verbosity territory, and I'd rather not go there)
-	updateConfiguration: ( resultTable, sectionName ) =>
+	updateConfiguration: ( resultTable, sectionNames ) =>
 		-- do nothing if sectionName isn't defined.
 		if sectionName
-			-- have to loop across @configuration because not all of the
-			-- fields in the result table are going to be serialized, and it
-			-- contains no information about which ones should be and which
-			-- ones should not be.
-			for configKey, configValue in pairs @configuration[sectionName]
-				if resultTable[configKey] != nil
-					@configuration[sectionName][configKey] = resultTable[configKey]
+			if "table" == type sectionNames
+				for section in *sectionNames
+					doConfigUpdate @, resultTable[section], section
+			else
+				doConfigUpdate @, resultTable, sectionNames
 		else
 			log.warn "Section Name not provided. You are doing it wrong."
+
+	doConfigUpdate = ( newValues, sectionName ) =>
+		-- have to loop across @configuration because not all of the
+		-- fields in the result table are going to be serialized, and it
+		-- contains no information about which ones should be and which
+		-- ones should not be.
+		for configKey, configValue in pairs @configuration[sectionName]
+			if newValues[configKey] != nil
+				@configuration[sectionName][configKey] = newValues[configKey]
 
 	write: =>
 		-- Make sure @configuration is not an empty table.
