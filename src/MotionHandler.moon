@@ -108,16 +108,16 @@ class MotionHandler
 				aegisub.progress.set (frame - .relativeStart)/(.relativeEnd - .relativeStart) * 100
 				log.checkCancellation!
 
-				.start_time = aegisub.ms_from_frame @lineCollection.startFrame + frame - 1
-				.end_time   = aegisub.ms_from_frame @lineCollection.startFrame + frame
+				newStartTime = aegisub.ms_from_frame( @lineCollection.startFrame + frame - 1 )
+				newEndTime   = aegisub.ms_from_frame( @lineCollection.startFrame + frame )
 
-				.timeDelta = .start_time - aegisub.ms_from_frame @lineCollection.startFrame
+				timeDelta = newStartTime - aegisub.ms_from_frame( @lineCollection.startFrame + .relativeStart )
 
 				i = 0
-				.text = .text\gsub "\\t%b()", ->
+				newText = .text\gsub "\\t%b()", ->
 					i += 1
-					start = .transformations[i][1] - .timeDelta
-					finish = .transformations[i][2] - .timeDelta
+					start = .transformations[i][1] - timeDelta
+					finish = .transformations[i][2] - timeDelta
 					("\\t(%d,%d,%g,%s)")\format start, finish, .transformations[i][3], .transformations[i][4]
 
 				-- In theory, this is more optimal if we loop over the frames on
@@ -131,11 +131,11 @@ class MotionHandler
 				@lineTrackingData\calculateCurrentState frame
 
 				-- iterate through the necessary operations
-				for pattern, callback in pairs operations
-					.text = .text\gsub pattern, ( tag, value ) ->
-						tag .. callback @, value, frame
+				for pattern, callback in pairs @callbacks
+					newText = newText\gsub pattern, ( tag, value ) ->
+						tag .. callback @, value, frame, line
 
-				@resultingCollection.addLine newLine
+				@resultingCollection\addLine Line line, nil, { text: newText, start_time: newStartTime, end_time: newEndTime}
 
 	position = ( pos, frame ) =>
 		x, y = pos\match "([%-%d%.]+),([%-%d%.]+)"
