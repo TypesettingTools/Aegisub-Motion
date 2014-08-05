@@ -137,9 +137,11 @@ class MotionHandler
 
 				@resultingCollection\addLine Line line, nil, { text: newText, start_time: newStartTime, end_time: newEndTime}
 
-	position = ( pos, frame ) =>
+	position = ( pos, frame, line ) =>
 		x, y = pos\match "([%-%d%.]+),([%-%d%.]+)"
-		radius = math.sqrt (@lineTrackingData.xRatio*(x - @lineTrackingData.xStartPosition))^2 + (@lineTrackingData.yRatio*(y - @lineTrackingData.yStartPosition))^2
+		x = (tonumber( x ) - @lineTrackingData.xStartPosition)*@lineTrackingData.xRatio
+		y = (tonumber( y ) - @lineTrackingData.yStartPosition)*@lineTrackingData.yRatio
+		radius = math.sqrt( x^2 + y^2 )
 		x = @lineTrackingData.xPosition[frame] + radius*Math.dCos( line.alpha + @lineTrackingData.zRotationDiff )
 		y = @lineTrackingData.yPosition[frame] - radius*Math.dSin( line.alpha + @lineTrackingData.zRotationDiff )
 		("(%g,%g)")\format Math.round( x, @options.main.posround ), Math.round( y, @options.main.posround )
