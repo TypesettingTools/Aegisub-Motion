@@ -83,9 +83,9 @@ class Line
 
 	combineChar: "\\\6"
 
-	new: ( line, @parentCollection ) =>
+	new: ( line, @parentCollection, overrides = { } ) =>
 		for _, field in ipairs @fieldsToCopy
-			@[field] = line[field]
+			@[field] = overrides[field] or line[field]
 		@duration = @end_time - @start_time
 
 	-- This function is way longer than it should be, but it performs all
