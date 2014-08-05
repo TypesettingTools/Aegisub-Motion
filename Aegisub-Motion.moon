@@ -172,32 +172,26 @@ applyProcessor = ( subtitles, selectedLines ) ->
 	}
 
 	currentDialog = "main"
-	config = {}
-	while true
-		local button
+	config = { clip: { }, main: { } }
 
-		with buttons[currentDialog]
-			button, config[currentDialog] = aegisub.dialog.display gui[currentDialog], .list, .namedList
+	while true
+		button, config[currentDialog] = aegisub.dialog.display interface[currentDialog], buttons[currentDialog].list, buttons[currentDialog].namedList
 
 		switch button
-			when buttons.main.clip
+			when buttons.main.namedList.clip
 				currentDialog = "clip"
-				continue
 
-			when buttons.main.ok, buttons.clip.ok
-				prepareConfig config, mainData
-				break
+			when false, buttons.clip.namedList.abort
+				aegisub.progress.task "ABORT"
+				aegisub.cancel!
+
+			when buttons.clip.namedList.close
+				currentDialog = "main"
 
 			else
-				if dlg == 'main' or button == btns.clip.abort
-					aegisub.progress.task "ABORT"
-					aegisub.cancel!
-				else
-					dlg = "main"
-					continue
+				log.debug tostring button
+				break
 
-	setundo "Motion Data"
-	printmem "Closing"
 	motionHandler = MotionHandler lineCollection, mainData, clipData
 	newLines = motionHandler\applyMotion!
 	newLines\cleanLines!
