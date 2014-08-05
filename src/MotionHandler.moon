@@ -89,7 +89,7 @@ class MotionHandler
 			endTime = math.floor 0.5*(frameBeforeEndTime + endFrameTime) - .start_time
 
 			for pattern, callback in pairs operations
-				check_user_cancelled!
+				log.checkCancellation!
 				.text = .text\gsub pattern, ( tag, value ) ->
 					values = { }
 					for frame in *{ line.relativeStart, line.relativeEnd }
@@ -104,9 +104,9 @@ class MotionHandler
 
 	nonlinear = ( line ) =>
 		for frame = line.relativeEnd, line.relativeStart, -1
-				check_user_cancelled!
 			with line
 				aegisub.progress.set (frame - .relativeStart)/(.relativeEnd - .relativeStart) * 100
+				log.checkCancellation!
 
 				.start_time = aegisub.ms_from_frame @lineCollection.startFrame + frame - 1
 				.end_time   = aegisub.ms_from_frame @lineCollection.startFrame + frame
