@@ -197,6 +197,10 @@ applyProcessor = ( subtitles, selectedLines ) ->
 				log.debug tostring button
 				break
 
+	prepareConfig config, mainData, clipData, lineCollection.totalFrames
+	lineCollection\mungeLinesForFBF!
+	options\updateConfiguration config, { "main", "clip" }
+	options\write!
 	motionHandler = MotionHandler lineCollection, mainData, clipData
 	newLines = motionHandler\applyMotion!
 	newLines\cleanLines!
