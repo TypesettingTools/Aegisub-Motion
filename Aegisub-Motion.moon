@@ -115,10 +115,6 @@ prepareConfig = ( config, mainData, clipData, totalFrames ) ->
 	unless mainData or clipData
 		log.windowError "You have failed to provide any tracking\ndata, as far as I can tell."
 
-	-- Todo: modify configuration class to allow updating multiple
-	-- sections at once.
-	lineCollection.options\updateConfiguration config.main, "main"
-	lineCollection.options\updateConfiguration config.clip, "clip"
 
 	motionHandler = MotionHandler lineCollection, mainData, clipData
 	newLines = motionHandler\applyMotion!
@@ -155,29 +151,31 @@ applyProcessor = ( subtitles, selectedLines ) ->
 	-- cancel:Abort in the main dialog tells Esc key to abort the entire macro
 	-- cancel:Back in \clip dialog tells Esc key to close it and go back to the main dialog
 	buttons = {
-			main: {
-				list: {
-					{ "&Go" },
-					{ "&\\clip..." }
-					{ "&Abort" }
-				}
-				namedList: {
-					{ ok: "&Go" },
-					{ clip: "&\\clip..." }
-					{ cancel: "&Abort" }
-				}
-			clip: {
-				list: {
-					{ "&Go"}
-					{ "&Back" }
-					{ "&Abort" }
-				}
-				namedList: {
-					{ ok: "&Go"}
-					{ cancel: "&Back" }
-					{ abort: "&Abort" }
-				}
+		main: {
+			list: {
+				"&Go"
+				"Track &\\clip separately"
+				"&Abort"
+			}
+			namedList: {
+				ok: "&Go"
+				clip: "Track &\\clip separately"
+				cancel: "&Abort"
+			}
 		}
+		clip: {
+			list: {
+				"&Go"
+				"&Back"
+				"&Abort"
+			}
+			namedList: {
+				ok: "&Go"
+				close: "&Back"
+				abort: "&Abort"
+			}
+		}
+	}
 
 	currentDialog = "main"
 	config = {}
