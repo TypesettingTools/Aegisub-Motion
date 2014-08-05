@@ -143,9 +143,9 @@ applyProcessor = ( subtitles, selectedLines ) ->
 			interface.main.dataLabel.label = "Clipboard data was the wrong length. E: #{lineCollection.totalFrames} A: #{mainData.length}"
 
 	relativeFrame = currentVideoFrame - lineCollection.startFrame + 1
-	if relativeFrame > 0 and relativeFrame < lineCollection.totalFrames
-		interface.main.startFrame = relativeFrame
-		interface.clip.startFrame = relativeFrame
+	if relativeFrame > 0 and relativeFrame <= lineCollection.totalFrames
+		interface.main.startFrame.value = relativeFrame
+		interface.clip.startFrame.value = relativeFrame
 
 	-- cancel:Abort in the main dialog tells Esc key to abort the entire macro
 	-- cancel:Back in \clip dialog tells Esc key to close it and go back to the main dialog
