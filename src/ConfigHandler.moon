@@ -70,8 +70,8 @@ class ConfigHandler
 	-- maybe updateConfigurationFromDialog (but then we're getting into
 	-- obj-c identifier verbosity territory, and I'd rather not go there)
 	updateConfiguration: ( resultTable, sectionNames ) =>
-		-- do nothing if sectionName isn't defined.
-		if sectionName
+		-- do nothing if sectionNames isn't defined.
+		if sectionNames
 			if "table" == type sectionNames
 				for section in *sectionNames
 					doConfigUpdate @, resultTable[section], section
