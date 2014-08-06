@@ -323,4 +323,11 @@ class Line
 			return true
 		return false
 
+	delete: ( sub = @parentCollection.sub ) =>
+		unless sub
+			log.windowError "Sub doesn't exist, I can't delete things. This isn't gonna work."
+		unless @hasBeenDeleted
+			sub.delete @number
+			@hasBeenDeleted = true
+
 return Line

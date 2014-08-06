@@ -110,7 +110,7 @@ class LineCollection
 
 	deleteLines: =>
 		for line in *@lines
-			@sub[line.number] = nil
+			line\delete!
 
 	insertLines: =>
 		for line in *@lines
