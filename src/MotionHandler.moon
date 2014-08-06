@@ -9,17 +9,6 @@ class MotionHandler
 		-- create a local reference to the options table
 		@options = @lineCollection.options
 
-		@lineTrackingData\addReferenceFrame @options.main.startFrame
-
-		if @clipTrackingData
-			@clipTrackingData\addReferenceFrame @options.clip.startFrame
-			@options.linear = false
-			-- do in main: spoof lineTrackingData if it doesn't exist.
-			-- Probably requires some modification to DataHandler
-
-		elseif @options.main.clip
-			@clipTrackingData = @lineTrackingData
-
 		setCallbacks @
 
 	setCallbacks = =>

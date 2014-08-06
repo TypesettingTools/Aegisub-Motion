@@ -201,6 +201,9 @@ applyProcessor = ( subtitles, selectedLines ) ->
 	lineCollection\mungeLinesForFBF!
 	options\updateConfiguration config, { "main", "clip" }
 	options\write!
+
+	mainData\addReferenceFrame options.configuration.main.startFrame
+
 	motionHandler = MotionHandler lineCollection, mainData, clipData
 	newLines = motionHandler\applyMotion!
 	newLines\cleanLines!
