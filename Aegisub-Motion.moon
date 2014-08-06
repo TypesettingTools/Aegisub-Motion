@@ -125,8 +125,8 @@ applyProcessor = ( subtitles, selectedLines ) ->
 	options\updateInterface { "main", "clip" }
 
 	lineCollection = LineCollection subtitles, options.configuration, selectedLines
-	-- remove the lines
-	lineCollection\deleteLines!
+	-- remove the lines while ensuring new lines will be inserted in the correct place.
+	lineCollection\deleteWithShift!
 
 	currentVideoFrame = aegisub.project_properties!.video_position
 

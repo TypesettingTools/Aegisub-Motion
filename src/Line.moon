@@ -1,5 +1,7 @@
 util = require "aegisub.util"
 log = require "a-mo.Log"
+Math = require "a-mo.Math"
+json = require "json"
 
 class Line
 	fieldsToCopy: {
@@ -95,6 +97,12 @@ class Line
 	-- operations: convert fad/fade, detect/clean transforms, append
 	-- missing tags (calculate position/origin), fixing \r
 	mungeForFBF: ( ) =>
+		-- Stick the original line text in an extradata table.
+		@extra['a-mo'] = json.encode {
+			originalText: @text
+			guid: Math.guid!
+		}
+
 		@styleRef = @parentCollection.styles[@style]
 		shortFade = "\\fad%(([%d]+),([%d]+)%)"
 		longFade  = "\\fade%(([%d]+),([%d]+),([%d]+),([%-%d]+),([%-%d]+),([%-%d]+),([%-%d]+)%)"
