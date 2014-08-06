@@ -1,3 +1,6 @@
 [submodule "inc/luajson"]
 	path = inc/luajson
 	url = https://github.com/harningt/luajson.git
+[submodule "docs"]
+	path = docs
+	url = https://github.com/torque/Aegisub-Motion.wiki.git
