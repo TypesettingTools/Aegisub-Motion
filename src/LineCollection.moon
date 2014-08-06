@@ -112,6 +112,13 @@ class LineCollection
 		for line in *@lines
 			line\delete!
 
+	deleteWithShift: =>
+		shift = #@lines
+		for line in *@lines
+			line\delete!
+			line.number -= shift
+			shift -= 1
+
 	insertLines: =>
 		for line in *@lines
 			@sub.insert line.number + 1, line
