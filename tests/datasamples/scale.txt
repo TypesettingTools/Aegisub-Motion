@@ -1,0 +1,48 @@
+Adobe After Effects 6.0 Keyframe Data
+
+	Units Per Second	23.976
+	Source Width	1280
+	Source Height	720
+	Source Pixel Aspect Ratio	1
+	Comp Pixel Aspect Ratio	1
+
+Position
+	Frame	X pixels	Y pixels	Z pixels
+	0	631.869	71.5889	0
+	1	620.911	133.419	0
+	2	609.679	197.008	0
+	3	598.424	260.918	0
+	4	587.409	323.419	0
+	5	576.053	387.658	0
+	6	564.811	451.513	0
+	7	553.614	513.781	0
+	8	542.382	577.529	0
+	9	531.124	641.419	0
+
+Scale
+	Frame	X percent	Y percent	Z percent
+	0	100	100	100
+	1	97.543	97.543	100
+	2	95.0803	95.0803	100
+	3	92.4922	92.4922	100
+	4	89.9219	89.9219	100
+	5	87.5044	87.5044	100
+	6	84.7775	84.7775	100
+	7	82.1473	82.1473	100
+	8	79.3712	79.3712	100
+	9	76.6286	76.6286	100
+
+Rotation
+	Frame	Degrees
+	0	0
+	1	0
+	2	0
+	3	0
+	4	0
+	5	0
+	6	0
+	7	0
+	8	0
+	9	0
+
+End of Keyframe Data
