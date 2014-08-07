@@ -119,6 +119,8 @@ applyProcessor = ( subtitles, selectedLines ) ->
 
 	initializeInterface!
 
+	math.randomseed tonumber tostring( os.time! )\reverse!\sub( 1, 8 )
+
 	-- Initialize the configuration
 	options = ConfigHandler interface, "aegisub-motion.json", true, script_version
 	options\read!
