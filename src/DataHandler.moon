@@ -49,14 +49,13 @@ class DataHandler
 							-- axes.
 							table.insert @zRotation, -tonumber value2
 
-	-- Arguments: fieldsToRemove is a table of the following format:
-	-- { "xPosition", "yPosition", "scale", "rotation" }
-	-- where each value is a field to be removed from the tracking data.
-	stripFields: ( fieldsToRemove ) =>
-		defaults = { xPosition: 0, yPosition: 0, scale: 100, rotation: 0 }
-		for _index, field in ipairs fieldsToRemove
-			for index, value in ipairs @[field]
-				@[field][index] = defaults[field]
+	-- Arguments: just your friendly neighborhood options table.
+	stripFields: ( options ) =>
+		defaults = { xPosition: 0, yPosition: 0, xScale: 100, zRotation: 0 }
+		for field, defaultValue in pairs defaults
+			unless options[field]
+				for index, value in ipairs @[field]
+					@[field][index] = defaultValue
 
 	checkLength: ( lineCollection ) =>
 		if lineCollection.totalFrames == @length

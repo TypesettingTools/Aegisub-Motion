@@ -31,11 +31,11 @@ initializeInterface = ->
 			yPosition: { class: "checkbox", x: 1, y: 7,  width: 1,  height: 1, config: true, name: "yPosition", label: "&y",            value: true,   hint: "Apply y position data to the selected lines." }
 			origin:    { class: "checkbox", x: 2, y: 7,  width: 2,  height: 1, config: true, name: "origin",    label: "&Origin",       value: false,  hint: "Move the origin along with the position." }
 			clip:      { class: "checkbox", x: 4, y: 7,  width: 2,  height: 1, config: true, name: "clip",      label: "&Clip",         value: false,  hint: "Move clip along with the position (note: will also be scaled and rotated if those options are selected)." }
-			scale:     { class: "checkbox", x: 0, y: 8,  width: 2,  height: 1, config: true, name: "scale",     label: "&Scale",        value: true,   hint: "Apply scaling data to the selected lines." }
+			xScale:    { class: "checkbox", x: 0, y: 8,  width: 2,  height: 1, config: true, name: "xScale",    label: "&Scale",        value: true,   hint: "Apply scaling data to the selected lines." }
 			border:    { class: "checkbox", x: 2, y: 8,  width: 2,  height: 1, config: true, name: "border",    label: "&Border",       value: true,   hint: "Scale border with the line (only if Scale is also selected)." }
 			shadow:    { class: "checkbox", x: 4, y: 8,  width: 2,  height: 1, config: true, name: "shadow",    label: "&Shadow",       value: true,   hint: "Scale shadow with the line (only if Scale is also selected)." }
 			blur:      { class: "checkbox", x: 4, y: 9,  width: 2,  height: 1, config: true, name: "blur",      label: "Bl&ur",         value: true,   hint: "Scale blur with the line (only if Scale is also selected, does not scale \\be)." }
-			rotation:  { class: "checkbox", x: 0, y: 9,  width: 3,  height: 1, config: true, name: "rotation",  label: "&Rotation",     value: false,  hint: "Apply rotation data to the selected lines." }
+			zRotation: { class: "checkbox", x: 0, y: 9,  width: 3,  height: 1, config: true, name: "zRotation", label: "&Rotation",     value: false,  hint: "Apply rotation data to the selected lines." }
 
 			rndLabel:  { class: "label",    x: 7, y: 6,  width: 3,  height: 1,                                  label: "Rounding" }
 			posRound:  { class: "intedit",  x: 7, y: 7,  width: 3,  height: 1, config: true, name: "posRound",  min: 0, max: 5,         value: 2,      hint: "How many decimal places of accuracy the resulting positions should have." }
@@ -58,10 +58,10 @@ initializeInterface = ->
 			data:      { class: "textbox",  x: 0, y: 1, width: 10, height: 4,               name:  "data", hint: "Paste data or the path to a file containing it. No quotes or escapes." }
 
 			optLabel:  { class: "label",    x: 0, y: 5, width: 5,  height: 1, label: "Data to be applied:" }
-			xPosition: { class: "checkbox", x: 0, y: 6, width: 1,  height: 1, config: true, name:  "xPosition",     value: true,  label: "&x", hint: "Apply x position data to the selected lines." }
-			yPosition: { class: "checkbox", x: 1, y: 6, width: 1,  height: 1, config: true, name:  "yPosition",     value: true,  label: "&y", hint: "Apply y position data to the selected lines." }
-			scale:     { class: "checkbox", x: 0, y: 7, width: 2,  height: 1, config: true, name:  "scale",    value: true,  label: "&Scale" }
-			rotation:  { class: "checkbox", x: 0, y: 8, width: 3,  height: 1, config: true, name:  "rotation", value: false, label: "&Rotation" }
+			xPosition: { class: "checkbox", x: 0, y: 6, width: 1,  height: 1, config: true, name: "xPosition", value: true,  label: "&x", hint: "Apply x position data to the selected lines." }
+			yPosition: { class: "checkbox", x: 1, y: 6, width: 1,  height: 1, config: true, name: "yPosition", value: true,  label: "&y", hint: "Apply y position data to the selected lines." }
+			xScale:    { class: "checkbox", x: 0, y: 7, width: 2,  height: 1, config: true, name: "xScale",    value: true,  label: "&Scale" }
+			zRotation: { class: "checkbox", x: 0, y: 8, width: 3,  height: 1, config: true, name: "zRotation", value: false, label: "&Rotation" }
 
 			startLabel:{ class: "label",    x: 7, y: 5, width: 3,  height: 1, label: "Start Frame:" }
 			startFrame:{ class: "intedit",  x: 7, y: 6, width: 3,  height: 1, config: true, name:  "startFrame",  value: 1 }
@@ -202,6 +202,7 @@ applyProcessor = ( subtitles, selectedLines ) ->
 	options\updateConfiguration config, { "main", "clip" }
 	options\write!
 
+	mainData\stripFields options.configuration.main
 	mainData\addReferenceFrame options.configuration.main.startFrame
 
 	motionHandler = MotionHandler lineCollection, mainData, clipData
