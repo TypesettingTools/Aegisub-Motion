@@ -21,7 +21,7 @@ class MotionHandler
 			if @options.main.origin and not @options.main.linear
 				@callbacks["(\\org)%(([%-%d%.]+,[%-%d%.]+)%)"] = origin
 
-		if @options.main.scale then
+		if @options.main.xScale then
 			@callbacks["(\\fsc[xy])([%d%.]+)"] = scale
 			if @options.main.border
 				@callbacks["(\\[xy]?bord)([%d%.]+)"] = scale
@@ -30,7 +30,7 @@ class MotionHandler
 			if @options.main.blur
 				@callbacks["(\\blur)([%d%.]+)"] = scale
 
-		if @options.main.rotation
+		if @options.main.zRotation
 			@callbacks["(\\frz?)([%-%d%.]+)"] = rotate
 
 		if @options.main.linear
@@ -143,25 +143,25 @@ class MotionHandler
 		radius = math.sqrt( x^2 + y^2 )
 		x = @lineTrackingData.xPosition[frame] + radius*Math.dCos( line.alpha + @lineTrackingData.zRotationDiff )
 		y = @lineTrackingData.yPosition[frame] - radius*Math.dSin( line.alpha + @lineTrackingData.zRotationDiff )
-		("(%g,%g)")\format Math.round( x, @options.main.posround ), Math.round( y, @options.main.posround )
+		("(%g,%g)")\format Math.round( x, @options.main.posRound ), Math.round( y, @options.main.posRound )
 
 	absolutePosition = ( pos, frame ) =>
-		("(%g,%g)")\format Math.round( @lineTrackingData.xPosition[frame], @options.main.posround ), Math.round( @lineTrackingData.xPosition[frame], @options.main.posround )
+		("(%g,%g)")\format Math.round( @lineTrackingData.xPosition[frame], @options.main.posRound ), Math.round( @lineTrackingData.xPosition[frame], @options.main.posRound )
 
 	-- Needs to be fixed.
-	origin = ( origin, frame ) =>
+	origin = ( origin, frame, line ) =>
 		ox, oy = opos\match("([%-%d%.]+),([%-%d%.]+)")
 		ox = @lineTrackingData.xRatio*(ox - @lineTrackingData.xStartPosition)
 		oy = @lineTrackingData.yRatio*(oy - @lineTrackingData.yStartPosition)
-		("(%g,%g)")\format Math.round( nxpos, @opts.main.posround ), Math.round( nypos, @opts.main.posround )
+		("(%g,%g)")\format Math.round( nxpos, @opts.main.posRound ), Math.round( nypos, @opts.main.posRound )
 
 	scale = ( scale, frame ) =>
 		scale *= @lineTrackingData.xRatio
-		tostring Math.round scale, @options.main.sclround
+		tostring Math.round scale, @options.main.sclRound
 
 	rotate = ( rotation, frame ) =>
 		rotation += @lineTrackingData.zRotationDiff
-		tostring Math.round rotation, @options.main.rotround
+		tostring Math.round rotation, @options.main.rotRound
 
 	vectorClip = ( clip, frame ) =>
 		-- This is redundant if clipTrackingData is the same as
@@ -175,6 +175,6 @@ class MotionHandler
 			alpha = Math.dAtan y, x
 			x += radius*Math.dCos( alpha - @lineTrackingData.zRotationDiff )
 			y += radius*Math.dSin( alpha - @lineTrackingData.zRotationDiff )
-			("%d %d")\format round( x, 2 ), round( y, 2 )
+			("%d %d")\format Math.round( x, 2 ), Math.round( y, 2 )
 
 		("(%s)")\format clip
