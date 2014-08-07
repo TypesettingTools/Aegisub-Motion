@@ -31,11 +31,12 @@ class ConfigHandler
 		-- built-in defaults and the serialized configuration on disk. This
 		-- is currently biased towards a script's built-in defaults.
 		parsedConfig = json.decode rawConfigText
-		for sectionName, configEntries in pairs parsedConfig
-			if configSection = @configuration[sectionName]
-				for optionName, optionValue in pairs configEntries
-					if configSection[optionName] != nil
-						configSection[optionName] = optionValue
+		if parsedConfig
+			for sectionName, configEntries in pairs parsedConfig
+				if configSection = @configuration[sectionName]
+					for optionName, optionValue in pairs configEntries
+						if configSection[optionName] != nil
+							configSection[optionName] = optionValue
 
 	-- Public methods
 	read: =>
