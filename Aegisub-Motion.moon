@@ -17,6 +17,7 @@ DataHandler    = require 'a-mo.DataHandler'
 MotionHandler  = require 'a-mo.MotionHandler'
 TrimHandler    = require 'a-mo.TrimHandler'
 log            = require 'a-mo.Log'
+json           = require 'json'
 
 initializeInterface = ->
 	-- Set up interface tables.
@@ -227,6 +228,33 @@ applyTrim = ( subtitles, selectedLines ) ->
 	trim\calculateTrimLength lineCollection
 	trim\performTrim!
 
+revertProcessor = ( subtitles, selectedLines ) ->
+	guids = { }
+	indicesToNuke = { }
+	for i = #selectedLines, 1, -1
+		index = selectedLines[i]
+		line = subtitles[index]
+		line.number = index
+		if line.extra['a-mo']
+			data = json.decode line.extra['a-mo']
+			if guids[data.guid]
+				oldLine = guids[data.guid]
+				if line.start_time < oldLine.start_time
+					oldLine.start_time = line.start_time
+				if line.end_time > oldLine.end_time
+					oldLine.end_time = line.end_time
+				if line.number < oldLine.number
+					table.insert indicesToNuke, oldLine.number
+					oldLine.number = line.number
+			else
+				line.text = data.originalText
+				line.extra = {}
+				guids[data.guid] = line
+
+	for _, line in pairs guids
+		subtitles[line.number] = line
+
+	subtitles.delete indicesToNuke
 
 canRun = ( sub, selectedLines ) ->
 	if not aegisub.frame_from_ms 0
@@ -237,6 +265,9 @@ canRun = ( sub, selectedLines ) ->
 
 aegisub.register_macro "#{script_name}/Apply", "Applies properly formatted motion tracking data to selected subtitles.",
 	applyProcessor, canRun
+
+aegisub.register_macro "#{script_name}/Revert", "Removes properly formatted motion tracking data from selected subtitles.",
+	revertProcessor, canRun
 
 aegisub.register_macro "#{script_name}/Trim", "Cuts and encodes the current scene for use with motion tracking software.",
 	applyTrim, canRun
