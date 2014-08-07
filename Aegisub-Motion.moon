@@ -221,9 +221,6 @@ applyTrim = ( subtitles, selectedLines ) ->
 	trim\calculateTrimLength lineCollection
 	trim\performTrim!
 
-check_user_cancelled = ->
-	if aegisub.progress.is_cancelled!
-		aegisub.cancel!
 
 canRun = ( sub, selectedLines ) ->
 	if not aegisub.frame_from_ms 0
