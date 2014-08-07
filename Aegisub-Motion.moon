@@ -93,6 +93,12 @@ prepareConfig = ( config, mainData, clipData, totalFrames ) ->
 	if config.main.data != rawInputData
 		mainData = DataHandler config.main.data
 
+	-- Disable options that depend on scale.
+	unless config.main.xScale
+		config.main.border = false
+		config.main.shadow = false
+		config.main.blur   = false
+
 	-- If no main tracking data is given, set mainData to nil.
 	if config.main.data == ""
 		mainData = nil

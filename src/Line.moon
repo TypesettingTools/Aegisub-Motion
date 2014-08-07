@@ -30,11 +30,11 @@ class Line
 	-- key" is the key to get the value from the style, and skip specifies
 	-- not to write the tag if the style default is that value.
 	importantTags: {
-		"\\fscx": { opt: "scale",    key: "scale_x", skip: 0 }
-		"\\fscy": { opt: "scale",    key: "scale_y", skip: 0 }
-		"\\bord": { opt: "border",   key: "outline", skip: 0 }
-		"\\shad": { opt: "shadow",   key: "shadow",  skip: 0 }
-		"\\frz":  { opt: "rotation", key: "angle" }
+		"\\fscx": { opt: "xScale",    key: "scale_x", skip: 0 }
+		"\\fscy": { opt: "xScale",    key: "scale_y", skip: 0 }
+		"\\bord": { opt: "border",    key: "outline", skip: 0 }
+		"\\shad": { opt: "shadow",    key: "shadow",  skip: 0 }
+		"\\frz":  { opt: "zRotation", key: "angle" }
 	}
 
 	-- Should these helper functions be moved out of the class and just be
@@ -113,12 +113,12 @@ class Line
 		-- A style table is passed to this function so that it can cope with
 		-- \r.
 		appendMissingTags = ( block, styleTable ) ->
-			for tag, str in pairs @importantTags
-				-- @parentCollection.options[str.opt]
-				if not block\match tag .. "[%-%d%.]+"
-					styleDefault = styleTable[str.key]
-					if tonumber( styleDefault ) != str.skip
-						block ..= tag .. ("%g")\format styleDefault
+			for tag, tab in pairs @importantTags
+				if @parentCollection.options[tab.opt]
+					if not block\match tag .. "[%-%d%.]+"
+						styleDefault = styleTable[tab.key]
+						if tonumber( styleDefault ) != tab.skip
+							block ..= tag .. ("%g")\format styleDefault
 			block
 
 		lexTransforms = ( transform ) ->
@@ -194,12 +194,12 @@ class Line
 		@text = @text\gsub "^{(.-)}", ( tagBlock ) ->
 			startingBlock = true
 
-			unless @xPosition
+			if (@parentCollection.options.main.xPositon or @parentCollection.options.main.yPositon) and not @xPosition
 				@xPosition = @defaultXPosition[alignment%3+1] @parentCollection.meta.PlayResX, leftMargin, rightMargin
 				@yPosition = @defaultYPosition[math.ceil alignment/3] @parentCollection.meta.PlayResY, verticalMargin
 				tagBlock = ("\\pos(%g,%g)")\format( @xPosition, @yPosition ) .. tagBlock
 
-			unless @xOrigin
+			if @parentCollection.options.main.origin and not @xOrigin
 				@xOrigin = @xPosition
 				@yOrigin = @yPosition
 				tagBlock = ("\\org(%g,%g)")\format( @xOrigin, @yOrigin ) .. tagBlock
