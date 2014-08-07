@@ -1,7 +1,8 @@
 LineCollection = require 'a-mo.LineCollection'
 log = require 'a-mo.Log'
 
-export script_name = "Test LineCollection"
+project_name = "Aegisub-Motion"
+export script_name = "Tests/LineCollection"
 export script_description = "Tests LineCollection and Line classes."
 
 ourLines = {
@@ -95,4 +96,4 @@ canRun = ( sub, sel ) ->
 		return false, "You must have lines selected to use this macro."
 	true
 
-aegisub.register_macro script_name, script_description, testLineCollection, canRun
+aegisub.register_macro "#{project_name}/#{script_name}", script_description, testLineCollection, canRun

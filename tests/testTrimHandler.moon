@@ -2,7 +2,8 @@ TrimHandler = require 'a-mo.TrimHandler'
 LineCollection = require 'a-mo.LineCollection'
 log = require 'a-mo.Log'
 
-export script_name = "Test TrimHandler"
+project_name = "Aegisub-Motion"
+export script_name = "Tests/TrimHandler"
 export script_description = "Tests TrimHandler class."
 
 testTrimHandler = ( subtitles, selectedLines, activeLine ) ->
@@ -38,4 +39,4 @@ canRun = ( sub, sel ) ->
 		return false, "You must have lines selected to use this macro."
 	true
 
-aegisub.register_macro script_name, script_description, testTrimHandler, canRun
+aegisub.register_macro "#{project_name}/#{script_name}", script_description, testTrimHandler, canRun

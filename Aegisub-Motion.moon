@@ -229,8 +229,8 @@ canRun = ( sub, selectedLines ) ->
 		return false, "You must have lines selected to use this macro."
 	true
 
-aegisub.register_macro "Motion Data - Apply", "Applies properly formatted motion tracking data to selected subtitles.",
+aegisub.register_macro "#{script_name}/Apply", "Applies properly formatted motion tracking data to selected subtitles.",
 	applyProcessor, canRun
 
-aegisub.register_macro "Motion Data - Trim", "Cuts and encodes the current scene for use with motion tracking software.",
+aegisub.register_macro "#{script_name}/Trim", "Cuts and encodes the current scene for use with motion tracking software.",
 	applyTrim, canRun

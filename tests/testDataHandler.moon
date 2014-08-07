@@ -1,7 +1,8 @@
 DataHandler = require 'a-mo.DataHandler'
 log = require 'a-mo.Log'
 
-export script_name = "Test DataHandler"
+project_name = "Aegisub-Motion"
+export script_name = "Tests/DataHandler"
 export script_description = "Tests DataHandler class."
 
 oldStyleData = [=[
@@ -104,4 +105,4 @@ testDataHandler = ( subtitles, selectedLines, activeLine ) ->
 				log.warn "  #{val}"
 
 
-aegisub.register_macro script_name, script_description, testDataHandler
+aegisub.register_macro "#{project_name}/#{script_name}", script_description, testDataHandler

@@ -1,7 +1,8 @@
 ConfigHandler = require 'a-mo.ConfigHandler'
 log = require 'a-mo.Log'
 
-export script_name = "Test ConfigHandler"
+project_name = "Aegisub-Motion"
+export script_name = "Tests/ConfigHandler"
 export script_description = "Tests ConfigHandler class."
 
 testConfigHandler = ( subtitles, selectedLines, activeLine ) ->
@@ -76,4 +77,4 @@ testConfigHandler = ( subtitles, selectedLines, activeLine ) ->
 		-- serialize the newly updated configuration to disk for next time.
 		configuration\write!
 
-aegisub.register_macro script_name, script_description, testConfigHandler
+aegisub.register_macro "#{project_name}/#{script_name}", script_description, testConfigHandler
