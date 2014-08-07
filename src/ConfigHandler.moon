@@ -103,4 +103,7 @@ class ConfigHandler
 			else
 				log.warn "Could not write \"#{@fileName}\"."
 
+	delete: =>
+		os.remove @fileName
+
 return ConfigHandler
