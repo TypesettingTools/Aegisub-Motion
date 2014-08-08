@@ -100,7 +100,7 @@ class Line
 		-- Stick the original line text in an extradata table.
 		@extra['a-mo'] = json.encode {
 			originalText: @text
-			guid: Math.guid!
+			uuid: Math.uuid!
 		}
 
 		@styleRef = @parentCollection.styles[@style]

@@ -229,7 +229,7 @@ applyTrim = ( subtitles, selectedLines ) ->
 	trim\performTrim!
 
 revertProcessor = ( subtitles, selectedLines ) ->
-	guids = { }
+	uuids = { }
 	indicesToNuke = { }
 	for i = #selectedLines, 1, -1
 		index = selectedLines[i]
@@ -237,8 +237,8 @@ revertProcessor = ( subtitles, selectedLines ) ->
 		line.number = index
 		if line.extra['a-mo']
 			data = json.decode line.extra['a-mo']
-			if guids[data.guid]
-				oldLine = guids[data.guid]
+			if uuids[data.uuid]
+				oldLine = uuids[data.uuid]
 				if line.start_time < oldLine.start_time
 					oldLine.start_time = line.start_time
 				if line.end_time > oldLine.end_time
@@ -249,9 +249,9 @@ revertProcessor = ( subtitles, selectedLines ) ->
 			else
 				line.text = data.originalText
 				line.extra = {}
-				guids[data.guid] = line
+				uuids[data.uuid] = line
 
-	for _, line in pairs guids
+	for _, line in pairs uuids
 		subtitles[line.number] = line
 
 	subtitles.delete indicesToNuke

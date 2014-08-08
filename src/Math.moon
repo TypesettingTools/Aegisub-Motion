@@ -1,5 +1,3 @@
-bit = require 'bit'
-
 return {
 	round: ( num, idp ) ->
 		mult = 10^(idp or 0)
@@ -14,10 +12,10 @@ return {
 	dAtan: (y, x) ->
 		math.deg math.atan2 y, x
 
-	guid: ->
-		('xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx')\gsub "[xy]", ( c ) ->
-			randomNumber = math.floor math.random!*16
-			if c != 'x'
-				randomNumber = bit.bor bit.band( randomNumber, 3 ), 8
+	uuid: ->
+		('xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx')\gsub "[xy]", ( char ) ->
+			randomNumber = math.random 0, 15
+			if char != 'x'
+				randomNumber = math.random 8, 11
 			('%x')\format randomNumber
 }
