@@ -51,7 +51,7 @@ class DataHandler
 
 	-- Arguments: just your friendly neighborhood options table.
 	stripFields: ( options ) =>
-		defaults = { xPosition: 0, yPosition: 0, xScale: 100, zRotation: 0 }
+		defaults = { xPosition: @xStartPosition, yPosition: @yStartPosition, xScale: @xStartScale, zRotation: @zStartRotation }
 		for field, defaultValue in pairs defaults
 			unless options[field]
 				for index, value in ipairs @[field]
