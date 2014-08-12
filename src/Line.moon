@@ -1,328 +1,310 @@
-util = require "aegisub.util"
-log = require "a-mo.Log"
-Math = require "a-mo.Math"
-json = require "json"
+log  = require 'a-mo.Log'
+json = require 'json'
+
 
 class Line
 	fieldsToCopy: {
-		"actor"
-		"class"
-		"comment"
-		"effect"
-		"end_time"
-		"extra"
-		"layer"
-		"margin_l"
-		"margin_r"
-		"margin_t"
-		"section"
-		"start_time"
-		"style"
-		"text"
-
+		-- Built in line fields
+		"actor", "class", "comment", "effect", "end_time", "extra", "layer", "margin_l", "margin_r", "margin_t", "section", "start_time", "style", "text"
+		-- Our fields
 		"number"
 	}
 
-	-- This table is used to verify that style defaults are inserted at
-	-- the beginning the selected line(s) if the corresponding options are
-	-- selected. The structure is: [tag] = { opt:"opt", key:"style key",
-	-- skip:val } where "opt" is the option that must be enabled, "style
-	-- key" is the key to get the value from the style, and skip specifies
-	-- not to write the tag if the style default is that value.
-	importantTags: {
-		"\\fscx": { opt: "xScale",    key: "scale_x", skip: 0 }
-		"\\fscy": { opt: "xScale",    key: "scale_y", skip: 0 }
-		"\\bord": { opt: "border",    key: "outline", skip: 0 }
-		"\\shad": { opt: "shadow",    key: "shadow",  skip: 0 }
-		"\\frz":  { opt: "zRotation", key: "angle" }
+	repeatTags: {
+		"fontName", "fontSize", "fontSp", "xscale", "yscale", "zrot", "xrot", "yrot", "border", "xborder", "yborder", "shadow", "xshadow", "yshadow", "reset", "alpha", "alpha1", "alpha2", "alpha3", "alpha4", "color1", "color2", "color3", "color4", "be", "blur", "xshear", "yshear", "drawing"
 	}
 
-	-- Should these helper functions be moved out of the class and just be
-	-- file-local? They're shared between instances of the class, so I
-	-- don't know how much of a difference it would make one way or
-	-- another.
+	oneTimeTags: {
+		"align", "pos", "move", "org", "fad", "fade", "rectClip", "rectiClip", "vectClip", "vectiClip"
+	}
+
 	allTags: {
-		xscl:  [[\fscx([%d%.]+)]]
-		yscl:  [[\fscy([%d%.]+)]]
-		ali:   [[\an([1-9])]]
-		zrot:  [[\frz?([%-%d%.]+)]]
-		bord:  [[\bord([%d%.]+)]]
-		xbord: [[\xbord([%d%.]+)]]
-		ybord: [[\ybord([%d%.]+)]]
-		shad:  [[\shad([%-%d%.]+)]]
-		xshad: [[\xshad([%-%d%.]+)]]
-		yshad: [[\yshad([%-%d%.]+)]]
-		reset: [[\r([^\\}]*)]]
-		alpha: [[\alpha&H(%x%x)&]]
-		l1a:   [[\1a&H(%x%x)&]]
-		l2a:   [[\2a&H(%x%x)&]]
-		l3a:   [[\3a&H(%x%x)&]]
-		l4a:   [[\4a&H(%x%x)&]]
-		l1c:   [[\c&H(%x+)&]]
-		l1c2:  [[\1c&H(%x+)&]]
-		l2c:   [[\2c&H(%x+)&]]
-		l3c:   [[\3c&H(%x+)&]]
-		l4c:   [[\4c&H(%x+)&]]
-		clip:  [[\clip%((.-)%)]]
-		iclip: [[\iclip%((.-)%)]]
-		be:    [[\be([%d%.]+)]]
-		blur:  [[\blur([%d%.]+)]]
-		fax:   [[\fax([%-%d%.]+)]]
-		fay:   [[\fay([%-%d%.]+)]]
+		fontName: { pattern: "\\fn([^\\}]+)",      output: "string", type: "font",     format: "\\fn%s"              }
+		fontSize: { pattern: "\\fs(%d+)",          output: "number", type: "scale",    format: "\\fs%d"              }
+		fontSp:   { pattern: "\\fsp([%.%d%-]+)",   output: "number", type: "scale",    format: "\\fsp%g"             }
+		xscale:   { pattern: "\\fscx([%d%.]+)",    output: "number", type: "scale",    format: "\\fscx%g"            }
+		yscale:   { pattern: "\\fscy([%d%.]+)",    output: "number", type: "scale",    format: "\\fscx%g"            }
+		zrot:     { pattern: "\\frz?([%-%d%.]+)",  output: "number", type: "rotation", format: "\\frz%g"             }
+		xrot:     { pattern: "\\frx([%-%d%.]+)",   output: "number", type: "rotation", format: "\\frx%g"             }
+		yrot:     { pattern: "\\fry([%-%d%.]+)",   output: "number", type: "rotation", format: "\\fry%g"             }
+		border:   { pattern: "\\bord([%d%.]+)",    output: "number", type: "border",   format: "\\bord%g"            }
+		xborder:  { pattern: "\\xbord([%d%.]+)",   output: "number", type: "border",   format: "\\xbord%g"           }
+		yborder:  { pattern: "\\ybord([%d%.]+)",   output: "number", type: "border",   format: "\\ybord%g"           }
+		shadow:   { pattern: "\\shad([%-%d%.]+)",  output: "number", type: "shadow",   format: "\\shad%g"            }
+		xshadow:  { pattern: "\\xshad([%-%d%.]+)", output: "number", type: "shadow",   format: "\\xshad%g"           }
+		yshadow:  { pattern: "\\yshad([%-%d%.]+)", output: "number", type: "shadow",   format: "\\yshad%g"           }
+		reset:    { pattern: "\\r([^\\}]*)",       output: "string", type: "style",    format: "\\r%s"               }
+		alpha:    { pattern: "\\alpha&H(%x%x)&",   output: "alpha",  type: "alpha",    format: "\\alpha&H%02X&"      }
+		alpha1:   { pattern: "\\1a&H(%x%x)&",      output: "alpha",  type: "alpha",    format: "\\1a&H%02X&"         }
+		alpha2:   { pattern: "\\2a&H(%x%x)&",      output: "alpha",  type: "alpha",    format: "\\2a&H%02X&"         }
+		alpha3:   { pattern: "\\3a&H(%x%x)&",      output: "alpha",  type: "alpha",    format: "\\3a&H%02X&"         }
+		alpha4:   { pattern: "\\4a&H(%x%x)&",      output: "alpha",  type: "alpha",    format: "\\4a&H%02X&"         }
+		color1:   { pattern: "\\1?c&H(%x+)&",      output: "color",  type: "color",    format: "\\1c&H%02X%02X%02X&" }
+		color2:   { pattern: "\\2c&H(%x+)&",       output: "color",  type: "color",    format: "\\2c&H%02X%02X%02X&" }
+		color3:   { pattern: "\\3c&H(%x+)&",       output: "color",  type: "color",    format: "\\3c&H%02X%02X%02X&" }
+		color4:   { pattern: "\\4c&H(%x+)&",       output: "color",  type: "color",    format: "\\4c&H%02X%02X%02X&" }
+		be:       { pattern: "\\be([%d%.]+)",      output: "number", type: "blur",     format: "\\be%d"              }
+		blur:     { pattern: "\\blur([%d%.]+)",    output: "number", type: "blur",     format: "\\blur%g"            }
+		xshear:   { pattern: "\\fax([%-%d%.]+)",   output: "number", type: "shear",    format: "\\fax%g"             }
+		yshear:   { pattern: "\\fay([%-%d%.]+)",   output: "number", type: "shear",    format: "\\fay%g"             }
+		align:    { pattern: "\\an([1-9])",        output: "number", type: "align",    format: "\\an%d"              }
+		drawing:  { pattern: "\\p(%d+)",           output: "number" }
+		transform:{ pattern: "\\t(%b())",          output: "transform" }
+		bold:     { pattern: "\\b(%d+)",           output: "number", type: "accent",   format: "\\b%d" }
+		italic:   { pattern: "\\i([01])",          output: "number", type: "accent",   format: "\\i%d" }
+		strike:   { pattern: "\\s([01])",          output: "number", type: "accent",   format: "\\s%d" }
+		-- Problematic tags:
+		pos:      { fieldnames: { "x", "y" },      output: "multi", pattern: "\\pos%(([%.%d%-]+,[%.%d%-]+)%)" }
+		org:      { fieldnames: { "x", "y" },      output: "multi", pattern: "\\org%(([%.%d%-]+,[%.%d%-]+)%)" }
+		fad:      { fieldnames: { "in", "out" },   output: "multi", pattern: "\\fad%((%d+,%d+)%)"             }
+		vectClip: { fieldnames: { "scale", "shape" }, output: "multi", pattern: "\\clip%((%d+,)?([^,]-)%)" }
+		vectiClip:{ fieldnames: { "scale", "shape" }, output: "multi", pattern: "\\iclip%((%d+,)?([^,]-)%)" }
+		rectClip: { fieldnames: { "xLeft", "yTop", "xRight", "yBottom" }, output: "multi", pattern: "\\clip%(([%-%d%.]+,[%-%d%.]+,[%-%d%.]+,[%-%d%.]+)%)" }
+		rectiClip:{ fieldnames: { "xLeft", "yTop", "xRight", "yBottom" }, output: "multi", pattern: "\\iclip%(([%-%d%.]+,[%-%d%.]+,[%-%d%.]+,[%-%d%.]+)%)" }
+		move:     { fieldnames: { "x1", "y1", "x2", "y2", "start", "end" },     output: "multi", pattern: "\\move%(([%.%d%-]+,[%.%d%-]+,[%.%d%-]+,[%.%d%-]+,[%d%-]+,[%d%-]+)%)" }
+		fade:     { fieldnames: { "a1", "a2", "a3", "a4", "in", "mid", "out" }, output: "multi", pattern: "\\fade%((%d+,%d+,%d+,%d+,[%d%-]+,[%d%-]+,[%d%-]+)%)" }
+
+		-- add stuff like \\pos, \\move, \\org, \\fad, \\fade, and \\p
 	}
 
-	defaultXPosition: {
-		(sx, l, r) -> sx - r
-		(sx, l, r) -> l
-		(sx, l, r) -> sx/2
-	}
-
-	defaultYPosition: {
-		(sy, v) -> sy - v
-		(sy, v) -> sy/2
-		(sy, v) -> v
-	}
-
-	combineChar: "\\\6"
+	splitChar: "\\\6"
+	tPlaceholder: "\\\3"
 
 	new: ( line, @parentCollection, overrides = { } ) =>
 		for _, field in ipairs @fieldsToCopy
 			@[field] = overrides[field] or line[field]
 		@duration = @end_time - @start_time
 
-	-- This function is way longer than it should be, but it performs all
-	-- of the necessary operations to get the lines ready for tracking,
-	-- which, as it turns out, is quite a lot.
+	-- Guarantees there will be no redundantly duplicate tags in the line.
+	-- Does no other processing.
+	deduplicateTags: =>
+		-- Combine contiguous override blocks.
+		@text = @text\gsub "}{", @splitChar
+		-- note: most tags can appear multiple times in a line and only the
+		-- last instance in a given tag block is used. Some tags (\pos,
+		-- \move, \org, \an) can only appear once and only the first
+		-- instance in the entire line is used.
+		tags = { }
+		positions = { }
+		i = 0
+		@runCallbackOnOverrides ( tagBlock ) =>
+			for tagName in *@oneTimeTags
+				tag = @allTags[tagName]
+				tagBlock = tagBlock\gsub tag.pattern, ( value ) ->
+					unless tags[tagName]
+						log.debug "THIS TAG HAS NOT BEEN FOUND BEFORE: #{tagName}"
+						tags[tagName] = tonumber "#{i}.#{tagBlock\find tag.pattern}"
+						log.debug tags[tagName]
+						return nil
+					else
+						log.debug "THIS TAG HAS BEEN FOUND BEFORE #{tagName}"
+						return ""
+				log.debug tagBlock
+			i += 1
+			return tagBlock
 
-	-- operations: convert fad/fade, detect/clean transforms, append
-	-- missing tags (calculate position/origin), fixing \r
-	mungeForFBF: ( ) =>
-		-- Stick the original line text in an extradata table.
-		@extra['a-mo'] = json.encode {
-			originalText: @text
-			uuid: Math.uuid!
+		-- Quirks: 2 clips are allowed, as long as one is vector and one is
+		-- rectangular. Move and pos obviously conflict, and whichever is
+		-- the first is the one that's used. The same happens with fad and
+		-- fade. And again, the same with clip and iclip. Also, rectangular
+		-- clips can exist inside of transforms. If a rect clip exists in a
+		-- transform, its type (i or not) dictates the type of all rect
+		-- clips in the line.
+		for _, v in ipairs {
+				{ "move", "pos" }
+				{ "fade", "fad" }
+				{ "rectClip", "rectiClip" }
+				{ "vectClip", "vectiClip" }
+			}
+			if tags[v[1]] and tags[v[2]]
+				if tags[v[1]] < tags[v[2]]
+					-- get rid of tags[v[2]]
+					@runCallbackOnOverrides ( tagBlock ) =>
+						tagBlock = tagBlock\gsub @allTags[v[2]].pattern, ""
+				else
+					-- get rid of tags[v[1]]
+					@runCallbackOnOverrides ( tagBlock ) =>
+						tagBlock = tagBlock\gsub @allTags[v[1]].pattern, ""
+
+		@runCallbackOnOverrides ( tagBlock ) =>
+			for tagName in *@repeatTags
+				tag = @allTags[tagName]
+				-- Calculates the number of times the pattern will be replaced.
+				_, num = tagBlock\gsub tag.pattern, ""
+				-- Replaces all instances except the last one.
+				tagBlock = tagBlock\gsub tag.pattern, "", num - 1
+
+			return tagBlock
+
+		-- Now the whole thing has to be rerun on the contents of all
+		-- transforms.
+		@text = @text\gsub @splitChar, "}{"
+
+	-- Converts a value matched from a tag.pattern into a meaningful
+	-- format using tag.output.
+	-- Inputs:
+	-- tag [table]: Properly formatted tag table
+	-- value [string]: value returned from tag.pattern.
+	convertTagValue: ( tag, value ) =>
+		switch tag.output
+			when "string"
+				return value
+
+			when "number"
+				return tonumber value
+
+			when "alpha"
+				return tonumber value, 16
+
+			when "color"
+				output = { }
+				for i = 1, 5, 2
+					table.insert output, tonumber value\sub( i, i+1 ), 16
+				output.r = output[3]
+				output.b = output[1]
+				output.g = output[2]
+				return output
+
+			when "multi"
+				output = { }
+				value\gsub "[%.%d%-]+", ( coord ) ->
+					table.insert output, coord
+
+				i = 1
+				for field in *tag.fieldnames
+					output[field] = output[i]
+					i += 1
+
+				return output
+
+			when "transform"
+				return @parseTransform value
+
+			else
+				return nil, "Tag was somehow malformed."
+
+	-- Find the first instance of an override tag in a line following
+	-- startIndex.
+	-- Arguments:
+	-- tag [table]: A well-formatted tag table, probably taken from @allTags.
+	-- startIndex [number]: A number specifying the point at which the
+	--   search should start.
+	--   Default: 1, the beginning of the provided text block.
+	-- text [string]: The text that will be searched for the tag.
+	--   Default: @text, the entire line text.
+
+	-- Returns:
+	-- - The value of the tag.
+	-- On error:
+	-- - nil
+	-- - A string containing an error message.
+	getTagValue: ( tag, text = @text ) =>
+		unless tag
+			return nil, "No tag table was supplied."
+
+		value = text\match tag.pattern, startIndex
+		if value
+			return @convertTagValue tag, value
+		else
+			return nil, "The specified tag could not be found"
+
+	-- Find all instances of a tag in a line. Only looks through override
+	-- tag blocks.
+	getAllTagValues: ( tag ) =>
+		values = { }
+		@runCallbackOnOverrides ( tagBlock ) =>
+			value = @getTagValue tag, tagBlock
+			if value
+				table.insert values, value
+			return tagBlock
+
+		return values
+
+	-- Sets all values of a tag in a line. The provided table of values
+	-- must have the same number of tables
+	setAllTagValues: ( tag, values ) =>
+		replacements = 1
+		@runCallbackOnOverrides ( tagBlock ) =>
+			tagBlock, count = tagBlock\gsub tag.pattern, ->
+				tag.format\format values[replacements]
+				replacements += 1
+
+			return tagBlock
+
+	-- combines getAllTagValues and setAllTagValues by running the
+	-- provided callback on all of the values collected.
+	modifyAllTagValues: ( tag, callback ) =>
+		values = @getAllTagValues tag
+
+		-- Callback modifies the values table in whatever way.
+		callback @, values
+
+		@setAllTagValues tag, values
+
+	-- Runs the provided callback on all of the override tag blocks
+	-- present in the line.
+	runCallbackOnOverrides: ( callback ) =>
+		log.debug @text
+		@text = @text\gsub "({.-})", ( tagBlock ) ->
+			return callback @, tagBlock
+		log.debug @text
+
+	-- Runs the provided callback on the first override tag block in the
+	-- line, provided that override tag occurs before any other text in
+	-- the line.
+	runCallbackOnFirstOverride: ( callback ) =>
+		@text = @text\gsub "^({.-})", ( tagBlock ) ->
+			return callback @, tagBlock
+
+	-- Runs the provided callback on all overrides that aren't the first
+	-- one.
+	runCallbackOnOtherOverrides: ( callback ) =>
+		@text = @text\sub( 1, 1 ) .. @text\sub( 2, -1 )\gsub "({.-})", ( tagBlock ) ->
+			return callback @, tagBlock
+
+	-- Should not be a method of the line class, but I don't really have
+	-- anywhere else to put it currently.
+	parseTransform: ( transform ) =>
+		transStart, transEnd, transExp, transEffect = transform\match "%(([%-%d]*),?([%-%d]*),?([%d%.]*),?(.+)%)"
+		-- Catch the case of \t(2.345,\1c&H0000FF&), where the 2 gets
+		-- matched to transStart and the .345 gets matched to transEnd.
+		if tonumber( transStart ) and not tonumber( transEnd )
+			transExp = transStart .. transExp
+			transStart = ""
+
+		transExp = tonumber( transExp ) or 1
+		transStart = tonumber( transStart ) or 0
+
+		transEnd = tonumber( transEnd ) or 0
+		if transEnd == 0
+			transEnd = @duration
+
+		return {
+			start:  transStart
+			end:    transEnd
+			accel:  transExp
+			effect: transEffect
 		}
 
-		@styleRef = @parentCollection.styles[@style]
-		shortFade = "\\fad%(([%d]+),([%d]+)%)"
-		longFade  = "\\fade%(([%d]+),([%d]+),([%d]+),([%-%d]+),([%-%d]+),([%-%d]+),([%-%d]+)%)"
-		alpha_from_style = util.alpha_from_style
-		@transformations = { }
-		pow = math.pow
+	-- Because duplicate tags may exist within transforms, it becomes
+	-- useful to remove transforms from a line before doing various
+	-- processing.
+	tokenizeTransforms: =>
+		@transforms = @transforms or { }
+		count = 0
+		@runCallbackOnOverrides ( tagBlock ) =>
+			return tagBlock\gsub @allTags.transform.pattern, ( transform ) ->
+				table.insert @transforms, @parseTransform transform
 
-		-- A style table is passed to this function so that it can cope with
-		-- \r.
-		appendMissingTags = ( block, styleTable ) ->
-			for tag, tab in pairs @importantTags
-				if @parentCollection.options[tab.opt]
-					if not block\match tag .. "[%-%d%.]+"
-						styleDefault = styleTable[tab.key]
-						if tonumber( styleDefault ) != tab.skip
-							block ..= tag .. ("%g")\format styleDefault
-			block
+				count += 1
+				-- create a token for the transforms
+				return tPlaceholder .. tostring( count ) .. tPlaceholder
 
-		lexTransforms = ( transform ) ->
-			transStart, transEnd, transExp, transEffect = transform\match "%(([%-%d]*),?([%-%d]*),?([%d%.]*),?(.+)%)"
-			-- Catch the case of \\t(2.345,\\1c&H0000FF&), where the 2 gets
-			-- matched to transStart and the .345 gets matched to transEnd.
-			if tonumber( transStart ) and not tonumber( transEnd )
-				transExp = transStart .. transExp
-				transStart = ""
-
-			transExp = tonumber( transExp ) or 1
-			transStart = tonumber( transStart ) or 0
-
-			transEnd = tonumber( transEnd ) or 0
-			if transEnd == 0
-				transEnd = @duration
-
-			-- Might want to structure this table differently.
-			table.insert @transformations, { transStart, transEnd, transExp, transEffect }
-			log.debug "\\t(%g,%g,%g,%s)", transStart, transEnd, transExp, transEffect
-
-		fadToTransform = ( fadStart, fadEnd, alpha, duration ) ->
-			local str
-			if fadStart > 0
-				str = ("\\alpha&HFF&\\t(%d,%s,1,\\alpha%s)")\format 0, fadStart, alpha
-			if fadEnd > 0
-				str ..= ("\\t(%d,%d,1,\\alpha&HFF&)")\format duration - fadEnd, duration
-			str
-
-		-- The first fad or fade that is found in the line is the one that
-		-- is used.
-		shortFadeStartPos, shortFadeEndPos = @text\find shortFade
-		longFadeStartPos, longFadeEndPos   = @text\find longFade
-
-		-- Make the position a property of the line table, since they'll be
-		-- used later to calculate the offset.
-		-- I refuse to support \a.
-		alignment = @text\match("\\an([1-9])") or @styleRef.align
-		@xPosition, @yPosition = @text\match "\\pos%(([%-%d%.]+),([%-%d%.]+)%)"
-		@xOrigin,   @yOrigin   = @text\match "\\org%(([%-%d%.]+),([%-%d%.]+)%)"
-		verticalMargin = if @margin_t == 0 then @styleRef.margin_t else @margin_t
-		leftMargin     = if @margin_l == 0 then @styleRef.margin_l else @margin_l
-		rightMargin    = if @margin_r == 0 then @styleRef.margin_r else @margin_r
-
-		-- If both \fad and \fade are present, then get rid of all
-		-- occurrences of whichever one does not come first.
-		if shortFadeStartPos and longFadeStartPos
-			if shortFadeStartPos < longFadeStartPos
-				@text = @text\gsub longFade, ""
-				longFadeStartPos = nil
-			else
-				@text = @text\gsub shortFade, ""
-				shortFadeStartPos = nil
-
-		-- For both \fad and \fade, make sure that there are not repeat
-		-- occurrences of the tag and move them to the beginning of the
-		-- line. This should theoretically ensure identical behavior when
-		-- they are turned into \t.
-		local fadStartTime, fadEndTime
-		if shortFadeStartPos
-			fadStartTime, fadEndTime = @text\sub( shortFadeStartPos+5, shortFadeEndPos-1 )\match( "(%d+),(%d+)" )
-			fadStartTime, fadEndTime = tonumber( fadStartTime ), tonumber( fadEndTime )
-			@text = "{" .. @text\sub( shortFadeStartPos, shortFadeEndPos ) .. "}" .. @text\gsub shortFade, ''
-		if longFadeStartPos
-			@text = "{" .. @text\sub( longFadeStartPos, longFadeEndPos ) .. "}" .. @text\gsub longFade, ''
-
-		-- Merge all contiguous comment/override blocks. This will make
-		-- pretty much everything that follows a lot more sane.
-		@text = @text\gsub "}{", @combineChar
-
-		-- Perform operations on the first override block of the line.
-		startingBlock = false
-		@text = @text\gsub "^{(.-)}", ( tagBlock ) ->
-			startingBlock = true
-
-			if (@parentCollection.options.main.xPositon or @parentCollection.options.main.yPositon) and not @xPosition
-				@xPosition = @defaultXPosition[alignment%3+1] @parentCollection.meta.PlayResX, leftMargin, rightMargin
-				@yPosition = @defaultYPosition[math.ceil alignment/3] @parentCollection.meta.PlayResY, verticalMargin
-				tagBlock = ("\\pos(%g,%g)")\format( @xPosition, @yPosition ) .. tagBlock
-
-			if @parentCollection.options.main.origin and not @xOrigin
-				@xOrigin = @xPosition
-				@yOrigin = @yPosition
-				tagBlock = ("\\org(%g,%g)")\format( @xOrigin, @yOrigin ) .. tagBlock
-
-			if shortFadeStartPos
-				replaced = false
-				-- Not pedantically correct, as output will not be properly
-				-- preserved with lines that set specific alpha values, such as
-				-- \1a and so on. Additionally, doesn't handle the case of
-				-- multiple alpha tags being placed in the same override block,
-				-- and so can spawn more transforms than necessary.
-				tagBlock = tagBlock\gsub "\\alpha(&H%x%x&)", ( alpha ) ->
-					replaced = true
-					fadToTransform fadStartTime, fadEndTime, alpha, @duration
-				unless replaced
-					-- Has the same problem mentioned above.
-					tagBlock ..= fadToTransform fadStartTime, fadEndTime, alpha_from_style( @styleRef.color1 ), @duration
-
-			tagBlock\gsub "\\t(%b())", ( tContents ) ->
-				lexTransforms tContents, line
-
-			-- There is no check for \r in the first tag block in this code,
-			-- so in theory, it will do the wrong thing in certain scenarios.
-			-- However, if you are putting \r[style] at the beginning of your
-			-- line you are an idiot.
-			tagBlock = appendMissingTags tagBlock, @styleRef
-
-			-- Purposefully leave the opening tag off so that the first block
-			-- will not get picked up in the following block manipulations.
-			-- This will cause problems if someone is an idiot and has {
-			-- embedded in their first override block, but there is no valid
-			-- reason for that. (Actually there is, but it's an extremely bad
-			-- one and belongs to a case I have already disowned).
-			tagBlock .. '}'
-
-		@text = @text\gsub "{(.-)}", ( tagBlock ) ->
-			if shortFadeStartPos
-				tagBlock = tagBlock\gsub "\\alpha(&H%x%x&)", ( alpha ) ->
-					fadToTransform fadStartTime, fadEndTime, alpha, @duration
-
-			tagBlock\gsub "\\t(%b())", ( tContents ) ->
-				lexTransforms tContents, line
-
-			tagBlock\gsub "\\r([^\\}#{@combineChar}]*)", ( resetStyle ) ->
-				styleTable = @parentCollection.styles[resetStyle] or @styleRef
-				tagBlock = appendMissingTags tagBlock, styleTable
-
-			"{"..tagBlock.."}"
-
-		-- It is possible to have both a rectangular and vector clip in the
-		-- same line. This is useful for masking lines with gradients. In
-		-- order to be able to support this (even though motion tracking
-		-- gradients is a bad idea and not endorsed by this author), we need
-		-- to both support multiple clips in one line, as well as not
-		-- convert rectangular-style clips to vector clips. To make our
-		-- lives easier, we'll just not enforce any limits on the number of
-		-- clips in a line and assume the user knows what they're doing.
-		@text = @text\gsub "\\(i?clip)(%b())", ( clip, points ) ->
-			@hasClip = true
-			if points\match "[%-%d%.]+, *[%-%d%.]+, *[%-%d%.]+"
-				@hasRectangularClip = true
-				points = points\sub 2, -2
-			else
-				@hasVectorClip = true
-				points = points\gsub "%(([%d]*),?(.-)%)", ( scaleFactor, points ) ->
-					if scaleFactor ~= ""
-						scaleFactor = tonumber scaleFactor
-						-- Other number separators such as ',' are valid in vector
-						-- clips, but standard tools don't create them. Ignore that
-						-- parser flexibility to make our lives less difficult.
-						-- Convert everything to floating point values for
-						-- simplicity's sake.
-						points = points\gsub "([%.%d%-]+) ([%.%d%-]+)", ( x, y ) ->
-							x = tonumber( x )/2^(scaleFactor - 1)
-							y = tonumber( y )/2^(scaleFactor - 1)
-							-- Round the calculated values so that they don't take
-							-- up huge amounts of space.
-							("%g %g")\format x, y
-					points
-			"\\#{clip}(#{points})"
-
-		if startingBlock
-			@text = "{" .. @text
-
-	cleanText: ( methods ) =>
-		cleantrans = ( transform ) ->
-			transStart, transEnd, transExp, transEffect = transform\match "([%-%d]+),([%-%d]+),([%d%.]*),?(.+)"
-			-- This specific section only works on transforms we have
-			-- generated. Otherwise, an end time of 0 will mean the transform
-			-- runs to the end of the line.
-			if tonumber( transEnd ) <= 0
-				return ("%s")\format transEffect\sub 1, -2
-			elseif tonumber( transStart ) > @duration or tonumber( transEnd ) < tonumber( transStart )
-				return ""
-			elseif tonumber( transExp ) == 1 or transExp == ""
-				return ("\\t(%s,%s,%s")\format transStart, transEnd, transEffect
-			else
-				return ("\\t(%s,%s,%s,%s")\format transStart, transEnd, transExp, transEffect
-
-		-- Split merged override blocks back up
-		@text = @text\gsub @combineChar, "}{"
-		-- clean up transformations (remove transformations that have completed)
-		@text = @text\gsub "\\t(%b())", cleantrans
-
-		@text = @text\gsub "{(.-)}", ( overrideBlock ) ->
-			transforms = {}
-
-			overrideBlock = overrideBlock\gsub "(\\t%b())", ( transform ) ->
-				log.debug "Cleanup: %s found", transform
-				table.insert transforms, transform
-				"\3"
-
-			for k, v in pairs @allTags
-				_, num = overrideBlock\gsub(v, "")
-				overrideBlock = overrideBlock\gsub v, "", num - 1
-
-			for trans in *transforms
-				overrideBlock = overrideBlock\gsub string.char(3), trans, 1
-
-			@text = @text\gsub "{.-}", string.char(1)..overrideBlock..string.char(2), 1
-
-		@text = @text\gsub string.char(1), "{"
-		@text = @text\gsub string.char(2), "}"
+	detokenizeTransforms: =>
+		@runCallbackOnOverrides ( tagBlock ) =>
+			tagBlock = tagBlock\gsub tPlaceholder .. "(%d+)" .. tPlaceholder, ( index ) ->
+				-- this doesn't work because it's returning a table.
+				return @transforms[index]
 
 	combineWithLine: ( line ) =>
 		if @text == line.text and @style == line.style and (@start_time == line.end_time or @end_time == line.start_time)
@@ -333,9 +315,7 @@ class Line
 
 	delete: ( sub = @parentCollection.sub ) =>
 		unless sub
-			log.windowError "Sub doesn't exist, I can't delete things. This isn't gonna work."
+			log.windowError "Sub doesn't exist, so I can't delete things. This isn't gonna work."
 		unless @hasBeenDeleted
 			sub.delete @number
 			@hasBeenDeleted = true
-
-return Line

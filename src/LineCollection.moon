@@ -1,5 +1,5 @@
-Line = require "a-mo.Line"
-log = require "a-mo.Log"
+Line = require 'a-mo.Line'
+log  = require 'a-mo.Log'
 
 class LineCollection
 
@@ -65,13 +65,9 @@ class LineCollection
 
 		@totalFrames = @endFrame - @startFrame
 
-	mungeLinesForFBF: =>
+	callMethodOnAllLines: ( methodName, ... ) =>
 		for line in *@lines
-			line\mungeForFBF!
-
-	cleanLines: =>
-		for line in *@lines
-			line\cleanText!
+			line[methodName] line, ...
 
 	sortLines: =>
 		sortF = ({
