@@ -17,7 +17,7 @@ ourLines = {
 	theLines: {
 		{ }
 		{ start_time: 1000, end_time:2000
-		  text: "{\\fad(150,300)}I am fading out of existence." }
+		  text: "{\\fad(150,300)}I am fading out of existence.{\\fad(150,305)}" }
 		{ start_time: 2000, end_time:3000
 		  text: "{\\t(\\1c&HFF0000&)}I {\\t(0,0,\\1c&H00FF00&)}am {\\t(2.345,\\1c&H0000FF&)}transforming." }
 		{ start_time: 4000, end_time:5000
@@ -27,7 +27,7 @@ ourLines = {
 		{ start_time: 3000, end_time:3500
 		  text: "We are Identical." }
 		{ start_time: 5000, end_time:6000
-		  text: '{\\pos(0,0)\\an7\\c&H000000&\\clip(80,185,425,247.5)}#{fullFrame}' }
+		  text: '{\\pos(0,0)\\an7\\c&H000000&\\c&H0000FF&\\clip(80,185,425,247.5)}#{fullFrame}' }
 		{ start_time: 6000, end_time:7000
 		  text: '{\\pos(0,0)\\an7\\c&H000000&\\clip(3,m 80 185 l 320 212 425 247 45 244)}#{fullFrame}' }
 	}
@@ -71,20 +71,7 @@ testLineCollection = ( subtitles, selectedLines, activeLine ) ->
 	-- Instantiate our LineCollection class.
 	ourLineCollection = LineCollection subtitles, nil, newSelLines
 
-	-- test munging.
-	ourLineCollection\mungeLinesForFBF!
-
-	-- convert our transforms into FBF Approved Format™
-	for line in *ourLineCollection.lines
-		i = 1
-		line.text = line.text\gsub "\\t%b()", ( transform ) ->
-			{ transStart, transEnd, transExp, transEffect } = line.transformations[i]
-			i+=1
-			"\\t(#{transStart},#{transEnd},#{transExp},#{transEffect})"
-
-	-- test cleanup (transforms must be in FBF Approved Format™ or this
-	-- does not work.)
-	ourLineCollection\cleanLines!
+	ourLineCollection\callMethodOnAllLines "deduplicateTags"
 
 	-- Do an in-place replace of the lines we have just abused.
 	ourLineCollection\replaceLines!
