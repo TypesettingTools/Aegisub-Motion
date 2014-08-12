@@ -229,31 +229,44 @@ applyTrim = ( subtitles, selectedLines ) ->
 	trim\performTrim!
 
 revertProcessor = ( subtitles, selectedLines ) ->
+	-- A table of all UUIDs found in the selected lines
 	uuids = { }
+	-- Indices of lines that need to be removed later (are part of a
+	-- tracked line collection, but are not the first line in that
+	-- collection)
 	indicesToNuke = { }
-	for i = #selectedLines, 1, -1
-		index = selectedLines[i]
+	-- Loop across all selected lines.
+	for index in *selectedLines
 		line = subtitles[index]
 		line.number = index
+		-- Catch lines containing our signature extradata.
 		if line.extra['a-mo']
+			-- Decode our data, which is stored as json.
 			data = json.decode line.extra['a-mo']
 			if uuids[data.uuid]
 				oldLine = uuids[data.uuid]
+				-- Check if we should change the start time.
 				if line.start_time < oldLine.start_time
 					oldLine.start_time = line.start_time
+				-- Check if we should change the end time.
 				if line.end_time > oldLine.end_time
 					oldLine.end_time = line.end_time
+				-- Check if the new line appears earlier in the script.
 				if line.number < oldLine.number
+					-- If so, the old line needs to be deleted.
 					table.insert indicesToNuke, oldLine.number
 					oldLine.number = line.number
 			else
+				-- If a line has a new UUID then add it to the table.
 				line.text = data.originalText
 				line.extra = {}
 				uuids[data.uuid] = line
 
+	-- Replace the lines.
 	for _, line in pairs uuids
 		subtitles[line.number] = line
 
+	-- Delete the remainders.
 	subtitles.delete indicesToNuke
 
 canRun = ( sub, selectedLines ) ->
