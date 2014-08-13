@@ -91,6 +91,8 @@ class MotionHandler
 				.text = .text\gsub "\\pos(%b())\\t%((%d,%d),\\pos(%b())%)", ( start, time, finish ) ->
 					"\\move" .. start\sub( 1, -2 ) .. finish\sub( 2, -2 ) .. time .. ")"
 
+			line.detokenizeTransforms!
+
 	nonlinear = ( line ) =>
 		for frame = line.relativeEnd, line.relativeStart, -1
 			with line
@@ -101,13 +103,6 @@ class MotionHandler
 				newEndTime   = aegisub.ms_from_frame( @lineCollection.startFrame + frame )
 
 				timeDelta = newStartTime - aegisub.ms_from_frame( @lineCollection.startFrame + .relativeStart )
-
-				i = 0
-				newText = .text\gsub "\\t%b()", ->
-					i += 1
-					start = .transformations[i][1] - timeDelta
-					finish = .transformations[i][2] - timeDelta
-					("\\t(%d,%d,%g,%s)")\format start, finish, .transformations[i][3], .transformations[i][4]
 
 				newText = newText\gsub "\\fade(%b())", ( fade ) ->
 					a1, a2, a3, t1, t2, t3, t4 = fade\match("(%d+),(%d+),(%d+),(%d+),(%d+),(%d+),(%d+)")
@@ -133,6 +128,16 @@ class MotionHandler
 				for pattern, callback in pairs @callbacks
 					newText = newText\gsub pattern, ( tag, value ) ->
 						tag .. callback @, value, frame, line
+
+				-- Transforms are now tokenized. De-tokenize them after
+				-- performing the main processing so that their contents will
+				-- not be touched. This is a potentially large change in
+				-- behavior.
+				newText = .text\gsub "\\\3(%d+)\\\3", ( index ) ->
+					index  = tonumber index
+					start  = .transforms[index].start - timeDelta
+					finish = .transforms[index].end   - timeDelta
+					("\\t(%d,%d,%g,%s)")\format start, finish, .transformations[index].accel, .transformations[index].effect
 
 				@resultingCollection\addLine Line line, nil, { text: newText, start_time: newStartTime, end_time: newEndTime}
 
