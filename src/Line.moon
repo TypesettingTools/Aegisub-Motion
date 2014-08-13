@@ -345,21 +345,26 @@ class Line
 	-- useful to remove transforms from a line before doing various
 	-- processing.
 	tokenizeTransforms: =>
-		@transforms = @transforms or { }
-		count = 0
-		@runCallbackOnOverrides ( tagBlock ) =>
-			return tagBlock\gsub @allTags.transform.pattern, ( transform ) ->
-				table.insert @transforms, @parseTransform transform
+		unless @transformsAreTokenized
+			@transforms = { }
+			count = 0
+			@runCallbackOnOverrides ( tagBlock ) =>
+				return tagBlock\gsub @allTags.transform.pattern, ( transform ) ->
+					table.insert @transforms, @parseTransform transform
 
-				count += 1
-				-- create a token for the transforms
-				return tPlaceholder .. tostring( count ) .. tPlaceholder
+					count += 1
+					-- create a token for the transforms
+					return tPlaceholder .. tostring( count ) .. tPlaceholder
+			@transformsAreTokenized = true
 
 	detokenizeTransforms: =>
-		@runCallbackOnOverrides ( tagBlock ) =>
-			tagBlock = tagBlock\gsub tPlaceholder .. "(%d+)" .. tPlaceholder, ( index ) ->
-				-- this doesn't work because it's returning a table.
-				return @transforms[index]
+		if @transformsAreTokenized
+			@runCallbackOnOverrides ( tagBlock ) =>
+				tagBlock = tagBlock\gsub tPlaceholder .. "(%d+)" .. tPlaceholder, ( index ) ->
+					-- this doesn't work because it's returning a table.
+					return @transforms[index]
+
+			@transformsAreTokenized = false
 
 	combineWithLine: ( line ) =>
 		if @text == line.text and @style == line.style and (@start_time == line.end_time or @end_time == line.start_time)
