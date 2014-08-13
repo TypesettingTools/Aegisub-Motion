@@ -232,7 +232,8 @@ applyProcessor = ( subtitles, selectedLines ) ->
 	options\read!
 	options\updateInterface { "main", "clip" }
 
-	lineCollection = LineCollection subtitles, options.configuration, selectedLines
+	lineCollection = LineCollection subtitles, selectedLines
+	lineCollection.options = options.configuration
 
 	currentVideoFrame = aegisub.project_properties!.video_position
 

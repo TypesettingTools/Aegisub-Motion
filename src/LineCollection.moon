@@ -3,7 +3,7 @@ log  = require 'a-mo.Log'
 
 class LineCollection
 
-	new: ( @sub, @options, sel ) =>
+	new: ( @sub, sel ) =>
 		@lines = { }
 		if sel
 			@collectLines sel

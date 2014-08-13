@@ -69,7 +69,7 @@ testLineCollection = ( subtitles, selectedLines, activeLine ) ->
 	newSelLines = [ i for i = first, #theLines + first - 1 ]
 
 	-- Instantiate our LineCollection class.
-	ourLineCollection = LineCollection subtitles, nil, newSelLines
+	ourLineCollection = LineCollection subtitles, newSelLines
 
 	ourLineCollection\callMethodOnAllLines "deduplicateTags"
 
