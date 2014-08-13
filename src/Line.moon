@@ -67,13 +67,61 @@ class Line
 		-- add stuff like \\pos, \\move, \\org, \\fad, \\fade, and \\p
 	}
 
-	splitChar: "\\\6"
+	splitChar:    "\\\6"
 	tPlaceholder: "\\\3"
+
+	defaultXPosition: {
+		-- align 3, 6, 9
+		( subResX, leftMargin, rightMargin ) ->
+			return subResX - rightMargin
+		-- align 1, 4, 7
+		( subResX, leftMargin, rightMargin ) ->
+			return leftMargin
+		-- align 2, 5, 8
+		( subResX, leftMargin, rightMargin ) ->
+			return 0.5*subResX
+	}
+
+	defaultYPosition: {
+		-- align 1, 2, 3
+		( subResY, verticalMargin ) ->
+			return subResY - verticalMargin
+		-- align 4, 5, 6
+		( subResY, verticalMargin ) ->
+			return 0.5*subResY
+		-- align 7, 8, 9
+		( subResY, verticalMargin ) ->
+			return verticalMargin
+	}
 
 	new: ( line, @parentCollection, overrides = { } ) =>
 		for _, field in ipairs @fieldsToCopy
 			@[field] = overrides[field] or line[field]
 		@duration = @end_time - @start_time
+
+	-- Gathers extra line metrics: the alignment and position.
+	-- Returns false if there is not already a position tag in the line.
+	extraMetrics: ( styleRef ) =>
+		alignPattern = @allTags.align.pattern
+		posPattern   = @allTags.pos.pattern
+		@runCallbackOnOverrides ( tagBlock ) =>
+			tagBlock\gsub alignPattern, ( value ) =>
+				unless @align
+					@align = tonumber value
+
+			unless @align
+				@align = styleRef.align
+
+			tagBlock\gsub posPattern, ( value ) =>
+				unless @xPosition
+					x, y = value\match "([%.%d%-]+),([%.%d%-]+)"
+					@xPosition, @yPosition = tonumber( x ), tonumber( y )
+
+		unless @xPosition
+			@xPosition, @yPosition = @getDefaultPosition styleRef
+			return false
+
+		return true
 
 	-- Guarantees there will be no redundantly duplicate tags in the line.
 	-- Does no other processing.
@@ -139,6 +187,7 @@ class Line
 		-- Now the whole thing has to be rerun on the contents of all
 		-- transforms.
 		@text = @text\gsub @splitChar, "}{"
+		@text = @text\gsub "{}", ""
 
 	-- Converts a value matched from a tag.pattern into a meaningful
 	-- format using tag.output.
@@ -241,6 +290,12 @@ class Line
 
 		@setAllTagValues tag, values
 
+	-- Adds an empty override tag to the beginning of the line text if
+	-- there is not an override tag there already.
+	ensureLeadingOverrideBlockExists: =>
+		if '{' != @text\sub 1, 1
+			@text = "{}" .. @text
+
 	-- Runs the provided callback on all of the override tag blocks
 	-- present in the line.
 	runCallbackOnOverrides: ( callback ) =>
@@ -319,3 +374,27 @@ class Line
 		unless @hasBeenDeleted
 			sub.delete @number
 			@hasBeenDeleted = true
+
+	getDefaultPosition: ( styleRef ) =>
+		verticalMargin = if @margin_t == 0 then styleRef.margin_t else @margin_t
+		leftMargin     = if @margin_l == 0 then styleRef.margin_l else @margin_l
+		rightMargin    = if @margin_r == 0 then styleRef.margin_r else @margin_r
+		return @defaultXPosition( @parentCollection.meta.PlayResX, leftMargin, rightMargin ), @defaultYPosition( @parentCollection.meta.PlayResY, verticalMargin )
+
+	setExtraData: ( field, data ) =>
+		switch type data
+			when "table"
+				@extra[field] = json.encode data
+			when "string"
+				@extra[field] = data
+			else
+				@extra[field] = tostring data
+
+	getExtraData: ( field ) =>
+		value = @extra[field]
+		success, res = pcall json.decode, value
+
+		if success
+			return res
+		else
+			return value
