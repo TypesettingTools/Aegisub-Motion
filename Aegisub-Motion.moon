@@ -16,6 +16,7 @@ ConfigHandler  = require 'a-mo.ConfigHandler'
 DataHandler    = require 'a-mo.DataHandler'
 MotionHandler  = require 'a-mo.MotionHandler'
 TrimHandler    = require 'a-mo.TrimHandler'
+Math           = require 'a-mo.Math'
 log            = require 'a-mo.Log'
 json           = require 'json'
 
@@ -122,6 +123,104 @@ prepareConfig = ( config, mainData, clipData, totalFrames ) ->
 	unless mainData or clipData
 		log.windowError "You have failed to provide any tracking\ndata, as far as I can tell."
 
+-- This table is used to verify that style defaults are inserted at
+-- the beginning the selected line(s) if the corresponding options are
+-- selected. The structure is: [tag] = { opt:"opt", key:"style key",
+-- skip:val } where "opt" is the option that must be enabled, "style
+-- key" is the key to get the value from the style, and skip specifies
+-- not to write the tag if the style default is that value.
+importantTags: {
+	"\\fscx": { opt: "xScale",    key: "scale_x", skip: 0 }
+	"\\fscy": { opt: "xScale",    key: "scale_y", skip: 0 }
+	"\\bord": { opt: "border",    key: "outline", skip: 0 }
+	"\\shad": { opt: "shadow",    key: "shadow",  skip: 0 }
+	"\\frz":  { opt: "zRotation", key: "angle" }
+}
+
+-- A style table is passed to this function so that it can cope with
+-- \r.
+appendMissingTags = ( block, options, styleTable ) ->
+	block = block\sub 1, -2
+	for tag, tab in pairs @importantTags
+		if options[tab.opt]
+			if not block\match tag .. "[%-%d%.]+"
+				styleDefault = styleTable[tab.key]
+				if tonumber( styleDefault ) != tab.skip
+					block ..= tag .. ("%g")\format styleDefault
+	return block .. "}"
+
+muckWithClips = ( tagBlock, line ) ->
+	-- It is possible to have both a rectangular and vector clip in the
+	-- same line. This is useful for masking lines with gradients. In
+	-- order to be able to support this (even though motion tracking
+	-- gradients is a bad idea and not endorsed by this author), we need
+	-- to both support multiple clips in one line, as well as not convert
+	-- rectangular-style clips to vector clips. To make our lives easier,
+	-- we'll just not enforce any limits on the number of clips in a line
+	-- and assume the user knows what they're doing.
+	return tagBlock\gsub "\\(i?clip)(%b())", ( clip, points ) ->
+		line.hasClip = true
+		-- detect if clip is rectangular.
+		if points\match "[%-%d%.]+, *[%-%d%.]+"
+			points = points\sub 2, -2
+		else
+			-- Convert clip with scale into floating point coordinates.
+			points = points\gsub "%((%d*),?(.-)%)", ( scaleFactor, points ) ->
+				if scaleFactor ~= ""
+					scaleFactor = tonumber scaleFactor
+
+					points = points\gsub "([%.%d%-]+) ([%.%d%-]+)", ( x, y ) ->
+						x = tonumber( x )/2^(scaleFactor - 1)
+						y = tonumber( y )/2^(scaleFactor - 1)
+						-- Round the calculated values so that they don't take
+						-- up huge amounts of space.
+						("%g %g")\format x, y
+				points
+		"\\#{clip}(#{points})"
+
+
+prepareLines = ( lineCollection ) ->
+	options = lineCollection.options
+	-- remove the lines while ensuring new lines will be inserted in the
+	-- correct place.
+	lineCollection\deleteWithShift!
+
+	-- Perform all of the manipulation that used to be performed in
+	-- Line.moon but are actually fairly Aegisub-Motion specific.
+	lineCollection\runCallback ( line ) =>
+
+		-- Tokenize the transforms to simplify later processing.
+		line\tokenizeTransforms!
+
+		-- Deduplicate all override tags.
+		line\deduplicateTags!
+
+		-- Collect alignment and position info for each line.
+		styles = @styles
+		lineStyle = styles[line.style]
+		unless line\extraMetrics lineStyle
+			line\ensureLeadingOverrideBlockExists
+
+			-- Note that we are repeatedly shadowing @, so in this function it
+			-- refers to the line. This is interestingly the opposite of how
+			-- fat arrow functions work in coffeescript.
+			line\runCallbackOnFirstOverride ( tagBlock ) =>
+				return tagBlock\gsub "{", ("{\\pos(%g,%g)")\format @xPosition, @yPosition
+
+		-- Add our signature extradata.
+		line\addExtraData 'a-mo', { originalText: line.text, uuid: Math.uuid! }
+
+		-- Add any tags we need that are missing from the line.
+		line\runCallbackOnFirstOverride ( tagBlock ) =>
+			return appendMissingTags tagBlock, options, lineStyle
+
+		line\runCallbackOnOverrides ( tagBlock ) =>
+			tagBlock\gsub "\\r([^\\}]*)", ( resetStyle ) ->
+				styleTable = styles[resetStyle] or lineStyle
+				tagBlock = appendMissingTags tagBlock, options, styleTable
+
+			tagBlock = muckWithClips tagBlock, @
+
 applyProcessor = ( subtitles, selectedLines ) ->
 
 	initializeInterface!
@@ -134,8 +233,6 @@ applyProcessor = ( subtitles, selectedLines ) ->
 	options\updateInterface { "main", "clip" }
 
 	lineCollection = LineCollection subtitles, options.configuration, selectedLines
-	-- remove the lines while ensuring new lines will be inserted in the correct place.
-	lineCollection\deleteWithShift!
 
 	currentVideoFrame = aegisub.project_properties!.video_position
 
@@ -207,15 +304,17 @@ applyProcessor = ( subtitles, selectedLines ) ->
 				break
 
 	prepareConfig config, mainData, clipData, lineCollection.totalFrames
-	lineCollection\mungeLinesForFBF!
+	prepareLines lineCollection
+
 	options\updateConfiguration config, { "main", "clip" }
 	options\write!
 
-	mainData\stripFields options.configuration.main
 	mainData\addReferenceFrame options.configuration.main.startFrame
+	mainData\stripFields options.configuration.main
 
 	motionHandler = MotionHandler lineCollection, mainData, clipData
 	newLines = motionHandler\applyMotion!
+
 	newLines\cleanLines!
 	newLines\replaceLines!
 
