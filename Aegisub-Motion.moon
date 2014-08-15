@@ -289,6 +289,9 @@ applyProcessor = ( subtitles, selectedLines ) ->
 	while true
 		button, config[currentDialog] = aegisub.dialog.display interface[currentDialog], buttons[currentDialog].list, buttons[currentDialog].namedList
 
+		for k, v in pairs config[currentDialog]
+			interface[currentDialog][k].value = v
+
 		switch button
 			when buttons.main.namedList.clip
 				currentDialog = "clip"
