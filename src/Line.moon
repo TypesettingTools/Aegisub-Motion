@@ -105,14 +105,14 @@ class Line
 		alignPattern = @allTags.align.pattern
 		posPattern   = @allTags.pos.pattern
 		@runCallbackOnOverrides ( tagBlock ) =>
-			tagBlock\gsub alignPattern, ( value ) =>
+			tagBlock\gsub alignPattern, ( value ) ->
 				unless @align
 					@align = tonumber value
 
 			unless @align
 				@align = styleRef.align
 
-			tagBlock\gsub posPattern, ( value ) =>
+			tagBlock\gsub posPattern, ( value ) ->
 				unless @xPosition
 					x, y = value\match "([%.%d%-]+),([%.%d%-]+)"
 					@xPosition, @yPosition = tonumber( x ), tonumber( y )
