@@ -354,13 +354,13 @@ class Line
 
 					count += 1
 					-- create a token for the transforms
-					return tPlaceholder .. tostring( count ) .. tPlaceholder
+					return @tPlaceholder .. tostring( count ) .. @tPlaceholder
 			@transformsAreTokenized = true
 
 	detokenizeTransforms: =>
 		if @transformsAreTokenized
 			@runCallbackOnOverrides ( tagBlock ) =>
-				tagBlock = tagBlock\gsub tPlaceholder .. "(%d+)" .. tPlaceholder, ( index ) ->
+				tagBlock = tagBlock\gsub @tPlaceholder .. "(%d+)" .. @tPlaceholder, ( index ) ->
 					-- this doesn't work because it's returning a table.
 					return @transforms[index]
 
