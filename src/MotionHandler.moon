@@ -47,7 +47,7 @@ class MotionHandler
 		for line in *@lineCollection.lines
 			with line
 				if @options.clip and .hasClip
-					@callbacks["(\\i?clip)(%b())"] = @clippinate
+					@callbacks["(\\i?clip)(%b())"] = clippinate
 
 				-- start frame of line relative to start frame of tracked data
 				.relativeStart = .startFrame - @lineCollection.startFrame + 1
@@ -82,7 +82,7 @@ class MotionHandler
 				.text = .text\gsub pattern, ( tag, value ) ->
 					values = { }
 					for frame in *{ line.relativeStart, line.relativeEnd }
-						table.insert values, callback @, value
+						values[#values+1] = callback @, value
 					("%s%s\\t(%d,%d,%s%s)")\format tag, values[1], beginTime, endTime, tag, values[2]
 
 					callback @, tag, val, line
@@ -104,7 +104,7 @@ class MotionHandler
 
 				timeDelta = newStartTime - aegisub.ms_from_frame( @lineCollection.startFrame + .relativeStart )
 
-				newText = newText\gsub "\\fade(%b())", ( fade ) ->
+				newText = .text\gsub "\\fade(%b())", ( fade ) ->
 					a1, a2, a3, t1, t2, t3, t4 = fade\match("(%d+),(%d+),(%d+),(%d+),(%d+),(%d+),(%d+)")
 					t1, t2, t3, t4 = tonumber( t1 ), tonumber( t2 ), tonumber( t3 ), tonumber( t4 )
 					-- beautiful.
@@ -133,11 +133,11 @@ class MotionHandler
 				-- performing the main processing so that their contents will
 				-- not be touched. This is a potentially large change in
 				-- behavior.
-				newText = .text\gsub "\\\3(%d+)\\\3", ( index ) ->
+				newText = newText\gsub "\\\3(%d+)\\\3", ( index ) ->
 					index  = tonumber index
 					start  = .transforms[index].start - timeDelta
 					finish = .transforms[index].end   - timeDelta
-					("\\t(%d,%d,%g,%s)")\format start, finish, .transformations[index].accel, .transformations[index].effect
+					("\\t(%d,%d,%g,%s)")\format start, finish, .transforms[index].accel, .transforms[index].effect
 
 				@resultingCollection\addLine Line line, nil, { text: newText, start_time: newStartTime, end_time: newEndTime}
 

@@ -129,7 +129,7 @@ prepareConfig = ( config, mainData, clipData, totalFrames ) ->
 -- skip:val } where "opt" is the option that must be enabled, "style
 -- key" is the key to get the value from the style, and skip specifies
 -- not to write the tag if the style default is that value.
-importantTags: {
+importantTags = {
 	"\\fscx": { opt: "xScale",    key: "scale_x", skip: 0 }
 	"\\fscy": { opt: "xScale",    key: "scale_y", skip: 0 }
 	"\\bord": { opt: "border",    key: "outline", skip: 0 }
@@ -141,7 +141,7 @@ importantTags: {
 -- \r.
 appendMissingTags = ( block, options, styleTable ) ->
 	block = block\sub 1, -2
-	for tag, tab in pairs @importantTags
+	for tag, tab in pairs importantTags
 		if options[tab.opt]
 			if not block\match tag .. "[%-%d%.]+"
 				styleDefault = styleTable[tab.key]
@@ -208,11 +208,11 @@ prepareLines = ( lineCollection ) ->
 				return tagBlock\gsub "{", ("{\\pos(%g,%g)")\format @xPosition, @yPosition
 
 		-- Add our signature extradata.
-		line\addExtraData 'a-mo', { originalText: line.text, uuid: Math.uuid! }
+		line\setExtraData 'a-mo', { originalText: line.text, uuid: Math.uuid! }
 
 		-- Add any tags we need that are missing from the line.
 		line\runCallbackOnFirstOverride ( tagBlock ) =>
-			return appendMissingTags tagBlock, options, lineStyle
+			return appendMissingTags tagBlock, options.main, lineStyle
 
 		line\runCallbackOnOverrides ( tagBlock ) =>
 			tagBlock\gsub "\\r([^\\}]*)", ( resetStyle ) ->
