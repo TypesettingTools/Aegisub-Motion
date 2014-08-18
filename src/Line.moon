@@ -393,7 +393,7 @@ class Line
 			sub.delete @number
 			@hasBeenDeleted = true
 
-	getDefaultPosition: ( styleRef ) =>
+	getDefaultPosition: ( styleRef = @styleRef ) =>
 		verticalMargin = if @margin_t == 0 then styleRef.margin_t else @margin_t
 		leftMargin     = if @margin_l == 0 then styleRef.margin_l else @margin_l
 		rightMargin    = if @margin_r == 0 then styleRef.margin_r else @margin_r
