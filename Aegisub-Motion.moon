@@ -348,7 +348,6 @@ revertProcessor = ( subtitles, selectedLines ) ->
 	-- Loop across all selected lines.
 	for index in *selectedLines
 		line = subtitles[index]
-		line.number = index
 		-- Catch lines containing our signature extradata.
 		if line.extra['a-mo']
 			-- Decode our data, which is stored as json.
@@ -361,14 +360,13 @@ revertProcessor = ( subtitles, selectedLines ) ->
 				-- Check if we should change the end time.
 				if line.end_time > oldLine.end_time
 					oldLine.end_time = line.end_time
-				-- Check if the new line appears earlier in the script.
-				if line.number < oldLine.number
-					-- If so, the old line needs to be deleted.
-					table.insert indicesToNuke, oldLine.number
-					oldLine.number = line.number
+				-- Mark the line for deletion.
+				indicesToNuke[#indicesToNuke+1] = index
+
 			else
 				-- If a line has a new UUID then add it to the table.
 				line.text = data.originalText
+				line.number = index
 				line.extra = {}
 				uuids[data.uuid] = line
 
