@@ -221,6 +221,12 @@ prepareLines = ( lineCollection ) ->
 
 			tagBlock = muckWithClips tagBlock, @
 
+postprocLines = ( lineCollection ) ->
+	lineCollection\runCallback ( line ) =>
+		line\detokenizeTransforms!
+
+	lineCollection\combineIdenticalLines!
+
 applyProcessor = ( subtitles, selectedLines ) ->
 
 	initializeInterface!
@@ -319,7 +325,8 @@ applyProcessor = ( subtitles, selectedLines ) ->
 	motionHandler = MotionHandler lineCollection, mainData, clipData
 	newLines = motionHandler\applyMotion!
 
-	newLines\cleanLines!
+	-- Clean up lines: detokenize transforms and combine identical lines.
+	postprocLines newLines
 	newLines\replaceLines!
 
 applyTrim = ( subtitles, selectedLines ) ->

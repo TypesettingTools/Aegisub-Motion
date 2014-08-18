@@ -350,21 +350,34 @@ class Line
 			count = 0
 			@runCallbackOnOverrides ( tagBlock ) =>
 				return tagBlock\gsub @allTags.transform.pattern, ( transform ) ->
-					table.insert @transforms, @parseTransform transform
-
 					count += 1
+					@transforms[count] = @parseTransform transform
 					-- create a token for the transforms
 					return @tPlaceholder .. tostring( count ) .. @tPlaceholder
 			@transformsAreTokenized = true
+
+	serializeTransform = ( transformTable ) =>
+		with transformTable
+			if .end <= 0
+				@aTransformHasEnded = true
+				return .effect
+			elseif .start > @duration or .end < .start
+				return ""
+			elseif .accel == 1
+				return ("\\t(%s,%s,%s")\format .start, .end, .effect
+			else
+				return ("\\t(%s,%s,%s,%s")\format .start, .end, .accel, .effect
 
 	detokenizeTransforms: =>
 		if @transformsAreTokenized
 			@runCallbackOnOverrides ( tagBlock ) =>
 				tagBlock = tagBlock\gsub @tPlaceholder .. "(%d+)" .. @tPlaceholder, ( index ) ->
-					-- this doesn't work because it's returning a table.
-					return @transforms[index]
+					return serializeTransform @, @transforms[tonumber index]
 
 			@transformsAreTokenized = false
+			if @aTransformHasEnded
+				@deduplicateTags!
+				@aTransformHasEnded = false
 
 	combineWithLine: ( line ) =>
 		if @text == line.text and @style == line.style and (@start_time == line.end_time or @end_time == line.start_time)

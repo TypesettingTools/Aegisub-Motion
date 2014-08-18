@@ -129,15 +129,10 @@ class MotionHandler
 					newText = newText\gsub pattern, ( tag, value ) ->
 						tag .. callback @, value, frame, line
 
-				-- Transforms are now tokenized. De-tokenize them after
-				-- performing the main processing so that their contents will
-				-- not be touched. This is a potentially large change in
-				-- behavior.
-				newText = newText\gsub "\\\3(%d+)\\\3", ( index ) ->
-					index  = tonumber index
-					start  = .transforms[index].start - timeDelta
-					finish = .transforms[index].end   - timeDelta
-					("\\t(%d,%d,%g,%s)")\format start, finish, .transforms[index].accel, .transforms[index].effect
+				-- Update transforms without detokenizing them.
+				for transform in *.transforms
+					transform.start -= timeDelta
+					transform.end   -= timeDelta
 
 				@resultingCollection\addLine Line line, nil, { text: newText, start_time: newStartTime, end_time: newEndTime}
 
