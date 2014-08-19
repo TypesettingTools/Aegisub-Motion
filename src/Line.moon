@@ -101,7 +101,7 @@ class Line
 
 	-- Gathers extra line metrics: the alignment and position.
 	-- Returns false if there is not already a position tag in the line.
-	extraMetrics: ( styleRef ) =>
+	extraMetrics: ( styleRef = @styleRef ) =>
 		alignPattern = @allTags.align.pattern
 		posPattern   = @allTags.pos.pattern
 		@runCallbackOnOverrides ( tagBlock ) =>
@@ -109,16 +109,16 @@ class Line
 				unless @align
 					@align = tonumber value
 
-			unless @align
-				@align = styleRef.align
-
 			tagBlock\gsub posPattern, ( value ) ->
 				unless @xPosition
 					x, y = value\match "([%.%d%-]+),([%.%d%-]+)"
 					@xPosition, @yPosition = tonumber( x ), tonumber( y )
 
+		unless @align
+			@align = styleRef.align
+
 		unless @xPosition
-			@xPosition, @yPosition = @getDefaultPosition styleRef
+			@xPosition, @yPosition = @getDefaultPosition!
 			return false
 
 		return true
