@@ -397,7 +397,7 @@ class Line
 		verticalMargin = if @margin_t == 0 then styleRef.margin_t else @margin_t
 		leftMargin     = if @margin_l == 0 then styleRef.margin_l else @margin_l
 		rightMargin    = if @margin_r == 0 then styleRef.margin_r else @margin_r
-		align          = styleRef.align
+		align          = @align or styleRef.align
 		return @defaultXPosition[align%3+1]( @parentCollection.meta.PlayResX, leftMargin, rightMargin ), @defaultYPosition[math.ceil align/3]( @parentCollection.meta.PlayResY, verticalMargin )
 
 	setExtraData: ( field, data ) =>
