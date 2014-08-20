@@ -4,11 +4,6 @@ class DataHandler
 
 	new: ( rawDataString ) =>
 		-- (length-22)/4
-		@xPosition = { }
-		@yPosition = { }
-		@xScale = { }
-		@yScale = @xScale
-		@zRotation = { }
 		if rawDataString
 			unless @parseRawDataString rawDataString
 				@parseFile rawDataString
@@ -39,7 +34,14 @@ class DataHandler
 			table.insert @rawData, line
 
 	parse = =>
-		@length = 0
+		-- Initialize these here so they don't get appended if
+		-- parseRawDataString is called twice.
+		@xPosition = { }
+		@yPosition = { }
+		@xScale    = { }
+		@yScale    = @xScale
+		@zRotation = { }
+		length = 0
 		section = 0
 		for _index, line in ipairs @rawData
 			unless line\match("^\t")
@@ -51,7 +53,7 @@ class DataHandler
 						when 1
 							table.insert @xPosition, tonumber value2
 							table.insert @yPosition, tonumber remainder\match "\t([%d%.%-e%+]+)"
-							@length += 1
+							length += 1
 						when 2
 							-- Sort of future proof against having different scale
 							-- values for different axes.
@@ -61,6 +63,8 @@ class DataHandler
 							-- Sort of future proof having rotation around different
 							-- axes.
 							table.insert @zRotation, -tonumber value2
+
+		@length = length
 
 	-- Arguments: just your friendly neighborhood options table.
 	stripFields: ( options ) =>
