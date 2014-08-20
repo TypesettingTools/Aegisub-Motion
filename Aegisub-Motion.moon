@@ -208,6 +208,9 @@ prepareLines = ( lineCollection ) ->
 	-- Line.moon but are actually fairly Aegisub-Motion specific.
 	lineCollection\runCallback ( line ) =>
 
+		-- Add our signature extradata.
+		line\setExtraData 'a-mo', { originalText: line.text, uuid: Math.uuid! }
+
 		-- Tokenize the transforms to simplify later processing.
 		line\tokenizeTransforms!
 
@@ -226,8 +229,6 @@ prepareLines = ( lineCollection ) ->
 			line\runCallbackOnFirstOverride ( tagBlock ) =>
 				return tagBlock\gsub "{", ("{\\pos(%g,%g)")\format @xPosition, @yPosition
 
-		-- Add our signature extradata.
-		line\setExtraData 'a-mo', { originalText: line.text, uuid: Math.uuid! }
 
 		-- Add any tags we need that are missing from the line.
 		line\runCallbackOnFirstOverride ( tagBlock ) =>
