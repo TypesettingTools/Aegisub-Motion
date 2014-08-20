@@ -26,28 +26,33 @@ initializeInterface = ->
 		main: {
 			-- mnemonics: xyOCSBuRWen + G\A + Wl\A
 			dataLabel: { class: "label",    x: 0, y: 0,  width: 10, height: 1,                                  label: "                 Paste data or enter a filepath." }
-			data:      { class: "textbox",  x: 0, y: 1,  width: 10, height: 4,               name: "data", hint: "Paste data or the path to a file containing it. No quotes or escapes." }
+			data:      { class: "textbox",  x: 0, y: 1,  width: 10, height: 4,               name: "data",                                            hint: "Paste data or the path to a file containing it. No quotes or escapes." }
 
 			optLabel:  { class: "label",    x: 0, y: 6,  width: 5,  height: 1,                                  label: "Data to be applied:" }
-			xPosition: { class: "checkbox", x: 0, y: 7,  width: 1,  height: 1, config: true, name: "xPosition", label: "&x",            value: true,   hint: "Apply x position data to the selected lines." }
-			yPosition: { class: "checkbox", x: 1, y: 7,  width: 1,  height: 1, config: true, name: "yPosition", label: "&y",            value: true,   hint: "Apply y position data to the selected lines." }
-			origin:    { class: "checkbox", x: 2, y: 7,  width: 2,  height: 1, config: true, name: "origin",    label: "&Origin",       value: false,  hint: "Move the origin along with the position." }
-			clip:      { class: "checkbox", x: 4, y: 7,  width: 2,  height: 1, config: true, name: "clip",      label: "&Clip",         value: false,  hint: "Move clip along with the position (note: will also be scaled and rotated if those options are selected)." }
-			xScale:    { class: "checkbox", x: 0, y: 8,  width: 2,  height: 1, config: true, name: "xScale",    label: "&Scale",        value: true,   hint: "Apply scaling data to the selected lines." }
-			border:    { class: "checkbox", x: 2, y: 8,  width: 2,  height: 1, config: true, name: "border",    label: "&Border",       value: true,   hint: "Scale border with the line (only if Scale is also selected)." }
-			shadow:    { class: "checkbox", x: 4, y: 8,  width: 2,  height: 1, config: true, name: "shadow",    label: "&Shadow",       value: true,   hint: "Scale shadow with the line (only if Scale is also selected)." }
-			blur:      { class: "checkbox", x: 4, y: 9,  width: 2,  height: 1, config: true, name: "blur",      label: "Bl&ur",         value: true,   hint: "Scale blur with the line (only if Scale is also selected, does not scale \\be)." }
-			zRotation: { class: "checkbox", x: 0, y: 9,  width: 3,  height: 1, config: true, name: "zRotation", label: "&Rotation",     value: false,  hint: "Apply rotation data to the selected lines." }
+			xPosition: { class: "checkbox", x: 0, y: 7,  width: 1,  height: 1, config: true, name: "xPosition", label: "&x",            value: true,  hint: "Apply x position data to the selected lines." }
+			yPosition: { class: "checkbox", x: 1, y: 7,  width: 1,  height: 1, config: true, name: "yPosition", label: "&y",            value: true,  hint: "Apply y position data to the selected lines." }
+			origin:    { class: "checkbox", x: 2, y: 7,  width: 2,  height: 1, config: true, name: "origin",    label: "&Origin",       value: false, hint: "Move the origin along with the position." }
+			absPos:    { class: "checkbox", x: 4, y: 7,  width: 2,  height: 1, config: true, name: "absPos",    label: "&Absolute",     value: false, hint: "Move clip along with the position (note: will also be scaled and rotated if those options are selected)." }
+
+			xScale:    { class: "checkbox", x: 0, y: 8,  width: 2,  height: 1, config: true, name: "xScale",    label: "&Scale",        value: true,  hint: "Apply scaling data to the selected lines." }
+			border:    { class: "checkbox", x: 2, y: 8,  width: 2,  height: 1, config: true, name: "border",    label: "&Border",       value: true,  hint: "Scale border with the line (only if Scale is also selected)." }
+			shadow:    { class: "checkbox", x: 4, y: 8,  width: 2,  height: 1, config: true, name: "shadow",    label: "&Shadow",       value: true,  hint: "Scale shadow with the line (only if Scale is also selected)." }
+			blur:      { class: "checkbox", x: 4, y: 9,  width: 2,  height: 1, config: true, name: "blur",      label: "Bl&ur",         value: true,  hint: "Scale blur with the line (only if Scale is also selected, does not scale \\be)." }
+
+			zRotation: { class: "checkbox", x: 0, y: 9,  width: 3,  height: 1, config: true, name: "zRotation", label: "&Rotation",     value: false, hint: "Apply rotation data to the selected lines." }
 
 			rndLabel:  { class: "label",    x: 7, y: 6,  width: 3,  height: 1,                                  label: "Rounding" }
-			posRound:  { class: "intedit",  x: 7, y: 7,  width: 3,  height: 1, config: true, name: "posRound",  min: 0, max: 5,         value: 2,      hint: "How many decimal places of accuracy the resulting positions should have." }
-			sclRound:  { class: "intedit",  x: 7, y: 8,  width: 3,  height: 1, config: true, name: "sclRound",  min: 0, max: 5,         value: 2,      hint: "How many decimal places of accuracy the resulting scales should have (also applied to border, shadow, and blur)." }
-			rotRound:  { class: "intedit",  x: 7, y: 9,  width: 3,  height: 1, config: true, name: "rotRound",  min: 0, max: 5,         value: 2,      hint: "How many decimal places of accuracy the resulting rotations should have." }
+			posRound:  { class: "intedit",  x: 7, y: 7,  width: 3,  height: 1, config: true, name: "posRound",  min: 0, max: 5,         value: 2,     hint: "How many decimal places of accuracy the resulting positions should have (also applied to origin)." }
+			sclRound:  { class: "intedit",  x: 7, y: 8,  width: 3,  height: 1, config: true, name: "sclRound",  min: 0, max: 5,         value: 2,     hint: "How many decimal places of accuracy the resulting scales should have (also applied to border, shadow, and blur)." }
+			rotRound:  { class: "intedit",  x: 7, y: 9,  width: 3,  height: 1, config: true, name: "rotRound",  min: 0, max: 5,         value: 2,     hint: "How many decimal places of accuracy the resulting rotations should have." }
 
-			writeConf: { class: "checkbox", x: 0, y: 11, width: 4,  height: 1,               name: "writeConf", label: "&Write config", value: false,  hint: "Write current settings to the configuration file." }
-			relative:  { class: "checkbox", x: 4, y: 11, width: 3,  height: 1, config: true, name: "relative",  label: "R&elative",     value: true,   hint: "Start frame should be relative to the line's start time rather than to the start time of all selected lines" }
-			startFrame:{ class: "intedit",  x: 7, y: 11, width: 3,  height: 1, config: true, name: "startFrame",                        value: 1,      hint: "Frame used as the starting point for the tracking data. \"-1\" corresponds to the last frame." }
-			linear:    { class: "checkbox", x: 4, y: 12, width: 2,  height: 1, config: true, name: "linear",    label: "Li&near",       value: false,  hint: "Use transforms and \\move to create a linear transition, instead of frame-by-frame." }
+			writeConf: { class: "checkbox", x: 0, y: 11, width: 4,  height: 1,               name: "writeConf", label: "&Write config", value: false, hint: "Write current settings to the configuration file." }
+			relative:  { class: "checkbox", x: 4, y: 11, width: 3,  height: 1, config: true, name: "relative",  label: "R&elative",     value: true,  hint: "Start frame should be relative to the line's start time rather than to the start time of all selected lines" }
+			startFrame:{ class: "intedit",  x: 7, y: 11, width: 3,  height: 1, config: true, name: "startFrame",                        value: 1,     hint: "Frame used as the starting point for the tracking data. \"-1\" corresponds to the last frame." }
+			linear:    { class: "checkbox", x: 4, y: 12, width: 2,  height: 1, config: true, name: "linear",    label: "Li&near",       value: false, hint: "Use transforms and \\move to create a linear transition, instead of frame-by-frame." }
+
+			rectClip:  { class: "checkbox", x: 0, y: 10, width: 3,  height: 1, config: true, name: "rectClip",  label: "Rect Clip",     value: true,  hint: "Apply tracking data to the rectangular clip contained in the line." }
+			vectClip:  { class: "checkbox", x: 3, y: 10, width: 3,  height: 1, config: true, name: "vectClip",  label: "Vect Clip",     value: true,  hint: "Apply tracking data to the vector clip contained in the line." }
 
 			sortLabel: { class: "label",    x: 1, y: 5,  width: 4,  height: 1,               name: "sortlabel", label: "      Sort Method:" }
 			sortd:     { class: "dropdown", x: 5, y: 5,  width: 4,  height: 1, config: true, name: "sortd",     label: "Sort lines by", value: "Default", items: { "Default", "Time" }, hint: "The order to sort the lines after they have been tracked." }
@@ -65,14 +70,17 @@ initializeInterface = ->
 			xScale:    { class: "checkbox", x: 0, y: 7, width: 2,  height: 1, config: true, name: "xScale",    value: true,  label: "&Scale" }
 			zRotation: { class: "checkbox", x: 0, y: 8, width: 3,  height: 1, config: true, name: "zRotation", value: false, label: "&Rotation" }
 
+			rectClip:  { class: "checkbox", x: 0, y: 10, width: 3,  height: 1, config: true, name: "rectClip",  label: "Rect Clip",     value: true,  hint: "Apply tracking data to the rectangular clip contained in the line." }
+			vectClip:  { class: "checkbox", x: 3, y: 10, width: 3,  height: 1, config: true, name: "vectClip",  label: "Vect Clip",     value: true,  hint: "Apply tracking data to the vector clip contained in the line." }
+
 			startLabel:{ class: "label",    x: 7, y: 5, width: 3,  height: 1, label: "Start Frame:" }
 			startFrame:{ class: "intedit",  x: 7, y: 6, width: 3,  height: 1, config: true, name:  "startFrame",  value: 1 }
 		}
 		trim: {
-			prefix:       { config: true, value: "?video/" }
-			preset:       { config: true, value: "x264" }
-			encbin:       { config: true, value: "" }
-			encodeCommand:{ config: true, value: "" }
+			prefix:  { config: true, value: "?video/" }
+			preset:  { config: true, value: "x264" }
+			encbin:  { config: true, value: "" }
+			command: { config: true, value: "" }
 		}
 	}
 
