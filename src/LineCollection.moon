@@ -46,7 +46,7 @@ class LineCollection
 			with line = Line @sub[sel[i]], @
 				.number = sel[i]
 				.humanizedNumber = .number - dialogueStart
-				.styleref = @styles[.style]
+				.styleRef = @styles[.style]
 
 				.startFrame = frame_from_ms .start_time
 				.endFrame   = frame_from_ms .end_time
