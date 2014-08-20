@@ -242,7 +242,7 @@ prepareLines = ( lineCollection ) ->
 
 		-- Collect alignment and position info for each line.
 		styles = @styles
-		lineStyle = styles[line.style]
+		lineStyle = line.styleRef
 		unless line\extraMetrics lineStyle
 			line\ensureLeadingOverrideBlockExists
 
