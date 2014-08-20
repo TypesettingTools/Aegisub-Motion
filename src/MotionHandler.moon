@@ -5,8 +5,8 @@ log = require 'a-mo.Log'
 
 class MotionHandler
 
-	new: ( @lineCollection, @lineTrackingData, @clipTrackingData ) =>
-		-- create a local reference to the options table
+	new: ( @lineCollection, @lineTrackingData, @rectClipData, @vectClipData ) =>
+		-- Create a local reference to the options table.
 		@options = @lineCollection.options
 
 		setCallbacks @
@@ -32,6 +32,12 @@ class MotionHandler
 
 		if @options.main.zRotation
 			@callbacks["(\\frz?)([%-%d%.]+)"] = rotate
+
+		if @rectClipData
+			@callbacks['(\\i?clip)(%([%-%d%.]+,[%-%d%.]+,[%-%d%.]+,[%-%d%.]+%))'] = rectangularClip
+
+		if @vectClipData
+			@callbacks['(\\i?clip)(%([^,]-%))'] = vectorClip
 
 		if @options.main.linear
 			@resultingCollection = @lineCollection
@@ -170,17 +176,17 @@ class MotionHandler
 		tostring Math.round rotation, @options.main.rotRound
 
 	vectorClip = ( clip, frame ) =>
-		-- This is redundant if clipTrackingData is the same as
+		-- This is redundant if vectClipData is the same as
 		-- lineTrackingData.
-		@clipTrackingData\calculateCurrentState frame
+		@vectClipData\calculateCurrentState frame
 
 		clip = clip\gsub "([%.%d%-]+) ([%.%d%-]+)", ( x, y ) ->
-			x = (tonumber( x ) - @clipTrackingData.xStartPosition)*@lineTrackingData.xRatio
-			y = (tonumber( y ) - @clipTrackingData.yStartPosition)*@lineTrackingData.yRatio
+			x = (tonumber( x ) - @vectClipData.xStartPosition)*@vectClipData.xRatio
+			y = (tonumber( y ) - @vectClipData.yStartPosition)*@vectClipData.yRatio
 			radius = math.sqrt x^2 + y^2
 			alpha = Math.dAtan y, x
-			x += radius*Math.dCos( alpha - @lineTrackingData.zRotationDiff )
-			y += radius*Math.dSin( alpha - @lineTrackingData.zRotationDiff )
+			x += radius*Math.dCos( alpha - @vectClipData.zRotationDiff )
+			y += radius*Math.dSin( alpha - @vectClipData.zRotationDiff )
 			("%d %d")\format Math.round( x, 2 ), Math.round( y, 2 )
 
 		("(%s)")\format clip
