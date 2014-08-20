@@ -360,19 +360,22 @@ applyProcessor = ( subtitles, selectedLines ) ->
 				log.debug tostring button
 				break
 
-	prepareConfig config, mainData, clipData, lineCollection.totalFrames
-	prepareLines lineCollection
-
+	-- Update the persistent configuration before it gets (potentially)
+	-- horribly mutilated in prepareConfig. Ensures that what the user saw
+	-- last is what will be presented to them next time.
 	options\updateConfiguration config, { "main", "clip" }
 	options\write!
+
+	rectClipData, vectClipData = prepareConfig config, mainData, clipData, lineCollection.totalFrames
+	prepareLines lineCollection
 
 	mainData\addReferenceFrame options.configuration.main.startFrame
 	mainData\stripFields options.configuration.main
 
-	motionHandler = MotionHandler lineCollection, mainData, clipData
+	motionHandler = MotionHandler lineCollection, mainData, rectClipData, vectClipData
 	newLines = motionHandler\applyMotion!
 
-	-- Clean up lines: detokenize transforms and combine identical lines.
+	-- Postproc lines: detokenize transforms and combine identical lines.
 	postprocLines newLines
 	newLines\replaceLines!
 
