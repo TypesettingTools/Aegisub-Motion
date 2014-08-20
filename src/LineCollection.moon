@@ -3,10 +3,12 @@ log  = require 'a-mo.Log'
 
 class LineCollection
 
-	new: ( @sub, sel ) =>
+	new: ( @sub, sel, validationCb ) =>
 		@lines = { }
 		if sel
-			@collectLines sel
+			@collectLines sel, validationCb
+			if aegisub.frame_from_ms 0
+				@getFrameInfo!
 
 	addLine: ( line ) =>
 		table.insert @lines, line
@@ -24,14 +26,11 @@ class LineCollection
 			elseif line.class == "info"
 				@meta[line.key] = line.value
 
-	collectLines: ( sel ) =>
+	collectLines: ( sel, validationCb = ( line ) -> return not line.comment ) =>
 		unless @meta and @styles
 			@generateMetaAndStyles!
 
 		dialogueStart = 0
-		frame_from_ms = aegisub.frame_from_ms
-		ms_from_frame = aegisub.ms_from_frame
-
 		for x = 1, #@sub
 			if @sub[x].class == "dialogue"
 				dialogueStart = x - 1 -- start line of dialogue subs
@@ -39,30 +38,32 @@ class LineCollection
 
 		@startTime  = @sub[sel[1]].start_time
 		@endTime    = @sub[sel[1]].end_time
-		@startFrame = frame_from_ms @startTime
-		@endFrame   = frame_from_ms @endTime
 
 		for i = #sel, 1, -1
 			with line = Line @sub[sel[i]], @
-				.number = sel[i]
-				.humanizedNumber = .number - dialogueStart
-				.styleRef = @styles[.style]
+				if validationCb line
+					.number = sel[i]
+					.humanizedNumber = .number - dialogueStart
+					.styleRef = @styles[.style]
 
-				.startFrame = frame_from_ms .start_time
-				.endFrame   = frame_from_ms .end_time
+					if .start_time < @startTime
+						@startTime = .start_time
 
-				if .startFrame < @startFrame
-					@startFrame = .startFrame
-					@startTime = ms_from_frame .startFrame
+					if .end_time > @endTime
+						@endTime = .end_time
 
-				if .endFrame > @endFrame
-					@endFrame = .endFrame
-					@startTime = ms_from_frame .endFrame
-
-				if .endFrame - .startFrame > 1 and not .comment
-					.transformations = { }
 					table.insert @lines, line
 
+	getFrameInfo: =>
+		frame_from_ms = aegisub.frame_from_ms
+		ms_from_frame = aegisub.ms_from_frame
+
+		for line in *@lines
+			line.startFrame = frame_from_ms .start_time
+			line.endFrame   = frame_from_ms .end_time
+
+		@startFrame  = frame_from_ms @startTime
+		@endFrame    = frame_from_ms @endTime
 		@totalFrames = @endFrame - @startFrame
 
 	callMethodOnAllLines: ( methodName, ... ) =>
