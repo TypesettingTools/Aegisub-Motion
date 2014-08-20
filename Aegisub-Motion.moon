@@ -292,13 +292,15 @@ applyProcessor = ( subtitles, selectedLines ) ->
 
 	mainData = DataHandler!
 	clipData = DataHandler!
-	if rawInputData != ""
-		mainData\parseRawDataString rawInputData
-		if mainData\checkLength lineCollection
-			interface.main.data.value = rawInputData
-			interface.main.dataLabel.label = "            Clipboard data is the correct length."
-		else
-			interface.main.dataLabel.label = "Clipboard data was the wrong length. E: #{lineCollection.totalFrames} A: #{mainData.length}"
+	if rawInputData
+		unless mainData\parseRawDataString rawInputData
+			mainData\parseFile rawInputData
+		if mainData.length
+			if mainData\checkLength lineCollection
+				interface.main.data.value = rawInputData
+				interface.main.dataLabel.label = "            Clipboard data is the correct length."
+			else
+				interface.main.dataLabel.label = "Clipboard data was the wrong length. E: #{lineCollection.totalFrames} A: #{mainData.length}"
 
 	relativeFrame = currentVideoFrame - lineCollection.startFrame + 1
 	if relativeFrame > 0 and relativeFrame <= lineCollection.totalFrames
