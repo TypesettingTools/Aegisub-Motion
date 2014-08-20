@@ -79,7 +79,7 @@ initializeInterface = ->
 		trim: {
 			prefix:  { config: true, value: "?video/" }
 			preset:  { config: true, value: "x264" }
-			encbin:  { config: true, value: "" }
+			encBin:  { config: true, value: "" }
 			command: { config: true, value: "" }
 		}
 	}
