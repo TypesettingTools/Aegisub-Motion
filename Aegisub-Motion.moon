@@ -211,6 +211,29 @@ prepareLines = ( lineCollection ) ->
 		-- Add our signature extradata.
 		line\setExtraData 'a-mo', { originalText: line.text, uuid: Math.uuid! }
 
+		-- need to brutalize fades before tokenizing transforms so that the
+		-- produced transforms will be tokenized as well. Alternately (this
+		-- may be more clean but also less efficient), tokenize transforms,
+		-- dedup tags, detokenize transforms, brutalize fades, and then
+		-- retokenize transforms.
+		fadWasFound = false
+		fadStart, fadEnd = 0, 0
+		line\runCallbackOnOverrides ( tagBlock ) =>
+			return tagBlock\gsub "\\fad%((%d+),(%d+)%)", ( start, finish ) ->
+				unless fadWasFound
+					fadStart = tonumber start
+					fadEnd   = tonumber finish
+					fadWasFound = true
+				return ""
+
+		if fadWasFound
+			line\runCallbackOnOverrides ( tagBlock ) =>
+				return tagBlock\gsub "(\\[1234]?a[lpha]-)(&H%x%x&)", ( alpha, value ) ->
+					return fadToTransform fadStart, fadEnd, alpha, value, @duration
+
+			line\runCallbackOnFirstOverride ( tagBlock ) =>
+				return "{" .. fadToTransform( fadStart, fadEnd, "\\alpha", "&H00&", @duration ) .. tagBlock\sub 2
+
 		-- Tokenize the transforms to simplify later processing.
 		line\tokenizeTransforms!
 
