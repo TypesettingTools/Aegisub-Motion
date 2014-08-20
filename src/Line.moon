@@ -381,8 +381,8 @@ class Line
 
 	combineWithLine: ( line ) =>
 		if @text == line.text and @style == line.style and (@start_time == line.end_time or @end_time == line.start_time)
-			@start_time = min @start_time, line.start_time
-			@end_time = max @end_time, line.end_time
+			@start_time = math.min @start_time, line.start_time
+			@end_time = math.max @end_time, line.end_time
 			return true
 		return false
 
