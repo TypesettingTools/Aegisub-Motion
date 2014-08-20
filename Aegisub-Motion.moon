@@ -174,35 +174,29 @@ appendMissingTags = ( block, options, styleTable ) ->
 					block ..= tag .. ("%g")\format styleDefault
 	return block .. "}"
 
-muckWithClips = ( tagBlock, line ) ->
-	-- It is possible to have both a rectangular and vector clip in the
-	-- same line. This is useful for masking lines with gradients. In
-	-- order to be able to support this (even though motion tracking
-	-- gradients is a bad idea and not endorsed by this author), we need
-	-- to both support multiple clips in one line, as well as not convert
-	-- rectangular-style clips to vector clips. To make our lives easier,
-	-- we'll just not enforce any limits on the number of clips in a line
-	-- and assume the user knows what they're doing.
-	return tagBlock\gsub "\\(i?clip)(%b())", ( clip, points ) ->
-		line.hasClip = true
-		-- detect if clip is rectangular.
-		if points\match "[%-%d%.]+, *[%-%d%.]+"
-			points = points\sub 2, -2
-		else
-			-- Convert clip with scale into floating point coordinates.
-			points = points\gsub "%((%d*),?(.-)%)", ( scaleFactor, points ) ->
-				if scaleFactor ~= ""
-					scaleFactor = tonumber scaleFactor
+convertClipToFP = ( clip ) ->
+	-- only muck around with vector clips (convert scaling factor into floating point coordinates).
+	unless clip\match "[%-%d%.]+, *[%-%d%.]+"
+		-- Convert clip with scale into floating point coordinates.
+		clip = clip\gsub "%((%d*),?(.-)%)", ( scaleFactor, points ) ->
+			if scaleFactor ~= ""
+				scaleFactor = tonumber scaleFactor
 
-					points = points\gsub "([%.%d%-]+) ([%.%d%-]+)", ( x, y ) ->
-						x = tonumber( x )/2^(scaleFactor - 1)
-						y = tonumber( y )/2^(scaleFactor - 1)
-						-- Round the calculated values so that they don't take
-						-- up huge amounts of space.
-						("%g %g")\format x, y
-				points
-		"\\#{clip}(#{points})"
+				points = points\gsub "([%.%d%-]+) ([%.%d%-]+)", ( x, y ) ->
+					x = Math.round tonumber( x )/(2^(scaleFactor - 1)), 2
+					y = Math.round tonumber( y )/(2^(scaleFactor - 1)), 2
 
+					("%g %g")\format x, y
+			return '(' .. points .. ')'
+	return clip
+
+fadToTransform = ( fadStart, fadEnd, alpha, value, lineDuration ) ->
+	str = ""
+	if fadStart > 0
+		str = ("%s&HFF&\\t(%d,%s,%s%s)")\format alpha, 0, fadStart, alpha, value
+	if fadEnd > 0
+		str ..= ("\\t(%d,%d,%s&HFF&)")\format lineDuration - fadEnd, lineDuration, alpha
+	str
 
 prepareLines = ( lineCollection ) ->
 	options = lineCollection.options
@@ -244,7 +238,9 @@ prepareLines = ( lineCollection ) ->
 				styleTable = styles[resetStyle] or lineStyle
 				tagBlock = appendMissingTags tagBlock, options, styleTable
 
-			tagBlock = muckWithClips tagBlock, @
+			return tagBlock\gsub "(\\i?clip%b())", ( clip ) ->
+				@hasClip = true
+				return convertClipToFP clip
 
 postprocLines = ( lineCollection ) ->
 	lineCollection\runCallback ( line ) =>
