@@ -85,16 +85,15 @@ class LineCollection
 
 	combineIdenticalLines: =>
 		lastLine = @lines[1]
-		lastIndex = lastLine.number
 		newLineTable = { }
-		for i = 2,#@lines
-			error "User cancelled" if aegisub.progress.is_cancelled!
+		for i = 2, #@lines
+			log.checkCancellation!
 
 			if lastLine\combineWithLine @lines[i]
 				@shouldInsertLines = true
 				continue
 			else
-				table.insert newLineTable, lastline
+				table.insert newLineTable, lastLine
 				lastLine = @lines[i]
 
 		table.insert newLineTable, lastLine
