@@ -93,23 +93,46 @@ fetchDataFromClipboard = ->
 		return clipboard.get!
 
 prepareConfig = ( config, mainData, clipData, totalFrames ) ->
+	rectClipData, vectClipData = nil, nil
 
-	-- Check if the motion data pasted in the input box has changed
-	-- from that data grabbed off of the clipboard before the dialog
-	-- was displayed. If it did change, we need to re-parse it. Need
-	-- to try opening as file.
-	if config.main.data != rawInputData
-		mainData = DataHandler config.main.data
+	if config.main.data == ''
+		for option in pairs config.main
+			-- Nuke everything because it doesn't matter at this point.
+			config.main[option] = false
+
+	else
+		-- Be extremely lazy and just re-parse data from scratch.
+		unless mainData\parseRawDataString config.main.data
+			unless mainData\parseFile config.main.data
+				log.windowError "You put something in the data box\nbut it is wrong in ways I can't imagine."
+
+		if config.main.rectClip
+			rectClipData = mainData
+		if config.main.vectClip
+			vectClipData = mainData
+
+	if config.clip.data == '' or config.clip.data == nil
+		unless config.main.data
+			log.windowError "You have failed to provide any tracking\ndata, as far as I can tell."
+
+		for option in pairs config.clip
+			config.clip[option] = false
+
+	else
+		unless clipData\parseRawDataString config.clip.data
+			unless clipData\parseFile config.clip.data
+				log.windowError "You put something in the data box\nbut it is wrong in ways I can't imagine."
+
+		if config.clip.rectClip
+			rectClipData = clipData
+		if config.clip.vectClip
+			vectClipData = clipData
 
 	-- Disable options that depend on scale.
 	unless config.main.xScale
 		config.main.border = false
 		config.main.shadow = false
 		config.main.blur   = false
-
-	-- If no main tracking data is given, set mainData to nil.
-	if config.main.data == ""
-		mainData = nil
 
 	-- Nudge the start frames.
 	for context in *{ 'main', 'clip' }
@@ -119,15 +142,11 @@ prepareConfig = ( config, mainData, clipData, totalFrames ) ->
 			elseif config[context].startFrame < 0
 				config[context].startFrame = totalFrames - config[context].startFrame + 1
 
-	-- Need to try opening config.clip.data as a file.
-	if config.clip.data != "" and config.clip.data != nil
-		clipData\parseRawDataString config.clip.data
-	else
-		clipData = mainData
-		config.clip.startFrame = config.main.startFrame
+	if rectClipData or vectClipData
+		config.main.linear = false
 
-	unless mainData or clipData
-		log.windowError "You have failed to provide any tracking\ndata, as far as I can tell."
+	return rectClipData, vectClipData
+
 
 -- This table is used to verify that style defaults are inserted at
 -- the beginning the selected line(s) if the corresponding options are
