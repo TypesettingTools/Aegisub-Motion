@@ -10,15 +10,28 @@ class DataHandler
 		@yScale = @xScale
 		@zRotation = { }
 		if rawDataString
-			@parseRawDataString rawDataString
+			unless @parseRawDataString rawDataString
+				@parseFile rawDataString
 
 	parseRawDataString: ( rawDataString ) =>
 		tableize @, rawDataString
+		unless @rawData[1]\match "Adobe After Effects 6.0 Keyframe Data"
+			return false
 		@width  = @rawData[3]\match "Source Width\t([0-9]+)"
 		@height = @rawData[4]\match "Source Height\t([0-9]+)"
+		-- Might really not want to have a windowError here because it is
+		-- possible to get this before the main dialog pops up, which seems
+		-- pretty bad.
 		unless @width and @height
 			log.windowError "Your tracking data is either missing the Width/Height fields,\nor they are not where I expected them."
 		parse @
+		return true
+
+	parseFile: ( fileName ) =>
+		if file = io.open fileName, 'r'
+			return @parseRawDataString file\read '*a'
+
+		return false
 
 	tableize = ( rawDataString ) =>
 		@rawData = { }
