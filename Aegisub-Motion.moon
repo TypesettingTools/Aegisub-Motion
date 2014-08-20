@@ -77,14 +77,12 @@ initializeInterface = ->
 	}
 
 fetchDataFromClipboard = ->
-	-- Make this less horrible.
+	-- According to vague reports, Aegisub clipboard usage crashes it on
+	-- Linux. Disable any clipboard use until I find a better way to
+	-- handle this.
 	if ffi.os != "Linux"
 		-- If there's nothing on the clipboard, clipboard.get returns nil.
-		paste = clipboard.get! or ""
-		if paste\match("^Adobe After Effects 6.0 Keyframe Data")
-			return paste
-		else
-			return ""
+		return clipboard.get!
 
 prepareConfig = ( config, mainData, clipData, totalFrames ) ->
 
