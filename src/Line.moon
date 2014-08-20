@@ -7,7 +7,7 @@ class Line
 		-- Built in line fields
 		"actor", "class", "comment", "effect", "end_time", "extra", "layer", "margin_l", "margin_r", "margin_t", "section", "start_time", "style", "text"
 		-- Our fields
-		"number"
+		"number", "transforms", "transformsAreTokenized"
 	}
 
 	repeatTags: {
@@ -364,14 +364,14 @@ class Line
 			elseif .start > @duration or .end < .start
 				return ""
 			elseif .accel == 1
-				return ("\\t(%s,%s,%s")\format .start, .end, .effect
+				return ("\\t(%s,%s,%s)")\format .start, .end, .effect
 			else
-				return ("\\t(%s,%s,%s,%s")\format .start, .end, .accel, .effect
+				return ("\\t(%s,%s,%s,%s)")\format .start, .end, .accel, .effect
 
 	detokenizeTransforms: =>
 		if @transformsAreTokenized
 			@runCallbackOnOverrides ( tagBlock ) =>
-				tagBlock = tagBlock\gsub @tPlaceholder .. "(%d+)" .. @tPlaceholder, ( index ) ->
+				return tagBlock\gsub @tPlaceholder .. "(%d+)" .. @tPlaceholder, ( index ) ->
 					return serializeTransform @, @transforms[tonumber index]
 
 			@transformsAreTokenized = false

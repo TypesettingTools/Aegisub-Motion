@@ -129,12 +129,18 @@ class MotionHandler
 					newText = newText\gsub pattern, ( tag, value ) ->
 						tag .. callback @, value, frame, line
 
-				-- Update transforms without detokenizing them.
+				-- Update transforms without detokenizing them. This ended up
+				-- being a bit hackier than I intended.
+				newTransforms = { }
 				for transform in *.transforms
-					transform.start -= timeDelta
-					transform.end   -= timeDelta
+					table.insert newTransforms, {
+						start:  transform.start - timeDelta
+						end:    transform.end   - timeDelta
+						accel:  transform.accel
+						effect: transform.effect
+					}
 
-				@resultingCollection\addLine Line line, nil, { text: newText, start_time: newStartTime, end_time: newEndTime}
+				@resultingCollection\addLine Line line, nil, { text: newText, start_time: newStartTime, end_time: newEndTime, transforms: newTransforms }
 
 	position = ( pos, frame, line ) =>
 		x, y = pos\match "([%-%d%.]+),([%-%d%.]+)"
