@@ -374,7 +374,7 @@ applyProcessor = ( subtitles, selectedLines ) ->
 	options\updateConfiguration config, { "main", "clip" }
 	options\write!
 
-	rectClipData, vectClipData = prepareConfig config, mainData, clipData, lineCollection.totalFrames
+	rectClipData, vectClipData = prepareConfig config, mainData, clipData, lineCollection
 	prepareLines lineCollection
 
 	mainData\addReferenceFrame options.configuration.main.startFrame
