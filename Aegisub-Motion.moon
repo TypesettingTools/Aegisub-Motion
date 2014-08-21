@@ -92,8 +92,10 @@ fetchDataFromClipboard = ->
 		-- If there's nothing on the clipboard, clipboard.get returns nil.
 		return clipboard.get!
 
-prepareConfig = ( config, mainData, clipData, totalFrames ) ->
+prepareConfig = ( config, mainData, clipData, lineCollection ) ->
 	rectClipData, vectClipData = nil, nil
+
+	totalFrames = lineCollection.totalFrames
 
 	if config.main.data == ''
 		for option in pairs config.main
@@ -105,6 +107,9 @@ prepareConfig = ( config, mainData, clipData, totalFrames ) ->
 		unless mainData\parseRawDataString config.main.data
 			unless mainData\parseFile config.main.data
 				log.windowError "You put something in the data box\nbut it is wrong in ways I can't imagine."
+
+		unless mainData\checkLength lineCollection
+			log.windowError "The length of your main data (#{mainData.length}) doesn't match\nthe length of your lines (#{totalFrames}) and I quit."
 
 		if config.main.rectClip
 			rectClipData = mainData
@@ -122,6 +127,9 @@ prepareConfig = ( config, mainData, clipData, totalFrames ) ->
 		unless clipData\parseRawDataString config.clip.data
 			unless clipData\parseFile config.clip.data
 				log.windowError "You put something in the data box\nbut it is wrong in ways I can't imagine."
+
+		unless clipData\checkLength LineCollection
+			log.windowError "The length of your clip data (#{clipData.length}) doesn't match\nthe length of your lines (#{totalFrames}) and I quit."
 
 		if config.clip.rectClip
 			rectClipData = clipData
