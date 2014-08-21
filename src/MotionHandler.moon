@@ -1,7 +1,7 @@
 LineCollection = require 'a-mo.LineCollection'
-Line = require 'a-mo.Line'
-Math = require 'a-mo.Math'
-log = require 'a-mo.Log'
+Math           = require 'a-mo.Math'
+Line           = require 'a-mo.Line'
+log            = require 'a-mo.Log'
 
 class MotionHandler
 
@@ -59,11 +59,6 @@ class MotionHandler
 				.relativeStart = .startFrame - @lineCollection.startFrame + 1
 				-- end frame of line relative to start frame of tracked data
 				.relativeEnd = .endFrame - @lineCollection.startFrame
-
-				.alpha = -Math.dAtan .yPosition - @lineTrackingData.yStartPosition, .xPosition - @lineTrackingData.xStartPosition
-
-				if @options.origin
-					.beta  = -Math.dAtan .yOrigin - @lineTrackingData.yStartPosition, .xOrigin - @lineTrackingData.xStartPosition
 
 				@work line
 
@@ -133,7 +128,7 @@ class MotionHandler
 				-- iterate through the necessary operations
 				for pattern, callback in pairs @callbacks
 					newText = newText\gsub pattern, ( tag, value ) ->
-						tag .. callback @, value, frame, line
+						tag .. callback @, value, frame
 
 				-- Update transforms without detokenizing them. This ended up
 				-- being a bit hackier than I intended.
@@ -148,20 +143,25 @@ class MotionHandler
 
 				@resultingCollection\addLine Line line, nil, { text: newText, start_time: newStartTime, end_time: newEndTime, transforms: newTransforms }
 
-	position = ( pos, frame, line ) =>
+	position = ( pos, frame ) =>
 		x, y = pos\match "([%-%d%.]+),([%-%d%.]+)"
-		x = (tonumber( x ) - @lineTrackingData.xStartPosition)*@lineTrackingData.xRatio
-		y = (tonumber( y ) - @lineTrackingData.yStartPosition)*@lineTrackingData.yRatio
-		radius = math.sqrt( x^2 + y^2 )
-		x = @lineTrackingData.xPosition[frame] + radius*Math.dCos( line.alpha + @lineTrackingData.zRotationDiff )
-		y = @lineTrackingData.yPosition[frame] - radius*Math.dSin( line.alpha + @lineTrackingData.zRotationDiff )
+		x, y = positionMath x, y, @lineTrackingData
 		("(%g,%g)")\format Math.round( x, @options.main.posRound ), Math.round( y, @options.main.posRound )
+
+	positionMath = ( x, y, data ) ->
+		x = (tonumber( x ) - data.xStartPosition)*data.xRatio
+		y = (tonumber( y ) - data.yStartPosition)*data.yRatio
+		radius = math.sqrt( x^2 + y^2 )
+		alpha  = Math.dAtan( y, x )
+		x = data.xCurrentPosition + radius*Math.dCos( alpha - data.zRotationDiff )
+		y = data.yCurrentPosition + radius*Math.dSin( alpha - data.zRotationDiff )
+		return x, y
 
 	absolutePosition = ( pos, frame ) =>
 		("(%g,%g)")\format Math.round( @lineTrackingData.xPosition[frame], @options.main.posRound ), Math.round( @lineTrackingData.xPosition[frame], @options.main.posRound )
 
 	-- Needs to be fixed.
-	origin = ( origin, frame, line ) =>
+	origin = ( origin, frame ) =>
 		ox, oy = opos\match("([%-%d%.]+),([%-%d%.]+)")
 		ox = @lineTrackingData.xRatio*(ox - @lineTrackingData.xStartPosition)
 		oy = @lineTrackingData.yRatio*(oy - @lineTrackingData.yStartPosition)
@@ -181,12 +181,7 @@ class MotionHandler
 		@vectClipData\calculateCurrentState frame
 
 		clip = clip\gsub "([%.%d%-]+) ([%.%d%-]+)", ( x, y ) ->
-			x = (tonumber( x ) - @vectClipData.xStartPosition)*@vectClipData.xRatio
-			y = (tonumber( y ) - @vectClipData.yStartPosition)*@vectClipData.yRatio
-			radius = math.sqrt x^2 + y^2
-			alpha = Math.dAtan y, x
-			x += radius*Math.dCos( alpha - @vectClipData.zRotationDiff )
-			y += radius*Math.dSin( alpha - @vectClipData.zRotationDiff )
-			("%d %d")\format Math.round( x, 2 ), Math.round( y, 2 )
+			x, y = positionMath x, y, @vectClipData
+			("%g %g")\format Math.round( x, 2 ), Math.round( y, 2 )
 
-		("(%s)")\format clip
+		return clip
