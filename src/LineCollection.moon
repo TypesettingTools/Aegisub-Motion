@@ -59,8 +59,8 @@ class LineCollection
 		ms_from_frame = aegisub.ms_from_frame
 
 		for line in *@lines
-			line.startFrame = frame_from_ms .start_time
-			line.endFrame   = frame_from_ms .end_time
+			line.startFrame = frame_from_ms line.start_time
+			line.endFrame   = frame_from_ms line.end_time
 
 		@startFrame  = frame_from_ms @startTime
 		@endFrame    = frame_from_ms @endTime
