@@ -89,6 +89,8 @@ class DataHandler
 		@yStartScale    = @yScale[frame]
 
 	calculateCurrentState: ( frame ) =>
+		@xCurrentPosition = @xPosition[frame]
+		@yCurrentPosition = @yPosition[frame]
 		@xRatio = @xScale[frame]/@xStartScale
 		@yRatio = @yScale[frame]/@yStartScale
 		@zRotationDiff = @zRotation[frame] - @zStartRotation

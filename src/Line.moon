@@ -123,8 +123,11 @@ class Line
 
 		return true
 
-	-- Guarantees there will be no redundantly duplicate tags in the line.
-	-- Does no other processing.
+	-- Tries to guarantee there will be no redundantly duplicate tags in
+	-- the line. Does no other processing. Unfortunately, actually doing
+	-- this perfectly is very complicated because, for example, \t() is
+	-- actually position dependent. e.g. with \t(\c&HFF0000&)\c&HFF0000&,
+	-- the \t will not actually do anything.
 	deduplicateTags: =>
 		-- Combine contiguous override blocks.
 		@text = @text\gsub "}{", @splitChar
@@ -190,7 +193,7 @@ class Line
 		@text = @text\gsub "{}", ""
 
 	-- Converts a value matched from a tag.pattern into a meaningful
-	-- format using tag.output.
+	-- format using tag.output
 	-- Inputs:
 	-- tag [table]: Properly formatted tag table
 	-- value [string]: value returned from tag.pattern.
@@ -299,10 +302,8 @@ class Line
 	-- Runs the provided callback on all of the override tag blocks
 	-- present in the line.
 	runCallbackOnOverrides: ( callback ) =>
-		log.debug @text
 		@text = @text\gsub "({.-})", ( tagBlock ) ->
 			return callback @, tagBlock
-		log.debug @text
 
 	-- Runs the provided callback on the first override tag block in the
 	-- line, provided that override tag occurs before any other text in
@@ -412,6 +413,8 @@ class Line
 	getExtraData: ( field ) =>
 		value = @extra[field]
 		success, res = pcall json.decode, value
+		-- Should probably add something for luabins here but it is
+		-- extremely stupid and dumb so I really don't want to.
 
 		if success
 			return res

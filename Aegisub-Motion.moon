@@ -4,7 +4,7 @@
 export script_name        = "Aegisub-Motion"
 export script_description = "A set of tools for simplifying the process of creating and applying motion tracking data with Aegisub."
 export script_author      = "torque"
-export script_version     = "0xDEADBEEF"
+export script_version     = "1.0.0-test1"
 
 local interface
 
@@ -77,7 +77,7 @@ initializeInterface = ->
 			startFrame:{ class: "intedit",  x: 7, y: 6, width: 3,  height: 1, config: true, name:  "startFrame",  value: 1 }
 		}
 		trim: {
-			prefix:  { config: true, value: "?video/" }
+			prefix:  { config: true, value: "?video" }
 			preset:  { config: true, value: "x264" }
 			encBin:  { config: true, value: "" }
 			command: { config: true, value: "" }
@@ -387,14 +387,15 @@ applyProcessor = ( subtitles, selectedLines ) ->
 	postprocLines newLines
 	newLines\replaceLines!
 
-applyTrim = ( subtitles, selectedLines ) ->
+trimProcessor = ( subtitles, selectedLines ) ->
 	initializeInterface!
 	options = ConfigHandler interface, "aegisub-motion.json", true, script_version
 	options\read!
-	lineCollection = LineCollection subtitles, nil, selectedLines
-	trim = TrimHandler options.trim
+	lineCollection = LineCollection subtitles, selectedLines
+	trim = TrimHandler options.configuration.trim
 	trim\calculateTrimLength lineCollection
 	trim\performTrim!
+	return selectedLines
 
 revertProcessor = ( subtitles, selectedLines ) ->
 	-- A table of all UUIDs found in the selected lines
@@ -449,4 +450,4 @@ aegisub.register_macro "#{script_name}/Revert", "Removes properly formatted moti
 	revertProcessor, canRun
 
 aegisub.register_macro "#{script_name}/Trim", "Cuts and encodes the current scene for use with motion tracking software.",
-	applyTrim, canRun
+	trimProcessor, canRun

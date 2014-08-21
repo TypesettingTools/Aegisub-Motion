@@ -7,16 +7,17 @@ class TrimHandler
 
 	-- Set up encoder presets.
 	defaults: {
-		x264:    '"#{encbin}" --crf 16 --tune fastdecode -i 250 --fps 23.976 --sar 1:1 --index "#{prefix}#{index}.index" --seek #{startf} --frames #{lenf} -o "#{prefix}#{output}[#{startf}-#{endf}].mp4" "#{inpath}#{input}"'
-		ffmpeg:  '"#{encbin}" -ss #{startt} -i "#{inpath}#{input}" -vframes #{lenf} "#{prefix}#{output}[#{startf}-#{endf}]-%%05d.jpg"'
-		avs2yuv: 'echo FFVideoSource("#{inpath}#{input}",cachefile="#{prefix}#{index}.index").trim(#{startf},#{endf}).ConvertToRGB.ImageWriter("#{prefix}#{output}-[#{startf}-#{endf}]\\",type="png").ConvertToYV12 > "#{prefix}encode.avs"\nmkdir "#{prefix}#{output}-[#{startf}-#{endf}]"\n"#{encbin}" -o NUL "#{prefix}encode.avs"\ndel "#{prefix}encode.avs"'
+		x264:    '"#{encbin}" --crf 16 --tune fastdecode -i 250 --fps 23.976 --sar 1:1 --index "#{prefix}/#{index}.index" --seek #{startf} --frames #{lenf} -o "#{prefix}/#{output}[#{startf}-#{endf}].mp4" "#{inpath}/#{input}"'
+		ffmpeg:  '"#{encbin}" -ss #{startt} -sn -i "#{inpath}/#{input}" -vframes #{lenf} "#{prefix}/#{output}[#{startf}-#{endf}]-%05d.jpg"'
+		-- avs2pipe: 'echo FFVideoSource("#{inpath}#{input}",cachefile="#{prefix}#{index}.index").trim(#{startf},#{endf}).ConvertToRGB.ImageWriter("#{prefix}/#{output}-[#{startf}-#{endf}]\\",type="png").ConvertToYV12 > "#{temp}/a-mo.encode.avs"\nmkdir "#{prefix}#{output}-[#{startf}-#{endf}]"\n"#{encbin}" video "#{temp}/a-mo.encode.avs"\ndel "#{temp}/a-mo.encode.avs"'
+		-- vapoursynth:
 	}
 
 	-- Example trimConfig:
 	-- trimConfig = {
-	-- 		-- The Prefix is the directory the output will be written to. It
+	-- 		-- The prefix is the directory the output will be written to. It
 	-- 		-- is passed through aegisub.decode_path.
-	-- 	prefix: "?video/"
+	-- 	prefix: "?video"
 
 	-- 		-- The name of the built in encoding preset to use. Overridden by
 	-- 		-- command if that is neither nil nor an empty string.
@@ -29,6 +30,7 @@ class TrimHandler
 
 	-- 		-- A custom encoding command that can be used to override the
 	-- 		-- built-in defaults. Usable token documentation to come.
+	--		-- Overrides preset if that is set.
 	-- 	command: nil
 	-- }
 	new: ( trimConfig ) =>
@@ -45,7 +47,7 @@ class TrimHandler
 				.temp = "/tmp"
 			.encbin = trimConfig.encBin
 			.prefix = aegisub.decode_path trimConfig.prefix
-			.inpath = aegisub.decode_path "?video/"
+			.inpath = aegisub.decode_path "?video"
 		getVideoName @
 
 	getVideoName = =>
@@ -91,7 +93,7 @@ class TrimHandler
 			encodeScriptFile = io.open encodeScript, "w+"
 			unless encodeScriptFile
 				log.windowError "Encoding script could not be written.\nSomething is wrong with your temp dir (#{.pre})."
-			encodeString = @command\gsub( "#(%b{})", ( token ) -> @tokens[token\sub 2, -2] ) .. .postExec
+			encodeString = @command\gsub( "#{(.-)}", ( token ) -> @tokens[token] ) .. .postExec
 			log.debug encodeString
 			encodeScriptFile\write encodeString
 			encodeScriptFile\close!
