@@ -356,7 +356,7 @@ class Line
 					return @tPlaceholder .. tostring( count ) .. @tPlaceholder
 			@transformsAreTokenized = true
 
-	serializeTransform = ( transformTable ) =>
+	serializeTransform: ( transformTable ) =>
 		with transformTable
 			if .end <= 0
 				@aTransformHasEnded = true
@@ -372,7 +372,7 @@ class Line
 		if @transformsAreTokenized
 			@runCallbackOnOverrides ( tagBlock ) =>
 				return tagBlock\gsub @tPlaceholder .. "(%d+)" .. @tPlaceholder, ( index ) ->
-					return serializeTransform @, @transforms[tonumber index]
+					return @serializeTransform @transforms[tonumber index]
 
 			@transformsAreTokenized = false
 			if @aTransformHasEnded

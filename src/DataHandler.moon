@@ -9,7 +9,7 @@ class DataHandler
 				@parseFile rawDataString
 
 	parseRawDataString: ( rawDataString ) =>
-		tableize @, rawDataString
+		@tableize rawDataString
 		unless @rawData[1]\match "Adobe After Effects 6.0 Keyframe Data"
 			return false
 		@width  = @rawData[3]\match "Source Width\t([0-9]+)"
@@ -28,7 +28,7 @@ class DataHandler
 
 		return false
 
-	tableize = ( rawDataString ) =>
+	tableize: ( rawDataString ) =>
 		@rawData = { }
 		rawDataString\gsub "([^\r\n]+)", ( line ) ->
 			table.insert @rawData, line
