@@ -54,7 +54,7 @@ class TrimHandler
 		with @tokens
 			video = aegisub.project_properties!.video_file
 			assert video\len! != 0, "Theoretically it should be impossible to get this error."
-			.input = video\sub .inpath\len! + 1
+			.input = video\sub .inpath\len! + 2
 			.index = .input\match "(.+)%.[^%.]+$"
 			.output = .index
 
