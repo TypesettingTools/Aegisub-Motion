@@ -18,7 +18,33 @@ Just kidding, that didn't happen intentionally. I'm just incompetent.
 What you probably want to do is to install one of [the
 releases][releases]. Due to the way the code is now laid out, installing
 isn't as trivial as dragging a single file into a folder. The releases
-have easy-to-follow instructions included.
+have easy-to-follow instructions included. They are reproduced here for
+your convenience:
+
+#### Installation Instructions ([from a release zip][releases])
+
+##### Windows (Installed Aegisub)
+
+- Open `%appdata%\Aegisub`. You can do this by opening an explorer window and typing it in the breadcrumb.
+- In the folder you just opened, verify that there is an `automation` directory. If there is not, create it.
+- If you just created an `automation` directory, copy the `autoload` and `include` folders from this zip to the directory you just created.
+- If the `autoload` and `include` folders already exist, copy their contents in the zip into the those folders.
+
+##### Windows (Portable Aegisub)
+
+- Find your Aegisub folder. In it should be an `automation` folder.
+- In the `automation` folder, copy the contents of the zip's `autoload` and `include` folders into the respective folders in your `Aegisub/automation` folder.
+
+##### OS X
+
+- In a Finder window, press `cmd+shift+g`, and enter `~/Library/Application Support/Aegisub/` into the dropdown window.
+- In the folder you just opened, verify that there is an `automation` directory. If there is not, create it.
+- If you just created an `automation` directory, copy the `autoload` and `include` folders from this zip to the directory you just created.
+- If the `autoload` and `include` folders already exist, copy their contents in the zip into the those folders.
+
+##### Linux
+
+- Copy the files into `~/.aegisub/automation`. You may need to create these directories.
 
 If you absolutely MUST install from git, I'll let you figure that one
 out yourself.
