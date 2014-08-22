@@ -489,7 +489,7 @@ aegisub.register_macro "#{script_name}/Apply", "Applies properly formatted motio
 	applyProcessor, canRun
 
 aegisub.register_macro "#{script_name}/Revert", "Removes properly formatted motion tracking data from selected subtitles.",
-	revertProcessor, canRun
+	revertProcessor
 
 aegisub.register_macro "#{script_name}/Trim", "Cuts and encodes the current scene for use with motion tracking software.",
 	trimProcessor, canRun
