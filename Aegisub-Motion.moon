@@ -417,6 +417,15 @@ trimConfigurator = ->
 trimProcessor = ( subtitles, selectedLines ) ->
 	initializeInterface!
 	options = ConfigHandler interface, "aegisub-motion.json", true, script_version
+
+	options\read!
+	-- Check if encBin has been set.
+	unless options.configuration.encBin
+		interface.trim.pLabel.label = [[
+You must specify the path to your encoding binary.
+
+]] .. interface.trim.pLabel.label
+		trimConfigDialog options
 	lineCollection = LineCollection subtitles, selectedLines
 	trim = TrimHandler options.configuration.trim
 	trim\calculateTrimLength lineCollection
