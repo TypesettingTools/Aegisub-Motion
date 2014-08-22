@@ -403,31 +403,38 @@ revertProcessor = ( subtitles, selectedLines ) ->
 	-- Indices of lines that need to be removed later (are part of a
 	-- tracked line collection, but are not the first line in that
 	-- collection)
-	indicesToNuke = { }
-	-- Loop across all selected lines.
 	for index in *selectedLines
-		line = subtitles[index]
-		-- Catch lines containing our signature extradata.
-		if line.extra['a-mo']
-			-- Decode our data, which is stored as json.
-			data = json.decode line.extra['a-mo']
-			if uuids[data.uuid]
-				oldLine = uuids[data.uuid]
-				-- Check if we should change the start time.
-				if line.start_time < oldLine.start_time
-					oldLine.start_time = line.start_time
-				-- Check if we should change the end time.
-				if line.end_time > oldLine.end_time
-					oldLine.end_time = line.end_time
-				-- Mark the line for deletion.
-				indicesToNuke[#indicesToNuke+1] = index
+		with line = subtitles[index]
+			if .extra['a-mo']
+				data = json.decode .extra['a-mo']
+				unless uuids[data.uuid]
+					.text = data.originalText
+					.number = index
+					.extra = {}
+					uuids[data.uuid] = line
 
-			else
-				-- If a line has a new UUID then add it to the table.
-				line.text = data.originalText
-				line.number = index
-				line.extra = {}
-				uuids[data.uuid] = line
+	indicesToNuke = { }
+
+	for index = 1, #subtitles
+		with line = subtitles[index]
+			if line.extra
+				-- Catch lines containing our signature extradata.
+				if .extra['a-mo']
+					-- Decode our data, which is stored as json.
+					data = json.decode .extra['a-mo']
+					if uuids[data.uuid]
+						oldLine = uuids[data.uuid]
+						-- Check if we should change the start time.
+						if .start_time < oldLine.start_time
+							oldLine.start_time = .start_time
+						-- Check if we should change the end time.
+						if .end_time > oldLine.end_time
+							oldLine.end_time = .end_time
+						-- Mark the line for deletion.
+						if index < oldLine.number
+							oldLine.number = index
+						elseif index > oldLine.number
+							indicesToNuke[#indicesToNuke+1] = index
 
 	-- Replace the lines.
 	for _, line in pairs uuids
