@@ -43,9 +43,11 @@ class ConfigHandler
 		if @fileHandle = io.open @fileName, 'r'
 			parse @
 			@fileHandle\close!
+			return true
 		else
 			log.warn "Configuration file \"#{@fileName}\" can't be read. Writing defaults."
 			@write!
+			return false
 
 	-- todo: find keys missing from either @conf or interface, and warn
 	-- (maybe error?) about mismatching config versions.
