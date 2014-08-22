@@ -292,7 +292,6 @@ applyProcessor = ( subtitles, selectedLines ) ->
 	options\updateInterface { "main", "clip" }
 
 	lineCollection = LineCollection subtitles, selectedLines
-	lineCollection.options = options.configuration
 
 	currentVideoFrame = aegisub.project_properties!.video_position
 
@@ -375,6 +374,7 @@ applyProcessor = ( subtitles, selectedLines ) ->
 	options\write!
 
 	rectClipData, vectClipData = prepareConfig config, mainData, clipData, lineCollection
+	lineCollection.options = config
 	prepareLines lineCollection
 
 	mainData\addReferenceFrame options.configuration.main.startFrame
