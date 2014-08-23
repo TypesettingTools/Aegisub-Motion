@@ -402,8 +402,8 @@ applyProcessor = ( subtitles, selectedLines ) ->
 	lineCollection.options = config
 	prepareLines lineCollection
 
-	mainData\stripFields options.configuration.main
 	mainData\addReferenceFrame config.main.startFrame
+	mainData\stripFields config.main
 
 	motionHandler = MotionHandler lineCollection, mainData, rectClipData, vectClipData
 	newLines = motionHandler\applyMotion!
