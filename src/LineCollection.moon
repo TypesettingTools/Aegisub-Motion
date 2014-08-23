@@ -26,6 +26,9 @@ class LineCollection
 			elseif line.class == "info"
 				@meta[line.key] = line.value
 
+			elseif line.class == "dialogue"
+				break
+
 	collectLines: ( sel, validationCb = ( line ) -> return not line.comment ) =>
 		unless @meta and @styles
 			@generateMetaAndStyles!
