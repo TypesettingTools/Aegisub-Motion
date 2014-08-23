@@ -41,6 +41,7 @@ class MotionHandler
 
 		if @options.main.linear
 			@resultingCollection = @lineCollection
+			@resultingCollection.shouldInsertLines = true
 			@work = linear
 		else
 			@resultingCollection = LineCollection @lineCollection.sub
@@ -52,8 +53,6 @@ class MotionHandler
 		-- that we don't need to do things in reverse here.
 		for line in *@lineCollection.lines
 			with line
-				if @options.clip and .hasClip
-					@callbacks["(\\i?clip)(%b())"] = clippinate
 
 				-- start frame of line relative to start frame of tracked data
 				.relativeStart = .startFrame - @lineCollection.startFrame + 1
@@ -78,21 +77,18 @@ class MotionHandler
 			-- line is on and the end time of the line.
 			endTime = math.floor 0.5*(frameBeforeEndTime + endFrameTime) - .start_time
 
-			for pattern, callback in pairs operations
+			for pattern, callback in pairs @callbacks
 				log.checkCancellation!
 				.text = .text\gsub pattern, ( tag, value ) ->
 					values = { }
 					for frame in *{ line.relativeStart, line.relativeEnd }
-						values[#values+1] = callback @, value
+						@lineTrackingData\calculateCurrentState frame
+						values[#values+1] = callback @, value, frame
 					("%s%s\\t(%d,%d,%s%s)")\format tag, values[1], beginTime, endTime, tag, values[2]
 
-					callback @, tag, val, line
-
-			if @options.main.position
-				.text = .text\gsub "\\pos(%b())\\t%((%d,%d),\\pos(%b())%)", ( start, time, finish ) ->
-					"\\move" .. start\sub( 1, -2 ) .. finish\sub( 2, -2 ) .. time .. ")"
-
-			line.detokenizeTransforms!
+			if @options.main.xPosition or @options.main.yPosition
+				.text = .text\gsub "\\pos(%b())\\t%((%d+,%d+),\\pos(%b())%)", ( start, time, finish ) ->
+					"\\move" .. start\sub( 1, -2 ) .. ',' .. finish\sub( 2, -2 ) .. ',' .. time .. ")"
 
 	nonlinear = ( line ) =>
 		for frame = line.relativeEnd, line.relativeStart, -1
