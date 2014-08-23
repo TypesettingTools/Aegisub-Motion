@@ -5,6 +5,10 @@ class TrimHandler
 
 	windows: ffi.os == "Windows"
 
+	existingPresets: {
+		"x264", "ffmpeg"
+	}
+
 	-- Set up encoder presets.
 	defaults: {
 		x264:    '"#{encbin}" --crf 16 --tune fastdecode -i 250 --fps 23.976 --sar 1:1 --index "#{prefix}/#{index}.index" --seek #{startf} --frames #{lenf} -o "#{prefix}/#{output}[#{startf}-#{endf}].mp4" "#{inpath}/#{input}"'
@@ -26,7 +30,7 @@ class TrimHandler
 	-- 		-- The path of the executable used to actually do the encoding.
 	-- 		-- Full path is recommended as the shell environment may be
 	-- 		-- different than expected on non-windows systems.
-	-- 	encbin: "C:\x264.exe"
+	-- 	encBin: "C:\x264.exe"
 
 	-- 		-- A custom encoding command that can be used to override the
 	-- 		-- built-in defaults. Usable token documentation to come.
@@ -48,6 +52,7 @@ class TrimHandler
 			.encbin = trimConfig.encBin
 			.prefix = aegisub.decode_path trimConfig.prefix
 			.inpath = aegisub.decode_path "?video"
+
 		getVideoName @
 
 	getVideoName = =>
