@@ -47,7 +47,7 @@ initializeInterface = ->
 			rotRound:  { class: "intedit",  x: 7, y: 9,  width: 3,  height: 1, config: true, name: "rotRound",  min: 0, max: 5,         value: 2,     hint: "How many decimal places of accuracy the resulting rotations should have." }
 
 			writeConf: { class: "checkbox", x: 0, y: 11, width: 4,  height: 1,               name: "writeConf", label: "&Write config", value: false, hint: "Write current settings to the configuration file." }
-			relative:  { class: "checkbox", x: 4, y: 11, width: 3,  height: 1, config: true, name: "relative",  label: "R&elative",     value: true,  hint: "Start frame should be relative to the line's start time rather than to the start time of all selected lines" }
+			relative:  { class: "checkbox", x: 4, y: 11, width: 3,  height: 1, config: true, name: "relative",  label: "R&elative",     value: true,  hint: "Start frame should be relative to the beginning of the selection rather than the beginning of the video." }
 			startFrame:{ class: "intedit",  x: 7, y: 11, width: 3,  height: 1, config: true, name: "startFrame",                        value: 1,     hint: "Frame used as the starting point for the tracking data. \"-1\" corresponds to the last frame." }
 			linear:    { class: "checkbox", x: 4, y: 12, width: 2,  height: 1, config: true, name: "linear",    label: "Li&near",       value: false, hint: "Use transforms and \\move to create a linear transition, instead of frame-by-frame." }
 
@@ -155,12 +155,21 @@ prepareConfig = ( config, mainData, clipData, lineCollection ) ->
 		config.main.blur   = false
 
 	-- Nudge the start frames.
-	for context in *{ 'main', 'clip' }
-		if config[context].startFrame
-			if config[context].startFrame == 0
-				config[context].startFrame = 1
-			elseif config[context].startFrame < 0
-				config[context].startFrame = totalFrames + config[context].startFrame + 1
+	if config.main.relative
+		for context in *{ 'main', 'clip' }
+			-- Have to check that the field exists (if the clip dialog wasn't
+			-- opened it will be nil) to avoid comparison with nil errors.
+			if config[context].startFrame
+				if config[context].startFrame == 0
+					config[context].startFrame = 1
+				elseif config[context].startFrame < 0
+					config[context].startFrame = totalFrames + config[context].startFrame + 1
+	else
+		for context in *{ 'main', 'clip' }
+			if config[context].startFrame
+				config[context].startFrame = config[context].startFrame - lineCollection.startFrame + 1
+				if config[context].startFrame <= 0
+					log.windowError "You have specified an out-of-range absolute start frame and you have been judged."
 
 	if rectClipData or vectClipData
 		config.main.linear = false
@@ -321,10 +330,14 @@ applyProcessor = ( subtitles, selectedLines ) ->
 			else
 				interface.main.dataLabel.label = "Clipboard data was the wrong length. E: #{lineCollection.totalFrames} A: #{mainData.length}"
 
-	relativeFrame = currentVideoFrame - lineCollection.startFrame + 1
-	if relativeFrame > 0 and relativeFrame <= lineCollection.totalFrames
-		interface.main.startFrame.value = relativeFrame
-		interface.clip.startFrame.value = relativeFrame
+	if options.configuration.main.relative
+		relativeFrame = currentVideoFrame - lineCollection.startFrame + 1
+		if relativeFrame > 0 and relativeFrame <= lineCollection.totalFrames
+			interface.main.startFrame.value = relativeFrame
+			interface.clip.startFrame.value = relativeFrame
+	else
+		interface.main.startFrame.value = currentVideoFrame
+		interface.clip.startFrame.value = currentVideoFrame
 
 	-- cancel:Abort in the main dialog tells Esc key to abort the entire macro
 	-- cancel:Back in \clip dialog tells Esc key to close it and go back to the main dialog
