@@ -160,7 +160,7 @@ prepareConfig = ( config, mainData, clipData, lineCollection ) ->
 			if config[context].startFrame == 0
 				config[context].startFrame = 1
 			elseif config[context].startFrame < 0
-				config[context].startFrame = totalFrames - config[context].startFrame + 1
+				config[context].startFrame = totalFrames + config[context].startFrame + 1
 
 	if rectClipData or vectClipData
 		config.main.linear = false
@@ -389,8 +389,8 @@ applyProcessor = ( subtitles, selectedLines ) ->
 	lineCollection.options = config
 	prepareLines lineCollection
 
-	mainData\addReferenceFrame options.configuration.main.startFrame
 	mainData\stripFields options.configuration.main
+	mainData\addReferenceFrame config.main.startFrame
 
 	motionHandler = MotionHandler lineCollection, mainData, rectClipData, vectClipData
 	newLines = motionHandler\applyMotion!
