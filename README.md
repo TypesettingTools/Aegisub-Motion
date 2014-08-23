@@ -1,6 +1,6 @@
 ### Aegisub-Motion.moon ###
 
-#### v1.0.0 Test1 ####
+#### v1.0.0 Test 3 ####
 
 Aegisub-Motion has been rewritten from the ground up to be even slower
 and more error prone than ever before.
