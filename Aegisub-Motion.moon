@@ -433,7 +433,7 @@ trimProcessor = ( subtitles, selectedLines ) ->
 
 	options\read!
 	-- Check if encBin has been set.
-	unless options.configuration.encBin
+	unless options.configuration.trim.encBin
 		interface.trim.pLabel.label = [[
 You must specify the path to your encoding binary.
 
