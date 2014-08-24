@@ -54,9 +54,6 @@ initializeInterface = ->
 			rectClip:  { class: "checkbox", x: 0, y: 10, width: 3,  height: 1, config: true, name: "rectClip",  label: "Rect Clip",     value: true,  hint: "Apply tracking data to the rectangular clip contained in the line." }
 			vectClip:  { class: "checkbox", x: 3, y: 10, width: 3,  height: 1, config: true, name: "vectClip",  label: "Vect Clip",     value: true,  hint: "Apply tracking data to the vector clip contained in the line." }
 
-			sortLabel: { class: "label",    x: 1, y: 5,  width: 4,  height: 1,               name: "sortlabel", label: "      Sort Method:" }
-			sortd:     { class: "dropdown", x: 5, y: 5,  width: 4,  height: 1, config: true, name: "sortd",     label: "Sort lines by", value: "Default", items: { "Default", "Time" }, hint: "The order to sort the lines after they have been tracked." }
-			-- autocopy:  { class: "label",    x: 0, y: 0,  width: 0,  height: 0, config: true, label: "", value: true }
 			-- delsourc:  { class: "label",    x: 0, y: 0,  width: 0,  height: 0, config: true, label: "", value: false }
 		}
 		clip: {
