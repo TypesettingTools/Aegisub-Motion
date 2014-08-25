@@ -39,14 +39,13 @@ class MotionHandler
 		if @vectClipData
 			@callbacks['(\\i?clip)(%([^,]-%))'] = vectorClip
 
-		if @options.main.linear
-			@resultingCollection = @lineCollection
-			@resultingCollection.shouldInsertLines = true
-			@work = linear
-		else
-			@resultingCollection = LineCollection @lineCollection.sub
-			@resultingCollection.shouldInsertLines = true
-			@work = nonlinear
+		@resultingCollection = LineCollection @lineCollection.sub
+		@resultingCollection.shouldInsertLines = true
+		for line in *@lineCollection.lines
+			if @options.main.linear and not (@options.main.origin and line.hasOrg) and not ((@rectClipData or @vectClipData) and line.hasClip)
+				line.method = linear
+			else
+				line.method = nonlinear
 
 	applyMotion: =>
 		-- The lines are collected in reverse order in LineCollection so
@@ -59,9 +58,9 @@ class MotionHandler
 				-- end frame of line relative to start frame of tracked data
 				.relativeEnd = .endFrame - @lineCollection.startFrame
 
-				@work line
+				.method @, line
 
-		@resultingCollection
+		return @resultingCollection
 
 	linear = ( line ) =>
 		with line
@@ -89,6 +88,8 @@ class MotionHandler
 			if @options.main.xPosition or @options.main.yPosition
 				.text = .text\gsub "\\pos(%b())\\t%((%d+,%d+),\\pos(%b())%)", ( start, time, finish ) ->
 					"\\move" .. start\sub( 1, -2 ) .. ',' .. finish\sub( 2, -2 ) .. ',' .. time .. ")"
+
+			@resultingCollection\addLine Line line
 
 	nonlinear = ( line ) =>
 		for frame = line.relativeEnd, line.relativeStart, -1

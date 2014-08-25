@@ -166,10 +166,7 @@ prepareConfig = ( config, mainData, clipData, lineCollection ) ->
 			if config[context].startFrame
 				config[context].startFrame = config[context].startFrame - lineCollection.startFrame + 1
 				if config[context].startFrame <= 0
-					log.windowError "You have specified an out-of-range absolute start frame and you have been judged."
-
-	if rectClipData or vectClipData
-		config.main.linear = false
+					log.windowError "You have specified an out-of-range absolute\nstart frame and you have been judged."
 
 	return rectClipData, vectClipData
 
@@ -284,6 +281,10 @@ prepareLines = ( lineCollection ) ->
 			return appendMissingTags tagBlock, options.main, lineStyle
 
 		line\runCallbackOnOverrides ( tagBlock ) =>
+			tagBlock\gsub "\\org%([%.%d%-]+,[%.%d%-]+%)", ->
+				@hasOrg = true
+				return nil
+
 			tagBlock\gsub "\\r([^\\}]*)", ( resetStyle ) ->
 				styleTable = styles[resetStyle] or lineStyle
 				tagBlock = appendMissingTags tagBlock, options, styleTable
