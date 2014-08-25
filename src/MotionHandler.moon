@@ -18,8 +18,8 @@ class MotionHandler
 
 			@callbacks["(\\pos)%(([%-%d%.]+,[%-%d%.]+)%)"] = position
 
-			if @options.main.origin and not @options.main.linear
-				@callbacks["(\\org)%(([%-%d%.]+,[%-%d%.]+)%)"] = origin
+		if @options.main.origin
+			@callbacks["(\\org)%(([%-%d%.]+,[%-%d%.]+)%)"] = origin
 
 		if @options.main.xScale then
 			@callbacks["(\\fsc[xy])([%d%.]+)"] = scale
@@ -158,10 +158,9 @@ class MotionHandler
 
 	-- Needs to be fixed.
 	origin = ( origin, frame ) =>
-		ox, oy = opos\match("([%-%d%.]+),([%-%d%.]+)")
-		ox = @lineTrackingData.xRatio*(ox - @lineTrackingData.xStartPosition)
-		oy = @lineTrackingData.yRatio*(oy - @lineTrackingData.yStartPosition)
-		("(%g,%g)")\format Math.round( nxpos, @opts.main.posRound ), Math.round( nypos, @opts.main.posRound )
+		ox, oy = origin\match("([%-%d%.]+),([%-%d%.]+)")
+		ox, oy = positionMath ox, oy, @lineTrackingData
+		("(%g,%g)")\format Math.round( ox, @options.main.posRound ), Math.round( oy, @options.main.posRound )
 
 	scale = ( scale, frame ) =>
 		scale *= @lineTrackingData.xRatio

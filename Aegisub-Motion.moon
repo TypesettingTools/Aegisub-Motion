@@ -31,7 +31,7 @@ initializeInterface = ->
 			optLabel:  { class: "label",    x: 0, y: 6,  width: 5,  height: 1,                                  label: "Data to be applied:" }
 			xPosition: { class: "checkbox", x: 0, y: 7,  width: 1,  height: 1, config: true, name: "xPosition", label: "&x",            value: true,  hint: "Apply x position data to the selected lines." }
 			yPosition: { class: "checkbox", x: 1, y: 7,  width: 1,  height: 1, config: true, name: "yPosition", label: "&y",            value: true,  hint: "Apply y position data to the selected lines." }
-			-- origin:    { class: "checkbox", x: 2, y: 7,  width: 2,  height: 1, config: true, name: "origin",    label: "&Origin",       value: false, hint: "Move the origin along with the position." }
+			origin:    { class: "checkbox", x: 2, y: 7,  width: 2,  height: 1, config: true, name: "origin",    label: "&Origin",       value: false, hint: "Move the origin along with the position." }
 			absPos:    { class: "checkbox", x: 4, y: 7,  width: 2,  height: 1, config: true, name: "absPos",    label: "&Absolute",     value: false, hint: "Move clip along with the position (note: will also be scaled and rotated if those options are selected)." }
 
 			xScale:    { class: "checkbox", x: 0, y: 8,  width: 2,  height: 1, config: true, name: "xScale",    label: "&Scale",        value: true,  hint: "Apply scaling data to the selected lines." }
