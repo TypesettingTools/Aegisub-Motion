@@ -14,8 +14,5 @@ return {
 
 	uuid: ->
 		('xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx')\gsub "[xy]", ( char ) ->
-			randomNumber = math.random 0, 15
-			if char != 'x'
-				randomNumber = math.random 8, 11
-			('%x')\format randomNumber
+			('%x')\format char=="x" and math.random( 0, 15 ) or math.random 8, 11
 }
