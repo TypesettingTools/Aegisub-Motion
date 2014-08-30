@@ -1,4 +1,5 @@
 LineCollection = require 'a-mo.LineCollection'
+Transform      = require 'a-mo.Transform'
 Math           = require 'a-mo.Math'
 Line           = require 'a-mo.Line'
 log            = require 'a-mo.Log'
@@ -127,16 +128,13 @@ class MotionHandler
 					newText = newText\gsub pattern, ( tag, value ) ->
 						tag .. callback @, value, frame
 
-				-- Update transforms without detokenizing them. This ended up
-				-- being a bit hackier than I intended.
 				newTransforms = { }
 				for transform in *.transforms
-					table.insert newTransforms, {
-						start:  transform.start - timeDelta
-						end:    transform.end   - timeDelta
-						accel:  transform.accel
-						effect: transform.effect
-					}
+					table.insert newTransforms, Transform transform.startTime - timeDelta,
+						transform.endTime - timeDelta,
+						transform.accel,
+						transform.effect,
+						transform.index
 
 				@resultingCollection\addLine Line line, nil, { text: newText, start_time: newStartTime, end_time: newEndTime, transforms: newTransforms }
 

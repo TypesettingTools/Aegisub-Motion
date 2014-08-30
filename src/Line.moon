@@ -1,7 +1,7 @@
-log  = require 'a-mo.Log'
-json = require 'json'
-
+log       = require 'a-mo.Log'
+json      = require 'json'
 tags      = require 'a-mo.Tags'
+Transform = require 'a-mo.Transform'
 
 class Line
 	fieldsToCopy: {
@@ -217,29 +217,6 @@ class Line
 		@text = @text\sub( 1, 1 ) .. @text\sub( 2, -1 )\gsub "({.-})", ( tagBlock ) ->
 			return callback @, tagBlock
 
-	-- Should not be a method of the line class, but I don't really have
-	-- anywhere else to put it currently.
-	parseTransform: ( transform ) =>
-		transStart, transEnd, transExp, transEffect = transform\match "%(([%-%d]*),?([%-%d]*),?([%d%.]*),?(.+)%)"
-		-- Catch the case of \t(2.345,\1c&H0000FF&), where the 2 gets
-		-- matched to transStart and the .345 gets matched to transEnd.
-		if tonumber( transStart ) and not tonumber( transEnd )
-			transExp = transStart .. transExp
-			transStart = ""
-
-		transExp = tonumber( transExp ) or 1
-		transStart = tonumber( transStart ) or 0
-
-		transEnd = tonumber( transEnd ) or 0
-		if transEnd == 0
-			transEnd = @duration
-
-		return {
-			start:  transStart
-			end:    transEnd
-			accel:  transExp
-			effect: transEffect
-		}
 
 	-- Because duplicate tags may exist within transforms, it becomes
 	-- useful to remove transforms from a line before doing various
@@ -249,35 +226,24 @@ class Line
 			@transforms = { }
 			count = 0
 			@runCallbackOnOverrides ( tagBlock ) =>
-				return tagBlock\gsub @allTags.transform.pattern, ( transform ) ->
+				return tagBlock\gsub tags.allTags.transform.pattern, ( transform ) ->
 					count += 1
-					@transforms[count] = @parseTransform transform
+					transform = Transform\fromString transform, @duration, @.generateTagIndex( tagBlock\find transform ), @
+					@transforms[count] = transform
 					-- create a token for the transforms
 					return @tPlaceholder .. tostring( count ) .. @tPlaceholder
 			@transformsAreTokenized = true
-
-	serializeTransform: ( transformTable ) =>
-		with transformTable
-			if .end <= 0
-				@aTransformHasEnded = true
-				return .effect
-			elseif .start > @duration or .end < .start
-				return ""
-			elseif .accel == 1
-				return ("\\t(%s,%s,%s)")\format .start, .end, .effect
-			else
-				return ("\\t(%s,%s,%s,%s)")\format .start, .end, .accel, .effect
 
 	detokenizeTransforms: =>
 		if @transformsAreTokenized
 			@runCallbackOnOverrides ( tagBlock ) =>
 				return tagBlock\gsub @tPlaceholder .. "(%d+)" .. @tPlaceholder, ( index ) ->
-					return @serializeTransform @transforms[tonumber index]
+					return @transforms[tonumber index]\toString @
 
 			@transformsAreTokenized = false
-			if @aTransformHasEnded
+			if @transformEnded
 				@deduplicateTags!
-				@aTransformHasEnded = false
+				@transformEnded = nil
 
 	combineWithLine: ( line ) =>
 		if @text == line.text and @style == line.style and (@start_time == line.end_time or @end_time == line.start_time)
