@@ -1,70 +1,14 @@
 log  = require 'a-mo.Log'
 json = require 'json'
 
+tags      = require 'a-mo.Tags'
 
 class Line
 	fieldsToCopy: {
 		-- Built in line fields
 		"actor", "class", "comment", "effect", "end_time", "extra", "layer", "margin_l", "margin_r", "margin_t", "section", "start_time", "style", "text"
 		-- Our fields
-		"number", "transforms", "transformsAreTokenized"
-	}
-
-	repeatTags: {
-		"fontName", "fontSize", "fontSp", "xscale", "yscale", "zrot", "xrot", "yrot", "border", "xborder", "yborder", "shadow", "xshadow", "yshadow", "reset", "alpha", "alpha1", "alpha2", "alpha3", "alpha4", "color1", "color2", "color3", "color4", "be", "blur", "xshear", "yshear", "drawing"
-	}
-
-	oneTimeTags: {
-		"align", "pos", "move", "org", "fad", "fade", "rectClip", "rectiClip", "vectClip", "vectiClip"
-	}
-
-	allTags: {
-		fontName: { pattern: "\\fn([^\\}]+)",      output: "string", type: "font",     format: "\\fn%s"              }
-		fontSize: { pattern: "\\fs(%d+)",          output: "number", type: "scale",    format: "\\fs%d"              }
-		fontSp:   { pattern: "\\fsp([%.%d%-]+)",   output: "number", type: "scale",    format: "\\fsp%g"             }
-		xscale:   { pattern: "\\fscx([%d%.]+)",    output: "number", type: "scale",    format: "\\fscx%g"            }
-		yscale:   { pattern: "\\fscy([%d%.]+)",    output: "number", type: "scale",    format: "\\fscx%g"            }
-		zrot:     { pattern: "\\frz?([%-%d%.]+)",  output: "number", type: "rotation", format: "\\frz%g"             }
-		xrot:     { pattern: "\\frx([%-%d%.]+)",   output: "number", type: "rotation", format: "\\frx%g"             }
-		yrot:     { pattern: "\\fry([%-%d%.]+)",   output: "number", type: "rotation", format: "\\fry%g"             }
-		border:   { pattern: "\\bord([%d%.]+)",    output: "number", type: "border",   format: "\\bord%g"            }
-		xborder:  { pattern: "\\xbord([%d%.]+)",   output: "number", type: "border",   format: "\\xbord%g"           }
-		yborder:  { pattern: "\\ybord([%d%.]+)",   output: "number", type: "border",   format: "\\ybord%g"           }
-		shadow:   { pattern: "\\shad([%-%d%.]+)",  output: "number", type: "shadow",   format: "\\shad%g"            }
-		xshadow:  { pattern: "\\xshad([%-%d%.]+)", output: "number", type: "shadow",   format: "\\xshad%g"           }
-		yshadow:  { pattern: "\\yshad([%-%d%.]+)", output: "number", type: "shadow",   format: "\\yshad%g"           }
-		reset:    { pattern: "\\r([^\\}]*)",       output: "string", type: "style",    format: "\\r%s"               }
-		alpha:    { pattern: "\\alpha&H(%x%x)&",   output: "alpha",  type: "alpha",    format: "\\alpha&H%02X&"      }
-		alpha1:   { pattern: "\\1a&H(%x%x)&",      output: "alpha",  type: "alpha",    format: "\\1a&H%02X&"         }
-		alpha2:   { pattern: "\\2a&H(%x%x)&",      output: "alpha",  type: "alpha",    format: "\\2a&H%02X&"         }
-		alpha3:   { pattern: "\\3a&H(%x%x)&",      output: "alpha",  type: "alpha",    format: "\\3a&H%02X&"         }
-		alpha4:   { pattern: "\\4a&H(%x%x)&",      output: "alpha",  type: "alpha",    format: "\\4a&H%02X&"         }
-		color1:   { pattern: "\\1?c&H(%x+)&",      output: "color",  type: "color",    format: "\\1c&H%02X%02X%02X&" }
-		color2:   { pattern: "\\2c&H(%x+)&",       output: "color",  type: "color",    format: "\\2c&H%02X%02X%02X&" }
-		color3:   { pattern: "\\3c&H(%x+)&",       output: "color",  type: "color",    format: "\\3c&H%02X%02X%02X&" }
-		color4:   { pattern: "\\4c&H(%x+)&",       output: "color",  type: "color",    format: "\\4c&H%02X%02X%02X&" }
-		be:       { pattern: "\\be([%d%.]+)",      output: "number", type: "blur",     format: "\\be%d"              }
-		blur:     { pattern: "\\blur([%d%.]+)",    output: "number", type: "blur",     format: "\\blur%g"            }
-		xshear:   { pattern: "\\fax([%-%d%.]+)",   output: "number", type: "shear",    format: "\\fax%g"             }
-		yshear:   { pattern: "\\fay([%-%d%.]+)",   output: "number", type: "shear",    format: "\\fay%g"             }
-		align:    { pattern: "\\an([1-9])",        output: "number", type: "align",    format: "\\an%d"              }
-		drawing:  { pattern: "\\p(%d+)",           output: "number" }
-		transform:{ pattern: "\\t(%b())",          output: "transform" }
-		bold:     { pattern: "\\b(%d+)",           output: "number", type: "accent",   format: "\\b%d" }
-		italic:   { pattern: "\\i([01])",          output: "number", type: "accent",   format: "\\i%d" }
-		strike:   { pattern: "\\s([01])",          output: "number", type: "accent",   format: "\\s%d" }
-		-- Problematic tags:
-		pos:      { fieldnames: { "x", "y" },      output: "multi", pattern: "\\pos%(([%.%d%-]+,[%.%d%-]+)%)" }
-		org:      { fieldnames: { "x", "y" },      output: "multi", pattern: "\\org%(([%.%d%-]+,[%.%d%-]+)%)" }
-		fad:      { fieldnames: { "in", "out" },   output: "multi", pattern: "\\fad%((%d+,%d+)%)"             }
-		vectClip: { fieldnames: { "scale", "shape" }, output: "multi", pattern: "\\clip%((%d+,)?([^,]-)%)" }
-		vectiClip:{ fieldnames: { "scale", "shape" }, output: "multi", pattern: "\\iclip%((%d+,)?([^,]-)%)" }
-		rectClip: { fieldnames: { "xLeft", "yTop", "xRight", "yBottom" }, output: "multi", pattern: "\\clip%(([%-%d%.]+,[%-%d%.]+,[%-%d%.]+,[%-%d%.]+)%)" }
-		rectiClip:{ fieldnames: { "xLeft", "yTop", "xRight", "yBottom" }, output: "multi", pattern: "\\iclip%(([%-%d%.]+,[%-%d%.]+,[%-%d%.]+,[%-%d%.]+)%)" }
-		move:     { fieldnames: { "x1", "y1", "x2", "y2", "start", "end" },     output: "multi", pattern: "\\move%(([%.%d%-]+,[%.%d%-]+,[%.%d%-]+,[%.%d%-]+,[%d%-]+,[%d%-]+)%)" }
-		fade:     { fieldnames: { "a1", "a2", "a3", "a4", "in", "mid", "out" }, output: "multi", pattern: "\\fade%((%d+,%d+,%d+,%d+,[%d%-]+,[%d%-]+,[%d%-]+)%)" }
-
-		-- add stuff like \\pos, \\move, \\org, \\fad, \\fade, and \\p
+		"number", "transforms", "transformsAreTokenized", "properties"
 	}
 
 	splitChar:    "\\\6"
@@ -102,8 +46,8 @@ class Line
 	-- Gathers extra line metrics: the alignment and position.
 	-- Returns false if there is not already a position tag in the line.
 	extraMetrics: ( styleRef = @styleRef ) =>
-		alignPattern = @allTags.align.pattern
-		posPattern   = @allTags.pos.pattern
+		alignPattern = tags.allTags.align.pattern
+		posPattern   = tags.allTags.pos.pattern
 		@runCallbackOnOverrides ( tagBlock ) =>
 			tagBlock\gsub alignPattern, ( value ) ->
 				unless @align
@@ -135,17 +79,15 @@ class Line
 		-- last instance in a given tag block is used. Some tags (\pos,
 		-- \move, \org, \an) can only appear once and only the first
 		-- instance in the entire line is used.
-		tags = { }
+		tagCollection = { }
 		positions = { }
 		i = 0
 		@runCallbackOnOverrides ( tagBlock ) =>
-			for tagName in *@oneTimeTags
-				tag = @allTags[tagName]
+			for tagName in *tags.oneTimeTags
+				tag = tags.allTags[tagName]
 				tagBlock = tagBlock\gsub tag.pattern, ( value ) ->
-					unless tags[tagName]
-						log.debug "THIS TAG HAS NOT BEEN FOUND BEFORE: #{tagName}"
-						tags[tagName] = tonumber "#{i}.#{tagBlock\find tag.pattern}"
-						log.debug tags[tagName]
+					unless tagCollection[tagName]
+						tagCollection[tagName] = @.generateTagIndex i, tagBlock\find tag.pattern
 						return nil
 					else
 						log.debug "THIS TAG HAS BEEN FOUND BEFORE #{tagName}"
@@ -167,19 +109,19 @@ class Line
 				{ "rectClip", "rectiClip" }
 				{ "vectClip", "vectiClip" }
 			}
-			if tags[v[1]] and tags[v[2]]
-				if tags[v[1]] < tags[v[2]]
-					-- get rid of tags[v[2]]
+			if tagCollection[v[1]] and tagCollection[v[2]]
+				if tagCollection[v[1]] < tagCollection[v[2]]
+					-- get rid of tagCollection[v[2]]
 					@runCallbackOnOverrides ( tagBlock ) =>
-						tagBlock = tagBlock\gsub @allTags[v[2]].pattern, ""
+						tagBlock = tagBlock\gsub tags.allTags[v[2]].pattern, ""
 				else
-					-- get rid of tags[v[1]]
+					-- get rid of tagCollection[v[1]]
 					@runCallbackOnOverrides ( tagBlock ) =>
-						tagBlock = tagBlock\gsub @allTags[v[1]].pattern, ""
+						tagBlock = tagBlock\gsub tags.allTags[v[1]].pattern, ""
 
 		@runCallbackOnOverrides ( tagBlock ) =>
-			for tagName in *@repeatTags
-				tag = @allTags[tagName]
+			for tagName in *tags.repeatTags
+				tag = tags.allTags[tagName]
 				-- Calculates the number of times the pattern will be replaced.
 				_, num = tagBlock\gsub tag.pattern, ""
 				-- Replaces all instances except the last one.
@@ -192,53 +134,10 @@ class Line
 		@text = @text\gsub @splitChar, "}{"
 		@text = @text\gsub "{}", ""
 
-	-- Converts a value matched from a tag.pattern into a meaningful
-	-- format using tag.output
-	-- Inputs:
-	-- tag [table]: Properly formatted tag table
-	-- value [string]: value returned from tag.pattern.
-	convertTagValue: ( tag, value ) =>
-		switch tag.output
-			when "string"
-				return value
-
-			when "number"
-				return tonumber value
-
-			when "alpha"
-				return tonumber value, 16
-
-			when "color"
-				output = { }
-				for i = 1, 5, 2
-					table.insert output, tonumber value\sub( i, i+1 ), 16
-				output.r = output[3]
-				output.b = output[1]
-				output.g = output[2]
-				return output
-
-			when "multi"
-				output = { }
-				value\gsub "[%.%d%-]+", ( coord ) ->
-					table.insert output, coord
-
-				i = 1
-				for field in *tag.fieldnames
-					output[field] = output[i]
-					i += 1
-
-				return output
-
-			when "transform"
-				return @parseTransform value
-
-			else
-				return nil, "Tag was somehow malformed."
-
 	-- Find the first instance of an override tag in a line following
 	-- startIndex.
 	-- Arguments:
-	-- tag [table]: A well-formatted tag table, probably taken from @allTags.
+	-- tag [table]: A well-formatted tag table, probably taken from tags.allTags.
 	-- startIndex [number]: A number specifying the point at which the
 	--   search should start.
 	--   Default: 1, the beginning of the provided text block.
@@ -256,7 +155,7 @@ class Line
 
 		value = text\match tag.pattern, startIndex
 		if value
-			return @convertTagValue tag, value
+			return tag\convertTagValue value
 		else
 			return nil, "The specified tag could not be found"
 
