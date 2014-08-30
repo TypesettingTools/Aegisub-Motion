@@ -67,6 +67,14 @@ class Line
 
 		return true
 
+	generateTagIndex: ( major, minor ) ->
+		return tonumber tostring( major ) .. "." .. tostring minor
+
+	splitTagIndex: ( index ) ->
+		major = math.floor index
+		minor = tostring( index )\match "%d+.(%d+)"
+		return major, tonumber minor
+
 	-- Tries to guarantee there will be no redundantly duplicate tags in
 	-- the line. Does no other processing. Unfortunately, actually doing
 	-- this perfectly is very complicated because, for example, \t() is
