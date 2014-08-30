@@ -12,10 +12,10 @@ return {
 		if aegisub.progress.is_cancelled!
 			aegisub.cancel!
 
-	dump: ( item ) ->
+	dump: ( item, level = 2 ) ->
 		if "table" != type item
-			aegisub.log 4, tostring item
-			aegisub.log 4, "\n"
+			aegisub.log level, tostring item
+			aegisub.log level, "\n"
 			return
 
 		count = 1
@@ -49,7 +49,7 @@ return {
 
 		count += 1
 		result[count] = "}\n"
-		aegisub.log 4, table.concat result, "\n"
+		aegisub.log level, table.concat result, "\n"
 
 	windowError: ( errorMessage ) ->
 		aegisub.dialog.display { { class: "label", label: errorMessage } }, { "&Close" }, { cancel: "&Close" }
