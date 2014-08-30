@@ -226,6 +226,19 @@ class Line
 		@text = @text\sub( 1, 1 ) .. @text\sub( 2, -1 )\gsub "({.-})", ( tagBlock ) ->
 			return callback @, tagBlock
 
+	getPropertiesFromStyle: ( styleRef = @styleRef ) =>
+		@properties = { }
+		for name, tag in pairs tags.allTags
+			if tag.style
+				switch tag.type
+					when "alpha"
+						@properties[name] = tag\convertTagValue styleRef[tag.style]\sub( 3, 4 )
+
+					when "color"
+						@properties[name] = tag\convertTagValue styleRef[tag.style]\sub( 5, 10 )
+
+					else
+						@properties[name] = tag\convertTagValue styleRef[tag.style]
 
 	-- Because duplicate tags may exist within transforms, it becomes
 	-- useful to remove transforms from a line before doing various
