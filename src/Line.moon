@@ -208,9 +208,10 @@ class Line
 
 	-- Runs the provided callback on all of the override tag blocks
 	-- present in the line.
-	runCallbackOnOverrides: ( callback ) =>
+	runCallbackOnOverrides: ( callback, count ) =>
 		@text = @text\gsub "({.-})", ( tagBlock ) ->
-			return callback @, tagBlock
+			return callback @, tagBlock,
+			count
 
 	-- Runs the provided callback on the first override tag block in the
 	-- line, provided that override tag occurs before any other text in
