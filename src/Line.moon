@@ -267,6 +267,15 @@ class Line
 				@deduplicateTags!
 				@transformEnded = nil
 
+	interpolateTransforms: =>
+		if @transformsAreTokenized
+			@runCallbackOnOverrides ( tagBlock ) =>
+				return tagBlock\gsub @tPlaceholder .. "(%d+)" .. @tPlaceholder, ( index ) ->
+					transform = @transforms[tonumber index]
+					transform\gatherTagsInEffect!
+					transform\collectPriorState @
+					return transform\interpolate aegisub.ms_from_frame(aegisub.frame_from_ms(@start_time)+1) - @start_time
+
 	combineWithLine: ( line ) =>
 		if @text == line.text and @style == line.style and (@start_time == line.end_time or @end_time == line.start_time)
 			@start_time = math.min @start_time, line.start_time
