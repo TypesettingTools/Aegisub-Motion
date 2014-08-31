@@ -42,6 +42,7 @@ class MotionHandler
 
 		@resultingCollection = LineCollection @lineCollection.sub
 		@resultingCollection.shouldInsertLines = true
+		@resultingCollection.options = @options
 		for line in *@lineCollection.lines
 			if @options.main.linear and not (@options.main.origin and line.hasOrg) and not ((@rectClipData or @vectClipData) and line.hasClip)
 				line.method = linear
