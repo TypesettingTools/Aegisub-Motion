@@ -235,6 +235,10 @@ prepareLines = ( lineCollection ) ->
 		-- Add our signature extradata.
 		line\setExtraData 'a-mo', { originalText: line.text, uuid: Math.uuid! }
 
+		-- Get default style properties (will be used later if transform
+		-- interpolation is enabled)
+		line\getPropertiesFromStyle!
+
 		-- need to brutalize fades before tokenizing transforms so that the
 		-- produced transforms will be tokenized as well. Alternately (this
 		-- may be more clean but also less efficient), tokenize transforms,
@@ -296,7 +300,13 @@ prepareLines = ( lineCollection ) ->
 
 postprocLines = ( lineCollection ) ->
 	lineCollection\runCallback ( line ) =>
-		line\detokenizeTransforms!
+		if line.wasLinear
+			line\dontTouchTransforms!
+		else
+			if lineCollection.options.main.killTrans
+				line\interpolateTransforms!
+			else
+				line\detokenizeTransforms!
 
 	lineCollection\combineIdenticalLines!
 

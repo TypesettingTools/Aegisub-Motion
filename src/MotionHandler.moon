@@ -91,7 +91,7 @@ class MotionHandler
 				.text = .text\gsub "\\pos(%b())\\t%((%d+,%d+),\\pos(%b())%)", ( start, time, finish ) ->
 					"\\move" .. start\sub( 1, -2 ) .. ',' .. finish\sub( 2, -2 ) .. ',' .. time .. ")"
 
-			@resultingCollection\addLine Line line
+			@resultingCollection\addLine Line line, nil, { wasLinear: true }
 
 	nonlinear = ( line ) =>
 		for frame = line.relativeEnd, line.relativeStart, -1
