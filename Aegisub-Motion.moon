@@ -45,7 +45,7 @@ initializeInterface = ->
 			sclRound:  { class: "intedit",  x: 7, y: 8,  width: 3,  height: 1, config: true, name: "sclRound",  min: 0, max: 5,         value: 2,     hint: "How many decimal places of accuracy the resulting scales should have (also applied to border, shadow, and blur)." }
 			rotRound:  { class: "intedit",  x: 7, y: 9,  width: 3,  height: 1, config: true, name: "rotRound",  min: 0, max: 5,         value: 2,     hint: "How many decimal places of accuracy the resulting rotations should have." }
 
-			writeConf: { class: "checkbox", x: 0, y: 11, width: 4,  height: 1,               name: "writeConf", label: "&Write config", value: false, hint: "Write current settings to the configuration file." }
+			writeConf: { class: "checkbox", x: 0, y: 11, width: 4,  height: 1, config: true, name: "writeConf", label: "&Write config", value: true,  hint: "Write current settings to the configuration file." }
 			relative:  { class: "checkbox", x: 4, y: 11, width: 3,  height: 1, config: true, name: "relative",  label: "R&elative",     value: true,  hint: "Start frame should be relative to the beginning of the selection rather than the beginning of the video." }
 			startFrame:{ class: "intedit",  x: 7, y: 11, width: 3,  height: 1, config: true, name: "startFrame",                        value: 1,     hint: "Frame used as the starting point for the tracking data. \"-1\" corresponds to the last frame." }
 			linear:    { class: "checkbox", x: 4, y: 12, width: 2,  height: 1, config: true, name: "linear",    label: "Li&near",       value: false, hint: "Use transforms and \\move to create a linear transition, instead of frame-by-frame." }
@@ -401,8 +401,11 @@ applyProcessor = ( subtitles, selectedLines ) ->
 	-- Update the persistent configuration before it gets (potentially)
 	-- horribly mutilated in prepareConfig. Ensures that what the user saw
 	-- last is what will be presented to them next time.
-	options\updateConfiguration config, { "main", "clip" }
-	options\write!
+	if config.main.writeConf
+		options\updateConfiguration config, { "main", "clip" }
+	if config.main.writeConf or (options.configuration.main.writeConf != config.main.writeConf)
+		options.configuration.main.writeConf = config.main.writeConf
+		options\write!
 
 	rectClipData, vectClipData = prepareConfig config, mainData, clipData, lineCollection
 	lineCollection.options = config
