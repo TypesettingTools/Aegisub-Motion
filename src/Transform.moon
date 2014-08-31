@@ -43,10 +43,10 @@ class Transform
 
 	gatherTagsInEffect: =>
 		@effectTags = {}
-		for name, tag in pairs tag.allTags
+		for name, tag in pairs tags.allTags
 			@effect = @effect\gsub tag.pattern, ( value ) ->
 				if tag.transformable and not @effectTags[name]
-					@effectTags[name] = tag\convertValue value
+					@effectTags[name] = tag\convert value
 					return nil
 				else
 					return ""
@@ -70,7 +70,7 @@ class Transform
 			for tagName in pairs @effectTags
 				tag = tags.allTags[tagName]
 				tagBlock\gsub tag.pattern, ( value ) ->
-					@initialValues[tagName] = tag\convertValue tag, value
+					@initialValues[tagName] = tag\convert value
 
 	interpolate: ( time ) =>
 		linearProgress = (time - @startTime)/(@endTime - @startTime)
