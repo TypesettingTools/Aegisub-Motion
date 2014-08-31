@@ -51,14 +51,14 @@ class Transform
 				else
 					return ""
 
-	findInitialState: ( line = @parentLine ) =>
-		@initialValues = { k, v for k, v in pairs line.properties }
+	collectPriorState: ( line = @parentLine ) =>
+		@priorValues = { k, v for k, v in pairs line.properties }
 		-- Fill out all of the possible tag defaults for tags that aren't
 		-- defined by styles. This works great for everything except \clip,
 		-- which defaults to 0,0,width,height
 		for tagName, tag in ipairs tags.allTags
 			if tag.transformable and not tag.style
-				@initialValues[tagName] = 0
+				@priorValues[tagName] = 0
 
 		unless @index
 			log.windowError "shit's goin south fast."
@@ -70,7 +70,7 @@ class Transform
 			for tagName in pairs @effectTags
 				tag = tags.allTags[tagName]
 				tagBlock\gsub tag.pattern, ( value ) ->
-					@initialValues[tagName] = tag\convert value
+					@priorValues[tagName] = tag\convert value
 
 	interpolate: ( time ) =>
 		linearProgress = (time - @startTime)/(@endTime - @startTime)
@@ -84,7 +84,7 @@ class Transform
 
 		for tagName, endValue in pairs @effectTags
 			tag = tags.allTags[tagName]
-			startValue = @initialValues[tagName]
+			startValue = @priorValues[tagName]
 			interpValue = tag\interpolate startValue, endValue, progress
 			-- This is an atrocity against god and man
 			@effect = @effect\gsub tag.pattern, ->
