@@ -46,6 +46,8 @@ class MotionHandler
 		@resultingCollection = LineCollection @lineCollection.sub
 		@resultingCollection.shouldInsertLines = true
 		@resultingCollection.options = @options
+		-- This has to be copied over for clip interpolation
+		@resultingCollection.meta = @lineCollection.meta
 		for line in *@lineCollection.lines
 			if @options.main.linear and not (@options.main.origin and line.hasOrg) and not ((@rectClipData or @vectClipData) and line.hasClip)
 				line.method = linear
@@ -140,7 +142,7 @@ class MotionHandler
 						transform.effect,
 						transform.index
 
-				@resultingCollection\addLine Line line, nil, { text: newText, start_time: newStartTime, end_time: newEndTime, transforms: newTransforms }
+				@resultingCollection\addLine Line line, @resultingCollection, { text: newText, start_time: newStartTime, end_time: newEndTime, transforms: newTransforms }
 
 	position = ( pos, frame ) =>
 		x, y = pos\match "([%-%d%.]+),([%-%d%.]+)"

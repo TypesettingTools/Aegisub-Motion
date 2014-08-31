@@ -60,6 +60,9 @@ class Transform
 			if tag.transformable and not tag.style
 				@priorValues[tagName] = 0
 
+		@priorValues.rectClip  = { 0, 0, line.parentCollection.meta.PlayResX, line.parentCollection.meta.PlayResY }
+		@priorValues.rectiClip = { 0, 0, line.parentCollection.meta.PlayResX, line.parentCollection.meta.PlayResY }
+
 		unless @index
 			log.windowError "shit's goin south fast."
 
