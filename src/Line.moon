@@ -8,7 +8,7 @@ class Line
 		-- Built in line fields
 		"actor", "class", "comment", "effect", "end_time", "extra", "layer", "margin_l", "margin_r", "margin_t", "section", "start_time", "style", "text"
 		-- Our fields
-		"number", "transforms", "transformsAreTokenized", "properties"
+		"number", "transforms", "transformsAreTokenized", "properties", "styleRef"
 	}
 
 	splitChar:    "\\\6"
