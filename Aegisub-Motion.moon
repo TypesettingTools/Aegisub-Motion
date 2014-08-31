@@ -10,7 +10,6 @@ local interface
 
 ffi            = require 'ffi'
 clipboard      = require 'clipboard'
-re             = require 'aegisub.re'
 LineCollection = require 'a-mo.LineCollection'
 ConfigHandler  = require 'a-mo.ConfigHandler'
 DataHandler    = require 'a-mo.DataHandler'
