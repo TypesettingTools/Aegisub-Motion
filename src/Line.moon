@@ -6,9 +6,9 @@ Transform = require 'a-mo.Transform'
 class Line
 	fieldsToCopy: {
 		-- Built in line fields
-		"actor", "class", "comment", "effect", "end_time", "extra", "layer", "margin_l", "margin_r", "margin_t", "section", "start_time", "style", "text"
+		'actor', 'class', 'comment', 'effect', 'end_time', 'extra', 'layer', 'margin_l', 'margin_r', 'margin_t', 'section', 'start_time', 'style', 'text'
 		-- Our fields
-		"number", "transforms", "transformsAreTokenized", "properties", "styleRef"
+		'number', 'transforms', 'transformsAreTokenized', 'properties', 'styleRef', 'wasLinear'
 	}
 
 	splitChar:    "\\\6"
