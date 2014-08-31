@@ -73,10 +73,24 @@ class Transform
 					@initialValues[tagName] = tag\convertValue tag, value
 
 	interpolate: ( time ) =>
-		progress = math.pow( (time - @startTime)/(@endTime - @startTime), @accel )
+		linearProgress = (time - @startTime)/(@endTime - @startTime)
+		if linearProgress <= 0
+			linearProgress = 0
+			-- return before
+		elseif linearProgress >= 1
+			linearProgress = 1
+			-- return after
+		progress = math.pow linearProgress, @accel
+
 		for tagName, endValue in pairs @effectTags
 			tag = tags.allTags[tagName]
-			startValue = @initialValues
+			startValue = @initialValues[tagName]
+			interpValue = tag\interpolate startValue, endValue, progress
+			-- This is an atrocity against god and man
+			@effect = @effect\gsub tag.pattern, ->
+				return tag\format interpValue
+
+		return @effect
 
 	__tostring: => return @toString!
 
