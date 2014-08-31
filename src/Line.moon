@@ -256,25 +256,32 @@ class Line
 					return @tPlaceholder .. tostring( count ) .. @tPlaceholder
 			@transformsAreTokenized = true
 
-	detokenizeTransforms: =>
+	loopOverTokenizedTransforms: ( callback ) =>
 		if @transformsAreTokenized
 			@runCallbackOnOverrides ( tagBlock ) =>
-				return tagBlock\gsub @tPlaceholder .. "(%d+)" .. @tPlaceholder, ( index ) ->
-					return @transforms[tonumber index]\toString @
+				return tagBlock\gsub @tPlaceholder .. "(%d+)" .. @tPlaceholder, callback
 
 			@transformsAreTokenized = false
-			if @transformEnded
-				@deduplicateTags!
-				@transformEnded = nil
+
+	detokenizeTransforms: =>
+		@loopOverTokenizedTransforms ( index ) ->
+			return @transforms[tonumber index]\toString @
+
+		if @transformEnded
+			@deduplicateTags!
+			@transformEnded = nil
+
+	-- detokenize using transform.rawString
+	dontTouchTransforms: =>
+		@loopOverTokenizedTransforms ( index ) ->
+			return "\\t" .. @transforms[tonumber index].rawString
 
 	interpolateTransforms: =>
-		if @transformsAreTokenized
-			@runCallbackOnOverrides ( tagBlock ) =>
-				return tagBlock\gsub @tPlaceholder .. "(%d+)" .. @tPlaceholder, ( index ) ->
-					transform = @transforms[tonumber index]
-					transform\gatherTagsInEffect!
-					transform\collectPriorState @
-					return transform\interpolate aegisub.ms_from_frame(aegisub.frame_from_ms(@start_time)+1) - @start_time
+		@loopOverTokenizedTransforms ( index ) ->
+			transform = @transforms[tonumber index]
+			transform\gatherTagsInEffect!
+			transform\collectPriorState @
+			return transform\interpolate aegisub.ms_from_frame(aegisub.frame_from_ms(@start_time)+1) - @start_time
 
 	combineWithLine: ( line ) =>
 		if @text == line.text and @style == line.style and (@start_time == line.end_time or @end_time == line.start_time)
