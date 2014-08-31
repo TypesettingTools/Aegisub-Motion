@@ -66,11 +66,12 @@ class Transform
 		major = math.floor @index
 
 		blockNumber = 0
-		line\runCallbackOnOverrides, ( tagBlock ) =>
-			for tagName in pairs @effectTags
+		line\runCallbackOnOverrides ( line, tagBlock ) ->
+			for tagName, oldVal in pairs @effectTags
 				tag = tags.allTags[tagName]
 				tagBlock\gsub tag.pattern, ( value ) ->
-					@priorValues[tagName] = tag\convert value
+					@priorValues[tagName] = tag\convert value,
+			major
 
 	interpolate: ( time ) =>
 		linearProgress = (time - @startTime)/(@endTime - @startTime)
