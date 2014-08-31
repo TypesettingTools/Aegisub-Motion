@@ -29,6 +29,9 @@ class LineCollection
 			elseif line.class == "dialogue"
 				break
 
+		unless next @styles
+			log.windowError "No styles could be found and I guarantee that's gonna break something."
+
 	collectLines: ( sel, validationCb = ( line ) -> return not line.comment ) =>
 		unless @meta and @styles
 			@generateMetaAndStyles!
