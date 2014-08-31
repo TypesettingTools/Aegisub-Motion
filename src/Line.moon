@@ -163,7 +163,7 @@ class Line
 
 		value = text\match tag.pattern, startIndex
 		if value
-			return tag\convertTagValue value
+			return tag\convert value
 		else
 			return nil, "The specified tag could not be found"
 
@@ -232,13 +232,13 @@ class Line
 			if tag.style
 				switch tag.type
 					when "alpha"
-						@properties[name] = tag\convertTagValue styleRef[tag.style]\sub( 3, 4 )
+						@properties[name] = tag\convert styleRef[tag.style]\sub( 3, 4 )
 
 					when "color"
-						@properties[name] = tag\convertTagValue styleRef[tag.style]\sub( 5, 10 )
+						@properties[name] = tag\convert styleRef[tag.style]\sub( 5, 10 )
 
 					else
-						@properties[name] = tag\convertTagValue styleRef[tag.style]
+						@properties[name] = tag\convert styleRef[tag.style]
 
 	-- Because duplicate tags may exist within transforms, it becomes
 	-- useful to remove transforms from a line before doing various
