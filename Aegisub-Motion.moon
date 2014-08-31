@@ -4,7 +4,7 @@
 export script_name        = "Aegisub-Motion"
 export script_description = "A set of tools for simplifying the process of creating and applying motion tracking data with Aegisub."
 export script_author      = "torque"
-export script_version     = "1.0.0-test4"
+export script_version     = "1.0.0-test5"
 
 local interface
 
