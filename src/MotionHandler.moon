@@ -17,7 +17,10 @@ class MotionHandler
 
 		if @options.main.xPosition or @options.main.yPosition
 
-			@callbacks["(\\pos)%(([%-%d%.]+,[%-%d%.]+)%)"] = position
+			if @options.main.absPos
+				@callbacks["(\\pos)%(([%-%d%.]+,[%-%d%.]+)%)"] = absolutePosition
+			else
+				@callbacks["(\\pos)%(([%-%d%.]+,[%-%d%.]+)%)"] = position
 
 		if @options.main.origin
 			@callbacks["(\\org)%(([%-%d%.]+,[%-%d%.]+)%)"] = origin
@@ -154,7 +157,7 @@ class MotionHandler
 		return x, y
 
 	absolutePosition = ( pos, frame ) =>
-		("(%g,%g)")\format Math.round( @lineTrackingData.xPosition[frame], @options.main.posRound ), Math.round( @lineTrackingData.xPosition[frame], @options.main.posRound )
+		("(%g,%g)")\format Math.round( @lineTrackingData.xPosition[frame], @options.main.posRound ), Math.round( @lineTrackingData.yPosition[frame], @options.main.posRound )
 
 	-- Needs to be fixed.
 	origin = ( origin, frame ) =>

@@ -32,7 +32,7 @@ initializeInterface = ->
 			xPosition: { class: "checkbox", x: 0, y: 7,  width: 1,  height: 1, config: true, name: "xPosition", label: "&x",            value: true,  hint: "Apply x position data to the selected lines." }
 			yPosition: { class: "checkbox", x: 1, y: 7,  width: 1,  height: 1, config: true, name: "yPosition", label: "&y",            value: true,  hint: "Apply y position data to the selected lines." }
 			origin:    { class: "checkbox", x: 2, y: 7,  width: 2,  height: 1, config: true, name: "origin",    label: "&Origin",       value: false, hint: "Move the origin along with the position." }
-			absPos:    { class: "checkbox", x: 4, y: 7,  width: 2,  height: 1, config: true, name: "absPos",    label: "&Absolute",     value: false, hint: "Move clip along with the position (note: will also be scaled and rotated if those options are selected)." }
+			absPos:    { class: "checkbox", x: 4, y: 7,  width: 2,  height: 1, config: true, name: "absPos",    label: "&Absolute",     value: false, hint: "Set position to exactly that of the tracking data with no processing." }
 
 			xScale:    { class: "checkbox", x: 0, y: 8,  width: 2,  height: 1, config: true, name: "xScale",    label: "&Scale",        value: true,  hint: "Apply scaling data to the selected lines." }
 			border:    { class: "checkbox", x: 2, y: 8,  width: 2,  height: 1, config: true, name: "border",    label: "&Border",       value: true,  hint: "Scale border with the line (only if Scale is also selected)." }
@@ -171,7 +171,6 @@ prepareConfig = ( config, mainData, clipData, lineCollection ) ->
 
 	return rectClipData, vectClipData
 
-
 -- This table is used to verify that style defaults are inserted at
 -- the beginning the selected line(s) if the corresponding options are
 -- selected. The structure is: [tag] = { opt:"opt", key:"style key",
@@ -279,7 +278,6 @@ prepareLines = ( lineCollection ) ->
 			-- fat arrow functions work in coffeescript.
 			line\runCallbackOnFirstOverride ( tagBlock ) =>
 				return tagBlock\gsub "{", ("{\\pos(%g,%g)")\format @xPosition, @yPosition
-
 
 		-- Add any tags we need that are missing from the line.
 		line\runCallbackOnFirstOverride ( tagBlock ) =>
