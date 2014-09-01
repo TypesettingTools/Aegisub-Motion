@@ -13,6 +13,20 @@ Just kidding, that didn't happen intentionally. I'm just incompetent.
  - Motion tracking software, such as [Blender][blender] or [Mocha Pro][mochapro].
  - Too much goddamn free time.
 
+#### The legacy version is available [here][legacy]
+
+As there are numerous new features and changes being made, the 1.0.0
+pre-releases are not rigorously tested and may have bugs affecting
+needed behavior.
+
+Additionally, the legacy version supports older versions of Aegisub (I
+think 3.0.0 and newer but maybe only 3.1.0 and newer).
+
+Except for the conflicting filenames, the two scripts should be able to
+be installed and loaded simultaneously.
+
+The legacy version will receive NO MAINTENANCE OR UPDATES.
+
 #### How do I install it? ####
 
 What you probably want to do is to install one of [the
@@ -67,6 +81,7 @@ those things, too bad!
 
 [blender]: http://www.blender.org/
 [mochapro]: http://www.imagineersystems.com/products/mocha-pro/
+[legacy]: https://github.com/torque/Aegisub-Motion/tree/legacy
 [releases]: https://github.com/torque/aegisub-motion/releases
 [wiki]: https://github.com/torque/aegisub-motion/wiki
 [twitter]: https://twitter.com/a_rinwe
