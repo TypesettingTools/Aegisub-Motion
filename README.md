@@ -1,3 +1,7 @@
+# BIG FAT WARNING
+
+## THIS BRANCH IS COMPLETELY UNMAINTAINED AND WILL RECEIVE NO BUG FIXES OR FEATURES NO MATTER WHAT.
+
 ## Aegisub-Motion.moon ##
 
 Aegisub-Motion has been ported to [moonscript][moonscript] by tophf who is a pretty cool guy.  Aegisub-Motion.moon is now the main version, but it will only run on [recent trunk builds][aegplork] of Aegisub. Older versions, such as the 3.0.x branch need to use Aegisub-Motion.lua, which is now built from Aegisub-Motion.moon.
