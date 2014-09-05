@@ -12,7 +12,7 @@ ffi            = require 'ffi'
 clipboard      = require 'clipboard'
 LineCollection = require 'a-mo.LineCollection'
 ConfigHandler  = require 'a-mo.ConfigHandler'
-DataHandler    = require 'a-mo.DataHandler'
+DataWrapper    = require 'a-mo.DataWrapper'
 MotionHandler  = require 'a-mo.MotionHandler'
 TrimHandler    = require 'a-mo.TrimHandler'
 Math           = require 'a-mo.Math'
@@ -106,44 +106,31 @@ prepareConfig = ( config, mainData, clipData, lineCollection ) ->
 
 	totalFrames = lineCollection.totalFrames
 
-	if config.main.data == ''
-		for option in pairs config.main
-			-- Nuke everything because it doesn't matter at this point.
-			config.main[option] = false
+	for field, data in pairs { main: mainData, clip: clipData }
+		configField = config[field]
 
-	else
-		-- Be extremely lazy and just re-parse data from scratch.
-		unless mainData\parseRawDataString config.main.data
-			unless mainData\parseFile config.main.data
+		if '' == configField.data or nil == configField.data
+			for option in pairs configField
+				-- Nuke everything because it doesn't matter at this point.
+				configField[option] = false
+
+		else
+			-- Be extremely lazy and just re-parse data from scratch.
+			unless data\bestEffortParsingAttempt configField.data
 				log.windowError "You put something in the data box\nbut it is wrong in ways I can't imagine."
+			unless data.dataObject\checkLength totalFrames
+				log.windowError "The length of your #{field} data (#{data.length}) doesn't match\nthe length of your lines (#{totalFrames}) and I quit."
 
-		unless mainData\checkLength lineCollection
-			log.windowError "The length of your main data (#{mainData.length}) doesn't match\nthe length of your lines (#{totalFrames}) and I quit."
+			if data.type == 'SRS'
+				data.dataObject\createDrawings lineCollection.meta.PlayResY
 
-		if config.main.rectClip
-			rectClipData = mainData
-		if config.main.vectClip
-			vectClipData = mainData
+			if configField.rectClip
+				rectClipData = data
+			if configField.vectClip
+				vectClipData = data
 
-	if config.clip.data == '' or config.clip.data == nil
-		unless config.main.data
-			log.windowError "You have failed to provide any tracking\ndata, as far as I can tell."
-
-		for option in pairs config.clip
-			config.clip[option] = false
-
-	else
-		unless clipData\parseRawDataString config.clip.data
-			unless clipData\parseFile config.clip.data
-				log.windowError "You put something in the data box\nbut it is wrong in ways I can't imagine."
-
-		unless clipData\checkLength LineCollection
-			log.windowError "The length of your clip data (#{clipData.length}) doesn't match\nthe length of your lines (#{totalFrames}) and I quit."
-
-		if config.clip.rectClip
-			rectClipData = clipData
-		if config.clip.vectClip
-			vectClipData = clipData
+	unless config.main.data or config.clip.data
+		log.windowError "As far as I can tell, you've forgotten to give me any motion data."
 
 	-- Disable options that depend on scale.
 	unless config.main.xScale
@@ -324,17 +311,15 @@ applyProcessor = ( subtitles, selectedLines ) ->
 
 	rawInputData = fetchDataFromClipboard!
 
-	mainData = DataHandler!
-	clipData = DataHandler!
-	if rawInputData
-		unless mainData\parseRawDataString rawInputData
-			mainData\parseFile rawInputData
-		if mainData.length
-			if mainData\checkLength lineCollection
-				interface.main.data.value = rawInputData
-				interface.main.dataLabel.label = "            Clipboard data is the correct length."
-			else
-				interface.main.dataLabel.label = "Clipboard data was the wrong length. E: #{lineCollection.totalFrames} A: #{mainData.length}"
+	-- Instantiate both of these so they can be passed by reference later.
+	mainData = DataWrapper!
+	clipData = DataWrapper!
+	if mainData\bestEffortParsingAttempt rawInputData
+		if mainData.dataObject\checkLength lineCollection.totalFrames
+			interface.main.data.value = rawInputData
+			interface.main.dataLabel.label = "                Data is the correct length."
+		else
+			interface.main.dataLabel.label = "Data was the wrong length. Exp: #{lineCollection.totalFrames} Act: #{mainData.length}"
 
 	if options.configuration.main.relative
 		relativeFrame = currentVideoFrame - lineCollection.startFrame + 1
@@ -411,8 +396,9 @@ applyProcessor = ( subtitles, selectedLines ) ->
 	lineCollection.options = config
 	prepareLines lineCollection
 
-	mainData\addReferenceFrame config.main.startFrame
-	mainData\stripFields config.main
+	unless 'SRS' == mainData.type
+		mainData.dataObject\addReferenceFrame config.main.startFrame
+		mainData.dataObject\stripFields config.main
 
 	motionHandler = MotionHandler lineCollection, mainData, rectClipData, vectClipData
 	newLines = motionHandler\applyMotion!
