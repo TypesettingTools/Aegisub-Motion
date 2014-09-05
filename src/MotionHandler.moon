@@ -6,39 +6,51 @@ log            = require 'a-mo.Log'
 
 class MotionHandler
 
-	new: ( @lineCollection, @lineTrackingData, @rectClipData, @vectClipData ) =>
+	new: ( @lineCollection, mainData, rectClipData = { }, vectClipData = { } ) =>
 		-- Create a local reference to the options table.
 		@options = @lineCollection.options
+		@lineTrackingData = mainData.dataObject
+		@rectClipData = rectClipData.dataObject
+		@vectClipData = vectClipData.dataObject
 
 		@callbacks = { }
 
-		if @options.main.xPosition or @options.main.yPosition
+		-- Do NOT perform any normal callbacks if mainData is shake
+		-- rotoshape. In theory it would be possible to do plain translation
+		-- because the SRS data contains a center_x and center_y field for
+		-- each frame.
+		unless 'SRS' == mainData.type
+			if @options.main.xPosition or @options.main.yPosition
 
-			if @options.main.absPos
-				@callbacks["(\\pos)%(([%-%d%.]+,[%-%d%.]+)%)"] = absolutePosition
-			else
-				@callbacks["(\\pos)%(([%-%d%.]+,[%-%d%.]+)%)"] = position
+				if @options.main.absPos
+					@callbacks["(\\pos)%(([%-%d%.]+,[%-%d%.]+)%)"] = absolutePosition
+				else
+					@callbacks["(\\pos)%(([%-%d%.]+,[%-%d%.]+)%)"] = position
 
-		if @options.main.origin
-			@callbacks["(\\org)%(([%-%d%.]+,[%-%d%.]+)%)"] = origin
+			if @options.main.origin
+				@callbacks["(\\org)%(([%-%d%.]+,[%-%d%.]+)%)"] = origin
 
-		if @options.main.xScale then
-			@callbacks["(\\fsc[xy])([%d%.]+)"] = scale
-			if @options.main.border
-				@callbacks["(\\[xy]?bord)([%d%.]+)"] = scale
-			if @options.main.shadow
-				@callbacks["(\\[xy]?shad)([%-%d%.]+)"] = scale
-			if @options.main.blur
-				@callbacks["(\\blur)([%d%.]+)"] = scale
+			if @options.main.xScale then
+				@callbacks["(\\fsc[xy])([%d%.]+)"] = scale
+				if @options.main.border
+					@callbacks["(\\[xy]?bord)([%d%.]+)"] = scale
+				if @options.main.shadow
+					@callbacks["(\\[xy]?shad)([%-%d%.]+)"] = scale
+				if @options.main.blur
+					@callbacks["(\\blur)([%d%.]+)"] = scale
 
-		if @options.main.zRotation
-			@callbacks["(\\frz?)([%-%d%.]+)"] = rotate
+			if @options.main.zRotation
+				@callbacks["(\\frz?)([%-%d%.]+)"] = rotate
 
-		if @rectClipData
+		-- Don't support SRS for rectangular clips.
+		if @rectClipData and not 'SRS' == rectClipData.type
 			@callbacks['(\\i?clip)(%([%-%d%.]+,[%-%d%.]+,[%-%d%.]+,[%-%d%.]+%))'] = rectangularClip
 
 		if @vectClipData
-			@callbacks['(\\i?clip)(%([^,]-%))'] = vectorClip
+			if 'SRS' == vectClipData.type
+				@callbacks['(\\i?clip)(%([^,]-%))'] = vectorClipSRS
+			else
+				@callbacks['(\\i?clip)(%([^,]-%))'] = vectorClip
 
 		@resultingCollection = LineCollection @lineCollection.sub
 		@resultingCollection.shouldInsertLines = true
@@ -187,3 +199,7 @@ class MotionHandler
 		return clip\gsub "([%.%d%-]+) ([%.%d%-]+)", ( x, y ) ->
 			x, y = positionMath x, y, @vectClipData
 			("%g %g")\format Math.round( x, 2 ), Math.round( y, 2 )
+
+	vectorClipSRS = ( clip, frame ) =>
+		return '(' .. @vectClipData.data[frame] .. ')'
+
