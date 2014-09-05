@@ -8,6 +8,11 @@ class ShakeShapeHandler
 	parseRawDataString: ( rawDataString ) =>
 		if rawDataString\match "shake_shape_data 4.0"
 			@tableize rawDataString
+	parseFile: ( fileName ) =>
+		if file = io.open fileName, 'r'
+			return @parseRawDataString file\read '*a'
+
+		return false
 
 	tableize: ( rawDataString ) =>
 		@rawData = { }
