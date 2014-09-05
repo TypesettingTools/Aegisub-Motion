@@ -5,6 +5,7 @@ if [ -n "$1" ]; then
 	git checkout $1
 	mkdir -p aegisub-motion$1/include/a-mo
 	mkdir -p aegisub-motion$1/autoload
+	rm -rf src/*.lua
 	cp -R src/ aegisub-motion$1/include/a-mo
 	cp -R inc/luajson/lua/ aegisub-motion$1/include
 	cp Aegisub-Motion.moon aegisub-motion$1/autoload
