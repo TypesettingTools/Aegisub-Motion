@@ -2,11 +2,11 @@ log = require 'a-mo.Log'
 
 class DataHandler
 
-	new: ( rawDataString ) =>
+	new: ( input ) =>
 		-- (length-22)/4
-		if rawDataString
-			unless @parseRawDataString rawDataString
-				@parseFile rawDataString
+		if input
+			unless @parseRawDataString input
+				@parseFile input
 
 	parseRawDataString: ( rawDataString ) =>
 		@tableize rawDataString
