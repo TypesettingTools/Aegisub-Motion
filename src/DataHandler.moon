@@ -14,11 +14,8 @@ class DataHandler
 			return false
 		@width  = @rawData[3]\match "Source Width\t([0-9]+)"
 		@height = @rawData[4]\match "Source Height\t([0-9]+)"
-		-- Might really not want to have a windowError here because it is
-		-- possible to get this before the main dialog pops up, which seems
-		-- pretty bad.
 		unless @width and @height
-			log.windowError "Your tracking data is either missing the Width/Height fields,\nor they are not where I expected them."
+			return false
 		parse @
 		return true
 
