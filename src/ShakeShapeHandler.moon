@@ -60,3 +60,8 @@ class ShakeShapeHandler
 
 		table.insert drawString, "#{prevCurve.rx} #{prevCurve.ry} #{firstCurve.lx} #{firstCurve.ly} #{firstCurve.vx} #{firstCurve.vy}"
 		return table.concat drawString
+	checkLength: ( totalFrames ) =>
+		if totalFrames == @length
+			true
+		else
+			false
