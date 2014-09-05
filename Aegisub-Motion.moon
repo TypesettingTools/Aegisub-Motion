@@ -448,11 +448,25 @@ You must specify the path to your encoding binary.
 
 ]] .. interface.trim.pLabel.label
 		trimConfigDialog options
-	lineCollection = LineCollection subtitles, selectedLines
 	trim = TrimHandler options.configuration.trim
-	trim\calculateTrimLength lineCollection
-	trim\performTrim!
+	if eachFlag
+		seenRanges = { }
+		for lineIndex in *selectedLines
+			lineCollection = LineCollection subtitles, { lineIndex }
+			collectionRange = "#{lineCollection.startFrame}-#{lineCollection.endFrame}"
+			unless seenRanges[collectionRange]
+				seenRanges[collectionRange] = true
+				trim\calculateTrimLength lineCollection
+				trim\performTrim!
+	else
+		lineCollection = LineCollection subtitles, selectedLines
+		trim\calculateTrimLength lineCollection
+		trim\performTrim!
+
 	return selectedLines
+
+trimProcessorEach = ( subtitles, selectedLines ) ->
+	trimProcessor subtitles, selectedLines, nil, true
 
 revertProcessor = ( subtitles, selectedLines ) ->
 	-- A table of all UUIDs found in the selected lines
@@ -515,6 +529,9 @@ aegisub.register_macro "#{script_name}/Revert", "Removes properly formatted moti
 
 aegisub.register_macro "#{script_name}/Trim", "Cuts and encodes the current scene for use with motion tracking software.",
 	trimProcessor, canRun
+
+aegisub.register_macro "#{script_name}/Trim Each", "Cuts and encodes selected scenes for use with motion tracking software.",
+	trimProcessorEach, canRun
 
 aegisub.register_macro "#{script_name}/Trim Settings", "Sets options for the trim tool.",
 	trimConfigurator
