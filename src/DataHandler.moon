@@ -74,8 +74,8 @@ class DataHandler
 				for index, value in ipairs @[field]
 					@[field][index] = defaultValue
 
-	checkLength: ( lineCollection ) =>
-		if lineCollection.totalFrames == @length
+	checkLength: ( totalFrames ) =>
+		if totalFrames == @length
 			true
 		else
 			false
