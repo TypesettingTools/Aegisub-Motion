@@ -10,9 +10,6 @@ class MotionHandler
 		-- Create a local reference to the options table.
 		@options = @lineCollection.options
 
-		setCallbacks @
-
-	setCallbacks = =>
 		@callbacks = { }
 
 		if @options.main.xPosition or @options.main.yPosition
