@@ -1,9 +1,11 @@
 log = require 'a-mo.Log'
 
 class ShakeShapeHandler
-	new: ( rawDataString ) =>
-		if rawDataString
-			@parseRawDataString rawDataString
+
+	new: ( input ) =>
+		if input
+			unless @parseRawDataString input
+				@parseFile input
 
 	parseRawDataString: ( rawDataString ) =>
 		if rawDataString\match "^shake_shape_data 4.0"
