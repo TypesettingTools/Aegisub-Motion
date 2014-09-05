@@ -422,7 +422,7 @@ trimConfigurator = ->
 	options\read!
 	trimConfigDialog options
 
-trimProcessor = ( subtitles, selectedLines ) ->
+trimProcessor = ( subtitles, selectedLines, activeLine, eachFlag ) ->
 	initializeInterface!
 	options = ConfigHandler interface, "aegisub-motion.json", true, script_version
 
