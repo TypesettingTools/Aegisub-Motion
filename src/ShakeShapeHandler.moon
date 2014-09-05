@@ -60,6 +60,9 @@ class ShakeShapeHandler
 
 		table.insert drawString, "#{prevCurve.rx} #{prevCurve.ry} #{firstCurve.lx} #{firstCurve.ly} #{firstCurve.vx} #{firstCurve.vy}"
 		return table.concat drawString
+
+	calculateCurrentState: => -- A function stub because I am too lazy to do this sort of thing properly
+
 	checkLength: ( totalFrames ) =>
 		if totalFrames == @length
 			true
