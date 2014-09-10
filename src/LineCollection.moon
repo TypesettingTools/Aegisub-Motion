@@ -106,9 +106,13 @@ class LineCollection
 		table.insert newLineTable, lastLine
 		@lines = newLineTable
 
-	runCallback: ( callback ) =>
-		for line in *@lines
-			callback @, line
+	runCallback: ( callback, reverse ) =>
+		if reverse
+			for index in #@lines,1,-1
+				callback @, @lines[index]
+		else
+			for line in *@lines
+				callback @, line
 
 	deleteLines: =>
 		for line in *@lines
