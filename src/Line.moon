@@ -282,6 +282,7 @@ class Line
 			transform\gatherTagsInEffect!
 			transform\collectPriorState @
 			return transform\interpolate aegisub.ms_from_frame(aegisub.frame_from_ms(@start_time)+1) - @start_time
+		@deduplicateTags!
 
 	combineWithLine: ( line ) =>
 		if @text == line.text and @style == line.style and (@start_time == line.end_time or @end_time == line.start_time)
