@@ -99,7 +99,7 @@ fetchDataFromClipboard = ->
 	-- handle this.
 	if ffi.os != "Linux"
 		-- If there's nothing on the clipboard, clipboard.get returns nil.
-		return clipboard.get!
+		return clipboard.get! or ""
 
 prepareConfig = ( config, mainData, clipData, lineCollection ) ->
 	rectClipData, vectClipData = nil, nil
