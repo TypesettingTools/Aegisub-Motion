@@ -50,9 +50,9 @@ initializeInterface = ->
 			startFrame:{ class: "intedit",  x: 7, y: 11, width: 3,  height: 1, config: true, name: "startFrame",                        value: 1,     hint: "Frame used as the starting point for the tracking data. \"-1\" corresponds to the last frame." }
 			linear:    { class: "checkbox", x: 4, y: 12, width: 2,  height: 1, config: true, name: "linear",    label: "Li&near",       value: false, hint: "Use transforms and \\move to create a linear transition, instead of frame-by-frame." }
 
-			rectClip:  { class: "checkbox", x: 0, y: 10, width: 3,  height: 1, config: true, name: "rectClip",  label: "Rect Clip",     value: true,  hint: "Apply tracking data to the rectangular clip contained in the line." }
-			vectClip:  { class: "checkbox", x: 3, y: 10, width: 3,  height: 1, config: true, name: "vectClip",  label: "Vect Clip",     value: true,  hint: "Apply tracking data to the vector clip contained in the line." }
-			killTrans: { class: "checkbox", x: 6, y: 10, width: 3,  height: 1, config: true, name: "killTrans", label: "Interp. transforms", value: true, hint: "Attempt to interpolate transform value instead of just shifting transform times." }
+			rectClip:  { class: "checkbox", x: 0, y: 10, width: 3,  height: 1, config: true, name: "rectClip",  label: "Rect C&lip",    value: true,  hint: "Apply tracking data to the rectangular clip contained in the line." }
+			vectClip:  { class: "checkbox", x: 3, y: 10, width: 3,  height: 1, config: true, name: "vectClip",  label: "&Vect Clip",    value: true,  hint: "Apply tracking data to the vector clip contained in the line." }
+			killTrans: { class: "checkbox", x: 6, y: 10, width: 3,  height: 1, config: true, name: "killTrans", label: "Interp. &transforms", value: true, hint: "Attempt to interpolate transform value instead of just shifting transform times." }
 
 			-- delsourc:  { class: "label",    x: 0, y: 0,  width: 0,  height: 0, config: true, label: "", value: false }
 		}
