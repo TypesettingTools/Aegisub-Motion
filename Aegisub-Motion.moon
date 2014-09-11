@@ -396,9 +396,12 @@ applyProcessor = ( subtitles, selectedLines ) ->
 	lineCollection.options = config
 	prepareLines lineCollection
 
-	unless 'SRS' == mainData.type
+	if mainData.type and 'SRS' != mainData.type
 		mainData.dataObject\addReferenceFrame config.main.startFrame
 		mainData.dataObject\stripFields config.main
+	if clipData.type and 'SRS' != clipData.type
+		clipData.dataObject\addReferenceFrame config.clip.startFrame
+		clipData.dataObject\stripFields config.clip
 
 	motionHandler = MotionHandler lineCollection, mainData, rectClipData, vectClipData
 	newLines = motionHandler\applyMotion!
