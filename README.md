@@ -1,6 +1,8 @@
 ### Aegisub-Motion.moon ###
 
-#### v1.0.0 Test 6 ####
+# IMPORTANT FUCKING NOTICE UPDATE YOUR AEGISUB TO r8624 AS IT CONTAINS A BUNCH OF EXTRADATA IMPROVEMENTS AND FIXES THANKS. THE INSTALLER DOWNLOAD IS BROKEN BUT THE OTHER ONES SHOULD WORK.
+
+#### v1.0.0 Test 7 ####
 
 Aegisub-Motion has been rewritten from the ground up to be even slower
 and more error prone than ever before.
