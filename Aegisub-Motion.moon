@@ -49,6 +49,7 @@ initializeInterface = ->
 			relative:  { class: "checkbox", x: 4, y: 11, width: 3,  height: 1, config: true, name: "relative",  label: "R&elative",     value: true,  hint: "Start frame should be relative to the beginning of the selection rather than the beginning of the video." }
 			startFrame:{ class: "intedit",  x: 7, y: 11, width: 3,  height: 1, config: true, name: "startFrame",                        value: 1,     hint: "Frame used as the starting point for the tracking data. \"-1\" corresponds to the last frame." }
 			linear:    { class: "checkbox", x: 4, y: 12, width: 2,  height: 1, config: true, name: "linear",    label: "Li&near",       value: false, hint: "Use transforms and \\move to create a linear transition, instead of frame-by-frame." }
+			clipOnly:  { class: "checkbox", x: 0, y: 12, width: 3,  height: 1, config: true, name: "clipOnly",  label: "&Clip Only",    value: false, hint: "Only apply the main data to \\clips present in the line." }
 
 			rectClip:  { class: "checkbox", x: 0, y: 10, width: 3,  height: 1, config: true, name: "rectClip",  label: "Rect C&lip",    value: true,  hint: "Apply tracking data to the rectangular clip contained in the line." }
 			vectClip:  { class: "checkbox", x: 3, y: 10, width: 3,  height: 1, config: true, name: "vectClip",  label: "&Vect Clip",    value: true,  hint: "Apply tracking data to the vector clip contained in the line." }

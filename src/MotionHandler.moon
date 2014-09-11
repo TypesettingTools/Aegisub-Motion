@@ -19,7 +19,7 @@ class MotionHandler
 		-- rotoshape. In theory it would be possible to do plain translation
 		-- because the SRS data contains a center_x and center_y field for
 		-- each frame.
-		unless 'SRS' == mainData.type
+		unless 'SRS' == mainData.type or @options.main.clipOnly
 			if @options.main.xPosition or @options.main.yPosition
 
 				if @options.main.absPos
