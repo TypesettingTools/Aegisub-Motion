@@ -108,7 +108,7 @@ class LineCollection
 
 	runCallback: ( callback, reverse ) =>
 		if reverse
-			for index in #@lines,1,-1
+			for index = #@lines,1,-1
 				callback @, @lines[index]
 		else
 			for line in *@lines
