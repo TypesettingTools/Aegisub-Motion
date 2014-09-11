@@ -61,7 +61,7 @@ formatFloat = ( value ) =>
 	return ("%s%g")\format @tag, value
 
 formatAlpha = ( alpha ) =>
-	return ("%s&H%02X&")\format @tag, value
+	return ("%s&H%02X&")\format @tag, alpha
 
 formatColor = ( color ) =>
 	return ("%s&H%02X%02X%02X&")\format @tag, color.b, color.g, color.r
