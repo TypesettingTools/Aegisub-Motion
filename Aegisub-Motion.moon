@@ -62,16 +62,16 @@ initializeInterface = ->
 			data:      { class: "textbox",  x: 0, y: 1, width: 10, height: 4,               name:  "data", hint: "Paste data or the path to a file containing it. No quotes or escapes." }
 
 			optLabel:  { class: "label",    x: 0, y: 5, width: 5,  height: 1, label: "Data to be applied:" }
-			xPosition: { class: "checkbox", x: 0, y: 6, width: 1,  height: 1, config: true, name: "xPosition", value: true,  label: "&x", hint: "Apply x position data to the selected lines." }
-			yPosition: { class: "checkbox", x: 1, y: 6, width: 1,  height: 1, config: true, name: "yPosition", value: true,  label: "&y", hint: "Apply y position data to the selected lines." }
-			xScale:    { class: "checkbox", x: 0, y: 7, width: 2,  height: 1, config: true, name: "xScale",    value: true,  label: "&Scale" }
-			zRotation: { class: "checkbox", x: 0, y: 8, width: 3,  height: 1, config: true, name: "zRotation", value: false, label: "&Rotation" }
+			xPosition: { class: "checkbox", x: 0, y: 6, width: 1,  height: 1, config: true, name: "xPosition",  label: "&x",            value: true,  hint: "Apply x position data to the selected clips in the selected lines." }
+			yPosition: { class: "checkbox", x: 1, y: 6, width: 1,  height: 1, config: true, name: "yPosition",  label: "&y",            value: true,  hint: "Apply y position data to the selected clips in the selected lines." }
+			xScale:    { class: "checkbox", x: 0, y: 7, width: 2,  height: 1, config: true, name: "xScale",     label: "&Scale",        value: true,  hint: "Apply scaling data to the selected clips in the selected lines." }
+			zRotation: { class: "checkbox", x: 0, y: 8, width: 3,  height: 1, config: true, name: "zRotation",  label: "&Rotation",     value: false, hint: "Apply rotation data to the selected clips in the selected lines." }
 
-			rectClip:  { class: "checkbox", x: 0, y: 10, width: 3,  height: 1, config: true, name: "rectClip",  label: "Rect Clip",     value: true,  hint: "Apply tracking data to the rectangular clip contained in the line." }
-			vectClip:  { class: "checkbox", x: 3, y: 10, width: 3,  height: 1, config: true, name: "vectClip",  label: "Vect Clip",     value: true,  hint: "Apply tracking data to the vector clip contained in the line." }
+			rectClip:  { class: "checkbox", x: 0, y: 10, width: 3,  height: 1, config: true, name: "rectClip",  label: "Rect C&lip",    value: true,  hint: "Apply tracking data to the rectangular clip contained in the line." }
+			vectClip:  { class: "checkbox", x: 3, y: 10, width: 3,  height: 1, config: true, name: "vectClip",  label: "&Vect Clip",    value: true,  hint: "Apply tracking data to the vector clip contained in the line." }
 
 			startLabel:{ class: "label",    x: 7, y: 5, width: 3,  height: 1, label: "Start Frame:" }
-			startFrame:{ class: "intedit",  x: 7, y: 6, width: 3,  height: 1, config: true, name:  "startFrame",  value: 1 }
+			startFrame:{ class: "intedit",  x: 7, y: 6, width: 3,  height: 1, config: true, name:  "startFrame",                        value: 1,     hint: "Frame used as the starting point for the tracking data. \"-1\" corresponds to the last frame." }
 		}
 		trim: {
 			pLabel:  { class: "label", x: 0, y: 0, width: 10, height: 1, label: [[
