@@ -10,14 +10,15 @@ class DataHandler
 
 	parseRawDataString: ( rawDataString ) =>
 		@tableize rawDataString
-		unless @rawData[1]\match "Adobe After Effects 6.0 Keyframe Data"
-			return false
-		@width  = @rawData[3]\match "Source Width\t([0-9]+)"
-		@height = @rawData[4]\match "Source Height\t([0-9]+)"
-		unless @width and @height
-			return false
-		parse @
-		return true
+		if next @rawData
+			unless @rawData[1]\match "Adobe After Effects 6.0 Keyframe Data"
+				return false
+			@width  = @rawData[3]\match "Source Width\t([0-9]+)"
+			@height = @rawData[4]\match "Source Height\t([0-9]+)"
+			unless @width and @height
+				return false
+			parse @
+			return true
 
 	parseFile: ( fileName ) =>
 		if file = io.open fileName, 'r'
