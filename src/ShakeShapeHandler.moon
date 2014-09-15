@@ -21,17 +21,25 @@ class ShakeShapeHandler
 		return false
 
 	tableize: ( rawDataString ) =>
+		shapes = rawDataString\match "num_shapes (%d+)"
 		@rawData = { }
 		rawDataString\gsub "([^\r\n]+)", ( line ) ->
 			if line\match "vertex_data"
 				table.insert @rawData, line
 
-		@length = #@rawData
+		@numShapes = tonumber shapes
+		@length = #@rawData / @numShapes
 
 	createDrawings: ( scriptHeight ) =>
-		@data = {}
-		for line in *@rawData
-			table.insert @data, convertVertex line, scriptHeight
+		@data = { }
+		for baseIndex = 1, @length
+			results = { }
+
+			for curveIndex = baseIndex, @numShapes*@length, @length
+				line = @rawData[curveIndex]
+				table.insert results, convertVertex line, scriptHeight
+
+			table.insert @data, table.concat results, ' '
 
 	updateCurve = ( curve, height, ... ) ->
 		args = { ... }
@@ -61,7 +69,9 @@ class ShakeShapeHandler
 		table.insert drawString, "#{prevCurve.rx} #{prevCurve.ry} #{firstCurve.lx} #{firstCurve.ly} #{firstCurve.vx} #{firstCurve.vy}"
 		return table.concat drawString
 
-	calculateCurrentState: => -- A function stub because I am too lazy to do this sort of thing properly
+	-- A function stub because I am too lazy to do this sort of thing
+	-- properly.
+	calculateCurrentState: =>
 
 	checkLength: ( totalFrames ) =>
 		if totalFrames == @length
