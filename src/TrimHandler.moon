@@ -38,13 +38,18 @@ class TrimHandler
 	-- 	-- built-in defaults. Usable token documentation to come.
 	-- 	-- Overrides preset if that is set.
 	-- 	command: nil
+
+	-- 	-- Script should attempt to create prefix directory.
+	-- 	makePfix: nil
 	-- }
 	new: ( trimConfig ) =>
 		@tokens = { }
 		if trimConfig.command != nil and trimConfig.command != ""
 			@command = trimConfig.command
 		else
-	 		@command = @defaults[trimConfig.preset]
+			@command = @defaults[trimConfig.preset]
+
+		@makePrefix = trimConfig.makePfix
 
 		with @tokens
 			if windows
@@ -81,7 +86,8 @@ class TrimHandler
 					pre: @tokens.temp
 					ext: ".bat"
 					exec: '""%s""'
-					postExec: "\nif errorlevel 1 (echo Error & pause)"
+					preCom: @makePrefix and "mkdir \"#{@tokens.prefix}\"\n" or ""
+					postCom: "\nif errorlevel 1 (echo Error & pause)"
 					execFunc: ( encodeScript ) ->
 						os.execute encodeScript
 				}
@@ -89,7 +95,8 @@ class TrimHandler
 					pre: @tokens.temp
 					ext: ".sh"
 					exec: 'sh "%s"'
-					postExec: " 2>&1"
+					preCom: @makePrefix and "mkdir -p \"#{@tokens.prefix}\"\n" or ""
+					postCom: " 2>&1"
 					execFunc: ( encodeScript ) ->
 						output = io.popen encodeScript
 						log.debug output\read '*a'
@@ -101,7 +108,7 @@ class TrimHandler
 			encodeScriptFile = io.open encodeScript, "w+"
 			unless encodeScriptFile
 				log.windowError "Encoding script could not be written.\nSomething is wrong with your temp dir (#{.pre})."
-			encodeString = @command\gsub( "#{(.-)}", ( token ) -> @tokens[token] ) .. .postExec
+			encodeString = .preCom .. @command\gsub( "#{(.-)}", ( token ) -> @tokens[token] ) .. .postCom
 			log.debug encodeString
 			encodeScriptFile\write encodeString
 			encodeScriptFile\close!
