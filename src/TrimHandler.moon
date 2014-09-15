@@ -60,7 +60,8 @@ class TrimHandler
 	getVideoName = =>
 		with @tokens
 			video = aegisub.project_properties!.video_file
-			assert video\len! != 0, "Theoretically it should be impossible to get this error."
+			if video\len! == 0
+				log.windowError "Aegisub thinks your video is 0 frames long.\nTheoretically it should be impossible to get this error."
 			.input = video\sub .inpath\len! + 2
 			.index = .input\match "(.+)%.[^%.]+$"
 			.output = .index
