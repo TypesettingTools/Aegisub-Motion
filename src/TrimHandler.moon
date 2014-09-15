@@ -21,22 +21,22 @@ class TrimHandler
 
 	-- Example trimConfig:
 	-- trimConfig = {
-	-- 		-- The prefix is the directory the output will be written to. It
-	-- 		-- is passed through aegisub.decode_path.
+	-- 	-- The prefix is the directory the output will be written to. It
+	-- 	-- is passed through aegisub.decode_path.
 	-- 	prefix: "?video"
 
-	-- 		-- The name of the built in encoding preset to use. Overridden by
-	-- 		-- command if that is neither nil nor an empty string.
+	-- 	-- The name of the built in encoding preset to use. Overridden by
+	-- 	-- command if that is neither nil nor an empty string.
 	-- 	preset: "x264"
 
-	-- 		-- The path of the executable used to actually do the encoding.
-	-- 		-- Full path is recommended as the shell environment may be
-	-- 		-- different than expected on non-windows systems.
+	-- 	-- The path of the executable used to actually do the encoding.
+	-- 	-- Full path is recommended as the shell environment may be
+	-- 	-- different than expected on non-windows systems.
 	-- 	encBin: "C:\x264.exe"
 
-	-- 		-- A custom encoding command that can be used to override the
-	-- 		-- built-in defaults. Usable token documentation to come.
-	--		-- Overrides preset if that is set.
+	-- 	-- A custom encoding command that can be used to override the
+	-- 	-- built-in defaults. Usable token documentation to come.
+	-- 	-- Overrides preset if that is set.
 	-- 	command: nil
 	-- }
 	new: ( trimConfig ) =>
