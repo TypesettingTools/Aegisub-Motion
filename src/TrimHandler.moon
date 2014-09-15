@@ -1,9 +1,11 @@
 ffi = require "ffi"
 log = require "a-mo.Log"
 
+windows = ffi.os == "Windows"
+
 class TrimHandler
 
-	windows: ffi.os == "Windows"
+	windows: windows
 
 	existingPresets: {
 		"x264", "ffmpeg"
@@ -45,7 +47,7 @@ class TrimHandler
 	 		@command = @defaults[trimConfig.preset]
 
 		with @tokens
-			if @windows
+			if windows
 				.temp = os.getenv('TEMP')
 			else
 				.temp = "/tmp"
@@ -92,7 +94,7 @@ class TrimHandler
 						log.debug output\read '*a'
 						output\close!
 				}
-			})[@windows]
+			})[windows]
 
 			encodeScript = aegisub.decode_path "#{.pre}/a-mo.encode#{.ext}"
 			encodeScriptFile = io.open encodeScript, "w+"
