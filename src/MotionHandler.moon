@@ -64,10 +64,14 @@ class MotionHandler
 				line.method = nonlinear
 
 	applyMotion: =>
+		setProgress = aegisub.progress.set
+		setProgress 0
+
+		totalLines = #@lineCollection.lines
 		-- The lines are collected in reverse order in LineCollection so
 		-- that we don't need to do things in reverse here.
-		for line in *@lineCollection.lines
-			with line
+		for index = 1, totalLines
+			with line = @lineCollection.lines[index]
 
 				-- start frame of line relative to start frame of tracked data
 				.relativeStart = .startFrame - @lineCollection.startFrame + 1
@@ -75,6 +79,8 @@ class MotionHandler
 				.relativeEnd = .endFrame - @lineCollection.startFrame
 
 				.method @, line
+
+			setProgress index/totalLines
 
 		return @resultingCollection
 

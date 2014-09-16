@@ -210,6 +210,11 @@ fadToTransform = ( fadStart, fadEnd, alpha, value, lineDuration ) ->
 	str
 
 prepareLines = ( lineCollection ) ->
+	setProgress = aegisub.progress.set
+	setProgress 0
+
+	totalLines = #lineCollection.lines
+
 	options = lineCollection.options
 	-- remove the lines while ensuring new lines will be inserted in the
 	-- correct place.
@@ -217,7 +222,7 @@ prepareLines = ( lineCollection ) ->
 
 	-- Perform all of the manipulation that used to be performed in
 	-- Line.moon but are actually fairly Aegisub-Motion specific.
-	lineCollection\runCallback ( line ) =>
+	lineCollection\runCallback ( line, index ) =>
 
 		-- Add our signature extradata.
 		line\setExtraData 'a-mo', { originalText: line.text, uuid: Math.uuid! }
@@ -284,8 +289,15 @@ prepareLines = ( lineCollection ) ->
 				@hasClip = true
 				return convertClipToFP clip
 
+		setProgress index/totalLines
+
 postprocLines = ( lineCollection ) ->
-	lineCollection\runCallback ( line ) =>
+	setProgress = aegisub.progress.set
+	setProgress 0
+
+	totalLines = #lineCollection.lines
+
+	lineCollection\runCallback ( line, index ) =>
 		if line.wasLinear
 			line\dontTouchTransforms!
 		else
@@ -294,10 +306,15 @@ postprocLines = ( lineCollection ) ->
 			else
 				line\detokenizeTransforms!
 
+		setProgress index/totalLines
+
+	-- No progress for this.
 	lineCollection\combineIdenticalLines!
 
 applyProcessor = ( subtitles, selectedLines ) ->
+	setTask = aegisub.progress.task
 
+	setTask "Loading Interface"
 	initializeInterface!
 
 	math.randomseed tonumber tostring( os.time! )\reverse!\sub( 1, 8 )
@@ -314,6 +331,7 @@ applyProcessor = ( subtitles, selectedLines ) ->
 	rawInputData = fetchDataFromClipboard!
 
 	-- Instantiate both of these so they can be passed by reference later.
+	setTask "Checking Clipboard for Data"
 	mainData = DataWrapper!
 	clipData = DataWrapper!
 	if mainData\bestEffortParsingAttempt rawInputData
@@ -331,6 +349,8 @@ applyProcessor = ( subtitles, selectedLines ) ->
 	else
 		interface.main.startFrame.value = currentVideoFrame
 		interface.clip.startFrame.value = currentVideoFrame
+
+	setTask "Launching Interface"
 
 	-- cancel:Abort in the main dialog tells Esc key to abort the entire macro
 	-- cancel:Back in \clip dialog tells Esc key to close it and go back to the main dialog
@@ -389,13 +409,18 @@ applyProcessor = ( subtitles, selectedLines ) ->
 	-- horribly mutilated in prepareConfig. Ensures that what the user saw
 	-- last is what will be presented to them next time.
 	if config.main.writeConf
+		setTask "Updating Configuration"
 		options\updateConfiguration config, { "main", "clip" }
 	if config.main.writeConf or (options.configuration.main.writeConf != config.main.writeConf)
 		options.configuration.main.writeConf = config.main.writeConf
 		options\write!
 
+	setTask "Preparing Configuration and Data"
 	rectClipData, vectClipData = prepareConfig config, mainData, clipData, lineCollection
 	lineCollection.options = config
+
+
+	setTask "Preprocessing Lines"
 	prepareLines lineCollection
 
 	if mainData.type and 'SRS' != mainData.type
@@ -405,10 +430,12 @@ applyProcessor = ( subtitles, selectedLines ) ->
 		clipData.dataObject\addReferenceFrame config.clip.startFrame
 		clipData.dataObject\stripFields config.clip
 
+	setTask "Applying Data"
 	motionHandler = MotionHandler lineCollection, mainData, rectClipData, vectClipData
 	newLines = motionHandler\applyMotion!
 
 	-- Postproc lines: detokenize transforms and combine identical lines.
+	setTask "Postprocessing Lines"
 	postprocLines newLines
 	newLines\replaceLines!
 
