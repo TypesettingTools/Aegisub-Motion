@@ -487,6 +487,9 @@ trimProcessorEach = ( subtitles, selectedLines ) ->
 	trimProcessor subtitles, selectedLines, nil, true
 
 revertProcessor = ( subtitles, selectedLines ) ->
+	setTask = aegisub.progress.task
+	setProgress = aegisub.progress.set
+	setTask "Collecting UUIDs"
 	-- A table of all UUIDs found in the selected lines
 	uuids = { }
 	-- Indices of lines that need to be removed later (are part of a
@@ -504,7 +507,10 @@ revertProcessor = ( subtitles, selectedLines ) ->
 
 	indicesToNuke = { }
 
-	for index = 1, #subtitles
+	setTask "Gathering Matching Lines"
+	totalLines = #subtitles
+
+	for index = 1, totalLines
 		with line = subtitles[index]
 			if line.extra
 				-- Catch lines containing our signature extradata.
@@ -525,6 +531,9 @@ revertProcessor = ( subtitles, selectedLines ) ->
 						elseif index > oldLine.number
 							indicesToNuke[#indicesToNuke+1] = index
 
+		setProgress index/totalLines
+
+	setTask "Replacing Lines"
 	-- Replace the lines.
 	for _, line in pairs uuids
 		subtitles[line.number] = line
