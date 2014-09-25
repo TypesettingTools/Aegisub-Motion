@@ -2,6 +2,7 @@ log       = require 'a-mo.Log'
 json      = require 'json'
 tags      = require 'a-mo.Tags'
 Transform = require 'a-mo.Transform'
+util      = require 'aegisub.util'
 
 class Line
 	fieldsToCopy: {
@@ -40,7 +41,10 @@ class Line
 
 	new: ( line, @parentCollection, overrides = { } ) =>
 		for _, field in ipairs @fieldsToCopy
-			@[field] = overrides[field] or line[field]
+			if "table" == type field
+				@[field] = util.copy_deep overrides[field] or line[field]
+			else
+				@[field] = overrides[field] or line[field]
 		@duration = @end_time - @start_time
 
 	-- Gathers extra line metrics: the alignment and position.
