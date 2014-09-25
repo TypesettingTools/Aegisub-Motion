@@ -59,6 +59,7 @@ class TrimHandler
 			.encbin = trimConfig.encBin
 			.prefix = aegisub.decode_path trimConfig.prefix
 			.inpath = aegisub.decode_path "?video"
+			.log    = aegisub.decode_path "#{.temp}/a-mo.encode.log"
 
 		getVideoName @
 
@@ -87,9 +88,15 @@ class TrimHandler
 					ext: ".bat"
 					exec: '""%s""'
 					preCom: @makePrefix and "mkdir \"#{@tokens.prefix}\"\n" or ""
-					postCom: "\nif errorlevel 1 (echo Error & pause)"
+					postCom: " > #{@tokens.log} 2>&1"
 					execFunc: ( encodeScript ) ->
-						os.execute encodeScript
+						success = os.execute encodeScript
+						unless success
+							logFile = io.open @tokens.log, 'r'
+							encodeLog = logFile\read '*a'
+							log.warn "\nEncoding error:"
+							log.warn encodeLog
+							log.windowError "Encoding failed. Log has been printed to progress window."
 				}
 				[false]: {
 					pre: @tokens.temp
@@ -98,9 +105,16 @@ class TrimHandler
 					preCom: @makePrefix and "mkdir -p \"#{@tokens.prefix}\"\n" or ""
 					postCom: " 2>&1"
 					execFunc: ( encodeScript ) ->
-						output = io.popen encodeScript
-						log.debug output\read '*a'
-						output\close!
+						logFile = io.popen encodeScript, 'r'
+						encodeLog = logFile\read '*a'
+						-- When closing a file handle created with io.popen,
+						-- file:close returns the same values returned by
+						-- os.execute.
+						success = logFile\close!
+						unless success
+							log.warn "\nEncoding error:"
+							log.warn encodeLog
+							log.windowError "Encoding failed. Log has been printed to progress window."
 				}
 			})[windows]
 
