@@ -68,12 +68,17 @@ class Transform
 
 		major = math.floor @index
 
-		blockNumber = 0
-		line\runCallbackOnOverrides ( line, tagBlock ) ->
+		line\runCallbackOnOverrides ( line, tagBlock, number ) ->
 			for tagName, oldVal in pairs @effectTags
 				tag = tags.allTags[tagName]
 				tagBlock\gsub tag.pattern, ( value ) ->
-					@priorValues[tagName] = tag\convert value,
+					@priorValues[tagName] = tag\convert value
+
+				if tag.affectedBy
+					for otherTag in *tag.affectedBy
+						newTag = tags.allTags[otherTag]
+						tagBlock\gsub newTag.pattern, ( value ) ->
+							@priorValues[tagName] = newTag\convert value,
 			major
 
 	interpolate: ( time ) =>

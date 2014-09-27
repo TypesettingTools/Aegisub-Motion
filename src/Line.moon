@@ -93,19 +93,16 @@ class Line
 		-- instance in the entire line is used.
 		tagCollection = { }
 		positions = { }
-		i = 0
-		@runCallbackOnOverrides ( tagBlock ) =>
+		@runCallbackOnOverrides ( tagBlock, major ) =>
 			for tagName in *tags.oneTimeTags
 				tag = tags.allTags[tagName]
 				tagBlock = tagBlock\gsub tag.pattern, ( value ) ->
 					unless tagCollection[tagName]
-						tagCollection[tagName] = @.generateTagIndex i, tagBlock\find tag.pattern
+						tagCollection[tagName] = @.generateTagIndex major, tagBlock\find tag.pattern
 						return nil
 					else
-						log.debug "THIS TAG HAS BEEN FOUND BEFORE #{tagName}"
+						log.debug "#{tagName} previously found at #{tagCollection[tagName]}"
 						return ""
-				log.debug tagBlock
-			i += 1
 			return tagBlock
 
 		-- Quirks: 2 clips are allowed, as long as one is vector and one is
@@ -213,8 +210,10 @@ class Line
 	-- Runs the provided callback on all of the override tag blocks
 	-- present in the line.
 	runCallbackOnOverrides: ( callback, count ) =>
+		major = 0
 		@text = @text\gsub "({.-})", ( tagBlock ) ->
-			return callback @, tagBlock,
+			major += 1
+			return callback @, tagBlock, i,
 			count
 
 	-- Runs the provided callback on the first override tag block in the

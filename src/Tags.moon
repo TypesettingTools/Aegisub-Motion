@@ -98,10 +98,10 @@ return {
 		yshadow:  { pattern: "\\yshad([%-%d%.]+)", tag: "\\yshad", format: formatFloat , style: "shadow"  , transformable: true , convert: convertNumberValue, interpolate: interpolateNumber }
 		reset:    { pattern: "\\r([^\\}]*)"      , tag: "\\r"    , format: formatString                                         , convert: convertStringValue                                 }
 		alpha:    { pattern: "\\alpha&H(%x%x)&"  , tag: "\\alpha", format: formatAlpha                    , transformable: true , convert: convertHexValue   , interpolate: interpolateNumber, type: "alpha" }
-		alpha1:   { pattern: "\\1a&H(%x%x)&"     , tag: "\\1a"   , format: formatAlpha , style: "color1"  , transformable: true , convert: convertHexValue   , interpolate: interpolateNumber, type: "alpha" }
-		alpha2:   { pattern: "\\2a&H(%x%x)&"     , tag: "\\2a"   , format: formatAlpha , style: "color2"  , transformable: true , convert: convertHexValue   , interpolate: interpolateNumber, type: "alpha" }
-		alpha3:   { pattern: "\\3a&H(%x%x)&"     , tag: "\\3a"   , format: formatAlpha , style: "color3"  , transformable: true , convert: convertHexValue   , interpolate: interpolateNumber, type: "alpha" }
-		alpha4:   { pattern: "\\4a&H(%x%x)&"     , tag: "\\4a"   , format: formatAlpha , style: "color4"  , transformable: true , convert: convertHexValue   , interpolate: interpolateNumber, type: "alpha" }
+		alpha1:   { pattern: "\\1a&H(%x%x)&"     , tag: "\\1a"   , format: formatAlpha , style: "color1"  , transformable: true , convert: convertHexValue   , interpolate: interpolateNumber, type: "alpha", affectedBy: { "alpha" } }
+		alpha2:   { pattern: "\\2a&H(%x%x)&"     , tag: "\\2a"   , format: formatAlpha , style: "color2"  , transformable: true , convert: convertHexValue   , interpolate: interpolateNumber, type: "alpha", affectedBy: { "alpha" } }
+		alpha3:   { pattern: "\\3a&H(%x%x)&"     , tag: "\\3a"   , format: formatAlpha , style: "color3"  , transformable: true , convert: convertHexValue   , interpolate: interpolateNumber, type: "alpha", affectedBy: { "alpha" } }
+		alpha4:   { pattern: "\\4a&H(%x%x)&"     , tag: "\\4a"   , format: formatAlpha , style: "color4"  , transformable: true , convert: convertHexValue   , interpolate: interpolateNumber, type: "alpha", affectedBy: { "alpha" } }
 		color1:   { pattern: "\\1?c&H(%x+)&"     , tag: "\\1c"   , format: formatColor , style: "color1"  , transformable: true , convert: convertColorValue , interpolate: interpolateColor , type: "color" }
 		color2:   { pattern: "\\2c&H(%x+)&"      , tag: "\\2c"   , format: formatColor , style: "color2"  , transformable: true , convert: convertColorValue , interpolate: interpolateColor , type: "color" }
 		color3:   { pattern: "\\3c&H(%x+)&"      , tag: "\\3c"   , format: formatColor , style: "color3"  , transformable: true , convert: convertColorValue , interpolate: interpolateColor , type: "color" }
