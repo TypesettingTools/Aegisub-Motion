@@ -68,6 +68,8 @@ class TrimHandler
 			video = aegisub.project_properties!.video_file
 			if video\len! == 0
 				log.windowError "Aegisub thinks your video is 0 frames long.\nTheoretically it should be impossible to get this error."
+			if video\match "^?dummy"
+				log.windowError "I can't encode that dummy video for you."
 			.input = video\sub .inpath\len! + 2
 			.index = .input\match "(.+)%.[^%.]+$"
 			.output = .index
