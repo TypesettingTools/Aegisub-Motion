@@ -1,8 +1,6 @@
 ### Aegisub-Motion.moon ###
 
-# IMPORTANT FUCKING NOTICE: UPDATE YOUR AEGISUB TO `3.2.1` AS IT CONTAINS A BUNCH OF EXTRADATA IMPROVEMENTS AND FIXES THANKS.
-
-#### v1.0.0 Test 8 ####
+#### v1.0.0 Test 9 ####
 
 Aegisub-Motion has been rewritten from the ground up to be even slower
 and more error prone than ever before.
