@@ -52,10 +52,7 @@ class TrimHandler
 		@makePrefix = trimConfig.makePfix
 
 		with @tokens
-			if windows
-				.temp = os.getenv('TEMP')
-			else
-				.temp = "/tmp"
+			.temp   = aegisub.decode_path "?temp"
 			.encbin = trimConfig.encBin
 			.prefix = aegisub.decode_path trimConfig.prefix
 			.inpath = aegisub.decode_path "?video"
