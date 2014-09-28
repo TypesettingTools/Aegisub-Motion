@@ -10,8 +10,28 @@ class LineCollection
 			if aegisub.frame_from_ms 0
 				@getFrameInfo!
 
-	addLine: ( line ) =>
-		table.insert @lines, line
+	-- This method should update various properties such as
+	-- (start|end)(Time|Frame).
+	addLine: ( line, validationCb = () -> return true ) =>
+		if validationCb line
+			line.parentCollection = @
+			if @startTime > line.start_time
+				@startTime = line.start_time
+
+			if @endTime < line.endTime
+				@endTime = line.end_time
+
+			if @hasMetaStyles
+				line.styleRef = @styles[line.style]
+
+			if @hasFrameInfo
+				line.startFrame = frame_from_ms line.start_time
+				line.endFrame = frame_from_ms line.end_time
+				@startFrame  = frame_from_ms @startTime
+				@endFrame    = frame_from_ms @endTime
+				@totalFrames = @endFrame - @startFrame
+
+			table.insert @lines, line
 
 	generateMetaAndStyles: =>
 		@styles = { }
@@ -32,8 +52,10 @@ class LineCollection
 		unless next @styles
 			log.windowError "No styles could be found and I guarantee that's gonna break something."
 
+		@hasMetaStyles = true
+
 	collectLines: ( sel, validationCb = ( line ) -> return not line.comment ) =>
-		unless @meta and @styles
+		unless @hasMetaStyles
 			@generateMetaAndStyles!
 
 		dialogueStart = 0
@@ -71,6 +93,7 @@ class LineCollection
 		@startFrame  = frame_from_ms @startTime
 		@endFrame    = frame_from_ms @endTime
 		@totalFrames = @endFrame - @startFrame
+		@hasFrameInfo = true
 
 	callMethodOnAllLines: ( methodName, ... ) =>
 		for line in *@lines
