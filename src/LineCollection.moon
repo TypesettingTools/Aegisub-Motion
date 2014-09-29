@@ -15,11 +15,18 @@ class LineCollection
 	addLine: ( line, validationCb = () -> return true ) =>
 		if validationCb line
 			line.parentCollection = @
-			if @startTime > line.start_time
-				@startTime = line.start_time
 
-			if @endTime < line.endTime
-				@endTime = line.end_time
+			-- if @startTime is unset, @endTime should damn well be too.
+			if @startTime
+				if @startTime > line.start_time
+					@startTime = line.start_time
+
+				if @endTime < line.end_time
+					@endTime = line.end_time
+
+			else
+				@startTime = line.start_time
+				@endTime   = line.end_time
 
 			if @hasMetaStyles
 				line.styleRef = @styles[line.style]
