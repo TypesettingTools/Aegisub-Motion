@@ -26,15 +26,13 @@ class Transform
 
 	new: ( @startTime, @endTime, @accel, @effect, @index, @parentLine ) =>
 
-  -- Hopefully there are no lines longer than 27 hours, because ass
-  -- can't even handle that.
-	toString: ( line = @parentLine )=>
+	toString: ( line = @parentLine ) =>
 		if @effect == ""
 			return ""
 		elseif @endTime <= 0
+			line.transformEnded = true
 			return @effect
 		elseif @startTime > line.duration or @endTime < @startTime
-			line.transformEnded = true
 			return ""
 		elseif @accel == 1
 			return ("\\t(%s,%s,%s)")\format @startTime, @endTime, @effect

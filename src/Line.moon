@@ -271,7 +271,6 @@ class Line
 			return @transforms[tonumber index]\toString @
 
 		if @transformEnded
-			@deduplicateTags!
 			@transformEnded = nil
 
 	-- detokenize using transform.rawString
