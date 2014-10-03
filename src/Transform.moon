@@ -62,7 +62,7 @@ class Transform
 		@priorValues.rectiClip = { 0, 0, line.parentCollection.meta.PlayResX, line.parentCollection.meta.PlayResY }
 
 		unless @index
-			log.windowError "shit's goin south fast."
+			log.windowError "An error has occurred with transform\ninterpolation in line #{line.humanizedNumber}."
 
 		major = math.floor @index
 
