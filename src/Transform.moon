@@ -82,11 +82,10 @@ class Transform
 	interpolate: ( time ) =>
 		linearProgress = (time - @startTime)/(@endTime - @startTime)
 		if linearProgress <= 0
-			linearProgress = 0
-			-- return before
+			return ""
 		elseif linearProgress >= 1
-			linearProgress = 1
-			-- return after
+			return @effect
+
 		progress = math.pow linearProgress, @accel
 
 		for tagName, endValue in pairs @effectTags
