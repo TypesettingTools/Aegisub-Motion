@@ -236,6 +236,8 @@ prepareLines = ( lineCollection ) ->
 		-- may be more clean but also less efficient), tokenize transforms,
 		-- dedup tags, detokenize transforms, brutalize fades, and then
 		-- retokenize transforms.
+		line\tokenizeTransforms!
+
 		fadWasFound = false
 		fadStart, fadEnd = 0, 0
 		line\runCallbackOnOverrides ( tagBlock ) =>
@@ -254,7 +256,8 @@ prepareLines = ( lineCollection ) ->
 			line\runCallbackOnFirstOverride ( tagBlock ) =>
 				return "{" .. fadToTransform( fadStart, fadEnd, "\\alpha", "&H00&", @duration ) .. tagBlock\sub 2
 
-		-- Tokenize the transforms to simplify later processing.
+		-- retokenize the transforms to simplify later processing.
+		line\dontTouchTransforms!
 		line\tokenizeTransforms!
 
 		-- Deduplicate all override tags.
@@ -290,6 +293,7 @@ prepareLines = ( lineCollection ) ->
 				return convertClipToFP clip
 
 		setProgress index/totalLines
+
 
 postprocLines = ( lineCollection ) ->
 	setProgress = aegisub.progress.set
@@ -402,7 +406,6 @@ applyProcessor = ( subtitles, selectedLines ) ->
 				currentDialog = "main"
 
 			else
-				log.debug tostring button
 				break
 
 	-- Update the persistent configuration before it gets (potentially)
@@ -467,6 +470,7 @@ You must specify the path to your encoding binary.
 
 ]] .. interface.trim.pLabel.label
 		trimConfigDialog options
+
 	trim = TrimHandler options.configuration.trim
 	if eachFlag
 		seenRanges = { }
