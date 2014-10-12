@@ -53,6 +53,11 @@ class TrimHandler
 
 		with @tokens
 			.temp   = aegisub.decode_path "?temp"
+			-- For some reason, aegisub appends / to the end of ?temp but not
+			-- other tokens.
+			finalTemp = .temp\sub -1, -1
+			if finalTemp == '\\' or finalTemp == '/'
+				.temp = .temp\sub 1, -2
 			.encbin = trimConfig.encBin
 			.prefix = aegisub.decode_path trimConfig.prefix
 			.inpath = aegisub.decode_path "?video"
@@ -92,6 +97,8 @@ class TrimHandler
 						success = os.execute encodeScript
 						unless success
 							logFile = io.open @tokens.log, 'r'
+							unless logFile
+								log.windowError "Could not read log file #{@tokens.log}.\nSomething has gone horribly wrong."
 							encodeLog = logFile\read '*a'
 							log.warn "\nEncoding error:"
 							log.warn encodeLog
