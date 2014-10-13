@@ -43,7 +43,7 @@ class MotionHandler
 				@callbacks["(\\frz?)([%-%d%.]+)"] = rotate
 
 		-- Don't support SRS for rectangular clips.
-		if @rectClipData and not 'SRS' == rectClipData.type
+		if @rectClipData and 'SRS' != rectClipData.type
 			@callbacks['(\\i?clip)(%([%-%d%.]+,[%-%d%.]+,[%-%d%.]+,[%-%d%.]+%))'] = rectangularClip
 
 		if @vectClipData
