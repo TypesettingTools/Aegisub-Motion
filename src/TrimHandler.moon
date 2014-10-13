@@ -52,7 +52,7 @@ class TrimHandler
 		@makePrefix = trimConfig.makePfix
 
 		with @tokens
-			.temp   = aegisub.decode_path "?temp"
+			.temp = aegisub.decode_path "?temp"
 			-- For some reason, aegisub appends / to the end of ?temp but not
 			-- other tokens.
 			finalTemp = .temp\sub -1, -1
@@ -91,7 +91,7 @@ class TrimHandler
 					pre: @tokens.temp
 					ext: ".bat"
 					exec: '""%s""'
-					preCom: @makePrefix and "mkdir \"#{@tokens.prefix}\"\n" or ""
+					preCom: "chcp 65001\n" .. (@makePrefix and "mkdir \"#{@tokens.prefix}\"\n" or "")
 					postCom: " > #{@tokens.log} 2>&1"
 					execFunc: ( encodeScript ) ->
 						success = os.execute encodeScript
