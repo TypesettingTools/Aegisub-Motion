@@ -71,6 +71,25 @@ class Line
 
 		return true
 
+	-- this should not have been added and the name is probably misleading.
+	moveToPosition: ( time ) =>
+		moveTag = tags.allTags.move
+		posTag = tags.allTags.pos
+		found = false
+		@runCallbackOnOverrides ( tagBlock ) =>
+			tagBlock = tagBlock\gsub moveTag.pattern, ( value ) ->
+				found = true
+				move = moveTag\convert value
+				progress = (time - move.start)/(move.end - move.start)
+				newPos = moveTag\interpolate {move.x1, move.y1}, {move.x2, move.y2}, progress
+				@xPosition = newPos[1]
+				@yPosition = newPos[2]
+				return posTag\format newPos
+
+			return tagBlock
+		-- shitty hacks
+		return found
+
 	generateTagIndex: ( major, minor ) ->
 		return tonumber tostring( major ) .. "." .. tostring minor
 

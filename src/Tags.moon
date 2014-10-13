@@ -48,6 +48,12 @@ interpolateMulti = ( before, after, progress ) =>
 
 	return result
 
+interpolatePosition = ( before, after, progress ) =>
+	return {
+		interpolateNumber @, before[1], after[1], progress
+		interpolateNumber @, before[2], after[2], progress
+	}
+
 interpolateColor = ( before, after, progress ) =>
 	return interpolateMulti { fieldnames: { 'b', 'g', 'r' } }, before, after, progress
 
@@ -126,7 +132,7 @@ return {
 		vectiClip:{ fieldnames: { "scale", "shape" }, output: "multi", pattern: "\\iclip%((%d+,)?([^,]-)%)"     , tag: "\\iclip", format: formatMulti, convert: convertMultiValue }
 		rectClip: { fieldnames: { "xLeft", "yTop", "xRight", "yBottom" }, output: "multi", pattern: "\\clip%(([%-%d%.]+,[%-%d%.]+,[%-%d%.]+,[%-%d%.]+)%)" , transformable: true, tag: "\\clip" , format: formatMulti, convert: convertMultiValue, interpolate: interpolateMulti }
 		rectiClip:{ fieldnames: { "xLeft", "yTop", "xRight", "yBottom" }, output: "multi", pattern: "\\iclip%(([%-%d%.]+,[%-%d%.]+,[%-%d%.]+,[%-%d%.]+)%)", transformable: true, tag: "\\iclip", format: formatMulti, convert: convertMultiValue, interpolate: interpolateMulti }
-		move:     { fieldnames: { "x1", "y1", "x2", "y2", "start", "end" },     output: "multi", pattern: "\\move%(([%.%d%-]+,[%.%d%-]+,[%.%d%-]+,[%.%d%-]+,[%d%-]+,[%d%-]+)%)", tag: "\\move" , format: formatMulti, convert: convertMultiValue }
+		move:     { fieldnames: { "x1", "y1", "x2", "y2", "start", "end" },     output: "multi", pattern: "\\move%(([%.%d%-]+,[%.%d%-]+,[%.%d%-]+,[%.%d%-]+,[%d%-]+,[%d%-]+)%)", tag: "\\move" , format: formatMulti, convert: convertMultiValue, interpolate: interpolatePosition }
 		fade:     { fieldnames: { "a1", "a2", "a3", "a4", "in", "mid", "out" }, output: "multi", pattern: "\\fade%((%d+,%d+,%d+,%d+,[%d%-]+,[%d%-]+,[%d%-]+)%)"                , tag: "\\fade" , format: formatMulti, convert: convertMultiValue }
 	}
 }

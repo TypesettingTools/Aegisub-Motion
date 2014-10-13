@@ -267,13 +267,15 @@ prepareLines = ( lineCollection ) ->
 		styles = @styles
 		lineStyle = line.styleRef
 		unless line\extraMetrics lineStyle
-			line\ensureLeadingOverrideBlockExists
+			-- fuck
+			unless line\moveToPosition math.floor(0.5*(aegisub.ms_from_frame(lineCollection.startFrame + options.main.startFrame - 1) + aegisub.ms_from_frame(lineCollection.startFrame + options.main.startFrame))) - line.start_time
+				line\ensureLeadingOverrideBlockExists
 
-			-- Note that we are repeatedly shadowing @, so in this function it
-			-- refers to the line. This is interestingly the opposite of how
-			-- fat arrow functions work in coffeescript.
-			line\runCallbackOnFirstOverride ( tagBlock ) =>
-				return tagBlock\gsub "{", ("{\\pos(%g,%g)")\format @xPosition, @yPosition
+				-- Note that we are repeatedly shadowing @, so in this function it
+				-- refers to the line. This is interestingly the opposite of how
+				-- fat arrow functions work in coffeescript.
+				line\runCallbackOnFirstOverride ( tagBlock ) =>
+					return tagBlock\gsub "{", ("{\\pos(%g,%g)")\format @xPosition, @yPosition
 
 		-- Add any tags we need that are missing from the line.
 		line\runCallbackOnFirstOverride ( tagBlock ) =>
