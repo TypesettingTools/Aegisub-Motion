@@ -40,9 +40,9 @@ class Line
 	}
 
 	new: ( line, @parentCollection, overrides = { } ) =>
-		for _, field in ipairs @fieldsToCopy
-			if "table" == type field
-				@[field] = util.copy_deep overrides[field] or line[field]
+		for field in *@fieldsToCopy
+			if "table" == type line[field]
+				@[field] = util.deep_copy overrides[field] or line[field]
 			else
 				@[field] = overrides[field] or line[field]
 		@duration = @end_time - @start_time
