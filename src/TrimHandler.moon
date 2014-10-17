@@ -90,10 +90,10 @@ class TrimHandler
 		with platform = ({
 				[true]:  {
 					pre: @tokens.temp
-					ext: ".bat"
-					exec: '""%s""'
-					preCom: "chcp 65001\n" .. (@makePrefix and "mkdir \"#{@tokens.prefix}\"\n" or "")
-					postCom: (@writeLog and " > #{@tokens.log} 2>&1" or "")
+					ext: ".ps1"
+					exec: 'powershell -c iex "$(gc "%s" -en UTF8)"'
+					preCom: (@makePrefix and "mkdir -Force \"#{@tokens.prefix}\"; & " or "& ")
+					postCom: (@writeLog and " 2>&1 | Out-File #{@tokens.log} -en UTF8; exit $LASTEXITCODE" or "; exit $LASTEXITCODE")
 					execFunc: ( encodeScript ) ->
 						success = os.execute encodeScript
 						if @writeLog and not success
@@ -104,6 +104,8 @@ class TrimHandler
 							log.warn "\nEncoding error:"
 							log.warn encodeLog
 							log.windowError "Encoding failed. Log has been printed to progress window."
+						elseif not success
+							log.windowError "Encoding seems to have failed but you didn't write a log file."
 				}
 				[false]: {
 					pre: @tokens.temp
