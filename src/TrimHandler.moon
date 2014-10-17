@@ -5,7 +5,7 @@ windows = ffi.os == "Windows"
 
 class TrimHandler
 
-	windows: windows
+	@windows: windows
 
 	existingPresets: {
 		"x264", "ffmpeg"
