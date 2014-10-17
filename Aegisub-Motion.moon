@@ -87,13 +87,18 @@ using the x264 preset).]] }
 			cLabel:   { class: "label", x: 0, y: 7, width: 10, height: 1, label: [[
 If you want to use a custom encoding command, write it here. If a
 custom command is set, it overrides using a default.]] }
-			prefix:   { config: true, value: "?video", class: "textbox",  x: 0, y: 1,  width: 10, height: 1, name: "prefix",                                                                hint: "Prefix the encoded video is written. Useful values are ?video for the directory of the currently loaded video and ?script for the directory of the currently open script." }
-			makePfix: { config: true, value: false,    class: "checkbox", x: 0, y: 2, width: 10, height: 1, name: "makePfix",  label: "Try to create prefix directory.",                   hint: "Try to create prefix directory." }
-			preset:   { config: true, value: "x264",   class: "dropdown", x: 0, y: 4,  width: 10, height: 1, name: "preset",    label: "Sort lines by", items: TrimHandler.existingPresets, hint: "Choose an existing preset by name." }
-			encBin:   { config: true, value: "",       class: "textbox",  x: 0, y: 6,  width: 10, height: 1, name: "encBin",                                                                hint: "The full path to your encoding binary (x264.exe if you're using the default preset)" }
-			command:  { config: true, value: "",       class: "textbox",  x: 0, y: 8,  width: 10, height: 4, name: "command",                                                               hint: "If you want to use a custom encoding command, write it here." }
+			prefix:   { config: true, value: "?video", class: "textbox",  x: 0, y: 1, width: 10, height: 1, name: "prefix",                                                               hint: "Prefix the encoded video is written. Useful values are ?video for the directory of the currently loaded video and ?script for the directory of the currently open script." }
+			makePfix: { config: true, value: false,    class: "checkbox", x: 0, y: 2, width: 10, height: 1, name: "makePfix", label: "Try to create prefix directory.",                   hint: "Try to create prefix directory." }
+			preset:   { config: true, value: "x264",   class: "dropdown", x: 0, y: 4, width: 10, height: 1, name: "preset",   label: "Sort lines by", items: TrimHandler.existingPresets, hint: "Choose an existing preset by name." }
+			encBin:   { config: true, value: "",       class: "textbox",  x: 0, y: 6, width: 10, height: 1, name: "encBin",                                                               hint: "The full path to your encoding binary (x264.exe if you're using the default preset)" }
+			command:  { config: true, value: "",       class: "textbox",  x: 0, y: 8, width: 10, height: 4, name: "command",                                                              hint: "If you want to use a custom encoding command, write it here." }
 		}
 	}
+
+	if TrimHandler.windows
+		interface.trim.writeLog = { config: true, value: true, class: "checkbox", x: 0, y: 9, width: 10, height: 1, name: "writeLog", label: "Write encode log.", hint: "Write encode log. Allows aegisub-motion to print information if an encode fails. Only matters on windows." }
+
+	interface
 
 fetchDataFromClipboard = ->
 	-- According to vague reports, Aegisub clipboard usage crashes it on

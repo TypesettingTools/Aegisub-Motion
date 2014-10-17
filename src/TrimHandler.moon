@@ -50,6 +50,7 @@ class TrimHandler
 			@command = @defaults[trimConfig.preset]
 
 		@makePrefix = trimConfig.makePfix
+		@writeLog   = trimConfig.writeLog
 
 		with @tokens
 			.temp = aegisub.decode_path "?temp"
@@ -92,10 +93,10 @@ class TrimHandler
 					ext: ".bat"
 					exec: '""%s""'
 					preCom: "chcp 65001\n" .. (@makePrefix and "mkdir \"#{@tokens.prefix}\"\n" or "")
-					postCom: " > #{@tokens.log} 2>&1"
+					postCom: (@writeLog and " > #{@tokens.log} 2>&1" or "")
 					execFunc: ( encodeScript ) ->
 						success = os.execute encodeScript
-						unless success
+						if @writeLog and not success
 							logFile = io.open @tokens.log, 'r'
 							unless logFile
 								log.windowError "Could not read log file #{@tokens.log}.\nSomething has gone horribly wrong."
