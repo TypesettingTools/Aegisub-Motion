@@ -149,15 +149,7 @@ class MotionHandler
 					newText = newText\gsub pattern, ( tag, value ) ->
 						tag .. callback @, value, frame
 
-				newTransforms = { }
-				for transform in *.transforms
-					table.insert newTransforms, Transform transform.startTime - timeDelta,
-						transform.endTime - timeDelta,
-						transform.accel,
-						transform.effect,
-						transform.index
-
-				@resultingCollection\addLine Line line, @resultingCollection, { text: newText, start_time: newStartTime, end_time: newEndTime, transforms: newTransforms }
+				@resultingCollection\addLine Line line, @resultingCollection, { text: newText, start_time: newStartTime, end_time: newEndTime, transformShift: timeDelta }
 
 	position = ( pos, frame ) =>
 		x, y = pos\match "([%-%d%.]+),([%-%d%.]+)"

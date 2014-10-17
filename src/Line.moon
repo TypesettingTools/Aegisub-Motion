@@ -295,7 +295,13 @@ class Line
 
 	detokenizeTransforms: =>
 		@loopOverTokenizedTransforms ( index ) ->
-			return @transforms[tonumber index]\toString @
+			transform = @transforms[tonumber index]
+			transform.startTime -= @transformShift
+			transform.endTime -= @transformShift
+			result = transform\toString!
+			transform.startTime += @transformShift
+			transform.endTime += @transformShift
+			return result
 
 		if @transformEnded
 			@transformEnded = nil
@@ -308,10 +314,14 @@ class Line
 	interpolateTransforms: =>
 		@loopOverTokenizedTransforms ( index ) ->
 			transform = @transforms[tonumber index]
+			transform.startTime -= @transformShift
+			transform.endTime -= @transformShift
 			transform\gatherTagsInEffect!
 			transform\collectPriorState @
-			return transform\interpolate aegisub.ms_from_frame(aegisub.frame_from_ms(@start_time)+1) - @start_time
-		@deduplicateTags!
+			result = transform\interpolate aegisub.ms_from_frame(aegisub.frame_from_ms(@start_time)+1) - @start_time
+			transform.startTime += @transformShift
+			transform.endTime += @transformShift
+			return result
 
 	combineWithLine: ( line ) =>
 		if @text == line.text and @style == line.style and (@start_time == line.end_time or @end_time == line.start_time)
