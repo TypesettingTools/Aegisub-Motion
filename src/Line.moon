@@ -5,11 +5,15 @@ Transform = require 'a-mo.Transform'
 util      = require 'aegisub.util'
 
 class Line
+	fieldsToDeepCopy: {
+		'extra'
+	}
+
 	fieldsToCopy: {
-		-- Built in line fields
-		'actor', 'class', 'comment', 'effect', 'end_time', 'extra', 'layer', 'margin_l', 'margin_r', 'margin_t', 'section', 'start_time', 'style', 'text'
+		-- Line fields
+		'actor', 'class', 'comment', 'effect', 'end_time',  'layer', 'margin_l', 'margin_r', 'margin_t', 'section', 'start_time', 'style', 'text'
 		-- Our fields
-		'number', 'transforms', 'transformsAreTokenized', 'properties', 'styleRef', 'wasLinear'
+		'number', 'transforms', 'transformShift', 'transformsAreTokenized', 'properties', 'styleRef', 'wasLinear'
 	}
 
 	splitChar:    "\\\6"
@@ -40,11 +44,15 @@ class Line
 	}
 
 	new: ( line, @parentCollection, overrides = { } ) =>
-		for field in *@fieldsToCopy
+		for field in *@fieldsToDeepCopy
 			if "table" == type line[field]
 				@[field] = util.deep_copy overrides[field] or line[field]
 			else
 				@[field] = overrides[field] or line[field]
+
+		for field in *@fieldsToCopy
+			@[field] = overrides[field] or line[field]
+
 		@duration = @end_time - @start_time
 
 	-- Gathers extra line metrics: the alignment and position.
