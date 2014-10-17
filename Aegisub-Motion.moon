@@ -96,7 +96,7 @@ custom command is set, it overrides using a default.]] }
 	}
 
 	if TrimHandler.windows
-		interface.trim.writeLog = { config: true, value: true, class: "checkbox", x: 0, y: 9, width: 10, height: 1, name: "writeLog", label: "Write encode log.", hint: "Write encode log. Allows aegisub-motion to print information if an encode fails. Only matters on windows." }
+		interface.trim.writeLog = { config: true, value: true, class: "checkbox", x: 0, y: 12, width: 10, height: 1, name: "writeLog", label: "Write encode log.", hint: "Write encode log. Allows aegisub-motion to print information if an encode fails. Only matters on windows." }
 
 	interface
 

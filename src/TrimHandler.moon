@@ -41,6 +41,9 @@ class TrimHandler
 
 	-- 	-- Script should attempt to create prefix directory.
 	-- 	makePfix: nil
+
+	-- 	-- Script should attempt to log output of the encoding command.
+	-- 	writeLog: true
 	-- }
 	new: ( trimConfig ) =>
 		@tokens = { }
