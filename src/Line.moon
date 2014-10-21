@@ -98,6 +98,28 @@ class Line
 		-- shitty hacks
 		return found
 
+	formatTime = ( time ) ->
+		seconds = time/1000
+		minutes = seconds/60
+		hours   = minutes/60
+		return ("%d:%02d:%05.2f")\format hours, minutes%60, seconds%60
+
+	createRaw: =>
+		line = {
+			(@comment and ("Comment: %d")\format( @layer ) or ("Dialogue: %d")\format( @layer ))
+			formatTime @start_time
+			formatTime @end_time
+			@style
+			@actor
+			@margin_l
+			@margin_r
+			@margin_t
+			@effect
+			@text
+		}
+
+		@raw = table.concat line, ','
+
 	generateTagIndex: ( major, minor ) ->
 		return tonumber tostring( major ) .. "." .. tostring minor
 
