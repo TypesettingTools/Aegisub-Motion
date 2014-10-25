@@ -123,7 +123,7 @@ prepareConfig = ( config, mainData, clipData, lineCollection ) ->
 
 		else
 			-- Be extremely lazy and just re-parse data from scratch.
-			unless data\bestEffortParsingAttempt configField.data
+			unless data\bestEffortParsingAttempt configField.data, lineCollection.meta.PlayResX, lineCollection.meta.PlayResY
 				log.windowError "You put something in the data box\nbut it is wrong in ways I can't imagine."
 			unless data.dataObject\checkLength totalFrames
 				log.windowError "The length of your #{field} data (#{data.length}) doesn't match\nthe length of your lines (#{totalFrames}) and I quit."
@@ -345,7 +345,7 @@ applyProcessor = ( subtitles, selectedLines ) ->
 	setTask "Checking Clipboard for Data"
 	mainData = DataWrapper!
 	clipData = DataWrapper!
-	if mainData\bestEffortParsingAttempt rawInputData
+	if mainData\bestEffortParsingAttempt rawInputData, lineCollection.meta.PlayResX, lineCollection.meta.PlayResY
 		if mainData.dataObject\checkLength lineCollection.totalFrames
 			interface.main.data.value = rawInputData
 			interface.main.dataLabel.label = "                Data is the correct length."

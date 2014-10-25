@@ -6,7 +6,7 @@ class DataWrapper
 	new: =>
 
 	tryDataHandler = ( input ) =>
-		@dataObject = DataHandler input
+		@dataObject = DataHandler input, @scriptResX, @scriptResY
 		if @dataObject.length
 			@type = "TSR"
 			return true
@@ -21,7 +21,9 @@ class DataWrapper
 
 		return false
 
-	bestEffortParsingAttempt: ( input ) =>
+	bestEffortParsingAttempt: ( input, scriptResX, scriptResY ) =>
+		@scriptResX, @scriptResY = tonumber( scriptResX ), tonumber( scriptResY )
+		log.dump {@scriptResX, @scriptResY}
 		if input\match '^Adobe After Effects 6.0 Keyframe Data'
 			if tryDataHandler @, input
 				return true
