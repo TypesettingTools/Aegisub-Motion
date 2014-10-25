@@ -128,9 +128,6 @@ prepareConfig = ( config, mainData, clipData, lineCollection ) ->
 			unless data.dataObject\checkLength totalFrames
 				log.windowError "The length of your #{field} data (#{data.length}) doesn't match\nthe length of your lines (#{totalFrames}) and I quit."
 
-			if data.type == 'SRS'
-				data.dataObject\createDrawings lineCollection.meta.PlayResY
-
 			if configField.rectClip
 				rectClipData = data
 			if configField.vectClip

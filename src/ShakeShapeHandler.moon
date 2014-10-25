@@ -2,10 +2,13 @@ log = require 'a-mo.Log'
 
 class ShakeShapeHandler
 
-	new: ( input ) =>
+	new: ( input, @scriptHeight ) =>
 		if input
 			unless @parseRawDataString input
 				@parseFile input
+
+		if @rawData
+			@createDrawings!
 
 	parseRawDataString: ( rawDataString ) =>
 		if rawDataString\match "^shake_shape_data 4.0"
@@ -30,21 +33,21 @@ class ShakeShapeHandler
 		@numShapes = tonumber shapes
 		@length = #@rawData / @numShapes
 
-	createDrawings: ( scriptHeight ) =>
+	createDrawings: =>
 		@data = { }
 		for baseIndex = 1, @length
 			results = { }
 
 			for curveIndex = baseIndex, @numShapes*@length, @length
 				line = @rawData[curveIndex]
-				table.insert results, convertVertex line, scriptHeight
+				table.insert results, convertVertex line, @scriptHeight
 
 			table.insert @data, table.concat results, ' '
 
-	updateCurve = ( curve, height, ... ) ->
-		args = { ... }
+	fields = { "vx", "vy", "lx", "ly", "rx", "ry" }
+	updateCurve = ( curve, height, args ) ->
 		for index = 1, 6
-			field = ({ "vx", "vy", "lx", "ly", "rx", "ry" })[index]
+			field = fields[index]
 			if index % 2 == 0
 				curve[field] = height - args[index]
 			else
@@ -54,15 +57,15 @@ class ShakeShapeHandler
 		drawString = {'m '}
 		prevCurve = { }
 		currCurve = { }
-		vertex = vertex\gsub "vertex_data ([%-%.%d]+) ([%-%.%d]+) ([%-%.%d]+) ([%-%.%d]+) ([%-%.%d]+) ([%-%.%d]+) [%-%.%d]+ [%-%.%d]+ [%-%.%d]+ [%-%.%d]+ [%-%.%d]+ [%-%.%d]+", ( vx, vy, lx, ly, rx, ry ) ->
-			updateCurve prevCurve, scriptHeight, vx, vy, lx, ly, rx, ry
+		vertex = vertex\gsub "vertex_data ([%-%.%d]+) ([%-%.%d]+) ([%-%.%d]+) ([%-%.%d]+) ([%-%.%d]+) ([%-%.%d]+) [%-%.%d]+ [%-%.%d]+ [%-%.%d]+ [%-%.%d]+ [%-%.%d]+ [%-%.%d]+", ( ... ) ->
+			updateCurve prevCurve, scriptHeight, { ... }
 			table.insert drawString, "#{prevCurve.vx} #{prevCurve.vy} b "
 			return ""
 
 		firstCurve = { k, v for k, v in pairs prevCurve }
 
-		vertex\gsub "([%-%.%d]+) ([%-%.%d]+) ([%-%.%d]+) ([%-%.%d]+) ([%-%.%d]+) ([%-%.%d]+) [%-%.%d]+ [%-%.%d]+ [%-%.%d]+ [%-%.%d]+ [%-%.%d]+ [%-%.%d]+", ( vx, vy, lx, ly, rx, ry ) ->
-			updateCurve currCurve, scriptHeight, vx, vy, lx, ly, rx, ry
+		vertex\gsub "([%-%.%d]+) ([%-%.%d]+) ([%-%.%d]+) ([%-%.%d]+) ([%-%.%d]+) ([%-%.%d]+) [%-%.%d]+ [%-%.%d]+ [%-%.%d]+ [%-%.%d]+ [%-%.%d]+ [%-%.%d]+", ( ... ) ->
+			updateCurve currCurve, scriptHeight, { ... }
 			table.insert drawString, "#{prevCurve.rx} #{prevCurve.ry} #{currCurve.lx} #{currCurve.ly} #{currCurve.vx} #{currCurve.vy} "
 			prevCurve, currCurve = currCurve, prevCurve
 

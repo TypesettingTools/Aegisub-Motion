@@ -14,7 +14,7 @@ class DataWrapper
 		return false
 
 	tryShakeShape = ( input ) =>
-		@dataObject = ShakeShapeHandler input
+		@dataObject = ShakeShapeHandler input, @scriptResY
 		if @dataObject.length
 			@type = "SRS"
 			return true
@@ -23,7 +23,6 @@ class DataWrapper
 
 	bestEffortParsingAttempt: ( input, scriptResX, scriptResY ) =>
 		@scriptResX, @scriptResY = tonumber( scriptResX ), tonumber( scriptResY )
-		log.dump {@scriptResX, @scriptResY}
 		if input\match '^Adobe After Effects 6.0 Keyframe Data'
 			if tryDataHandler @, input
 				return true
