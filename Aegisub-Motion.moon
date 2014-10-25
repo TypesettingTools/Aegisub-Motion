@@ -311,6 +311,7 @@ postprocLines = ( lineCollection ) ->
 		else
 			if lineCollection.options.main.killTrans
 				line\interpolateTransforms!
+				line\deduplicateTags!
 			else
 				line\detokenizeTransforms!
 
