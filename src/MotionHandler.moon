@@ -37,7 +37,7 @@ class MotionHandler
 				if @options.main.shadow
 					@callbacks["(\\[xy]?shad)([%-%d%.]+)"] = scale
 				if @options.main.blur
-					@callbacks["(\\blur)([%d%.]+)"] = scale
+					@callbacks["(\\blur)([%d%.]+)"] = blur
 
 			if @options.main.zRotation
 				@callbacks["(\\frz?)([%-%d%.]+)"] = rotate
@@ -154,7 +154,7 @@ class MotionHandler
 	position = ( pos, frame ) =>
 		x, y = pos\match "([%-%d%.]+),([%-%d%.]+)"
 		x, y = positionMath x, y, @lineTrackingData
-		("(%g,%g)")\format Math.round( x, @options.main.posRound ), Math.round( y, @options.main.posRound )
+		("(%g,%g)")\format Math.round( x, 2 ), Math.round( y, 2 )
 
 	positionMath = ( x, y, data ) ->
 		x = (tonumber( x ) - data.xStartPosition)*data.xRatio
@@ -166,21 +166,27 @@ class MotionHandler
 		return x, y
 
 	absolutePosition = ( pos, frame ) =>
-		("(%g,%g)")\format Math.round( @lineTrackingData.xPosition[frame], @options.main.posRound ), Math.round( @lineTrackingData.yPosition[frame], @options.main.posRound )
+		("(%g,%g)")\format Math.round( @lineTrackingData.xPosition[frame], 2 ), Math.round( @lineTrackingData.yPosition[frame], 2 )
 
 	-- Needs to be fixed.
 	origin = ( origin, frame ) =>
 		ox, oy = origin\match("([%-%d%.]+),([%-%d%.]+)")
 		ox, oy = positionMath ox, oy, @lineTrackingData
-		("(%g,%g)")\format Math.round( ox, @options.main.posRound ), Math.round( oy, @options.main.posRound )
+		("(%g,%g)")\format Math.round( ox, 2 ), Math.round( oy, 2 )
 
 	scale = ( scale, frame ) =>
 		scale *= @lineTrackingData.xRatio
-		tostring Math.round scale, @options.main.sclRound
+		tostring Math.round scale, 2
+
+	blur = ( blur, frame ) =>
+		ratio = @lineTrackingData.xRatio
+		ratio = 1 - (1 - ratio)*@options.main.blurScale
+
+		tostring Math.round blur*ratio, 2
 
 	rotate = ( rotation, frame ) =>
 		rotation += @lineTrackingData.zRotationDiff
-		tostring Math.round rotation, @options.main.rotRound
+		tostring Math.round rotation, 2
 
 	rectangularClip = ( clip, frame ) =>
 		@rectClipData\calculateCurrentState frame
