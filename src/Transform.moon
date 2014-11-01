@@ -1,4 +1,5 @@
 log = require 'a-mo.Log'
+Math = require 'a-mo.Math'
 
 class Transform
 
@@ -94,7 +95,7 @@ class Transform
 			interpValue = tag\interpolate startValue, endValue, progress
 			-- This is an atrocity against god and man
 			@effect = @effect\gsub tag.pattern, ->
-				return tag\format interpValue
+				return tag\format Math.round interpValue, 2
 
 		return @effect
 
