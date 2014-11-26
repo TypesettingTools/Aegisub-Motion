@@ -12,21 +12,23 @@ return {
 		if aegisub.progress.is_cancelled!
 			aegisub.cancel!
 
-	dump: ( ... ) ->
+	dump: ( item, ignore ) ->
 		level = 2
-		for item in *{...}
-			if "table" != type item
-				aegisub.log level, tostring item
-				aegisub.log level, "\n"
-				return
+		if "table" != type item
+			aegisub.log level, tostring item
+			aegisub.log level, "\n"
+			return
 
-			count = 1
-			tablecount = 1
+		count = 1
+		tablecount = 1
 
-			result = { "{ @#{tablecount}" }
-			seen   = { [item]: tablecount }
-			recurse = ( item, space ) ->
-				for key, value in pairs item
+		result = { "{ @#{tablecount}" }
+		seen   = { [item]: tablecount }
+		recurse = ( item, space ) ->
+			for key, value in pairs item
+				unless key == ignore
+					if "number" == type key
+						key = "##{key}"
 					if "table" == type value
 						unless seen[value]
 							tablecount += 1
@@ -47,11 +49,11 @@ return {
 						count += 1
 						result[count] = space .. "#{key}: #{value}"
 
-			recurse item, "    "
+		recurse item, "    "
 
-			count += 1
-			result[count] = "}\n"
-			aegisub.log level, table.concat result, "\n"
+		count += 1
+		result[count] = "}\n"
+		aegisub.log level, table.concat result, "\n"
 
 	windowError: ( errorMessage ) ->
 		aegisub.dialog.display { { class: "label", label: errorMessage } }, { "&Close" }, { cancel: "&Close" }
