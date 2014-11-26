@@ -102,7 +102,7 @@ class Line
 		seconds = time/1000
 		minutes = seconds/60
 		hours   = minutes/60
-		return ("%d:%02d:%05.2f")\format hours, minutes%60, seconds%60
+		return ("%d:%02d:%05.2f")\format math.floor( hours ), math.floor( minutes%60 ), seconds%60
 
 	createRaw: =>
 		line = {
