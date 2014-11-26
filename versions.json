@@ -1,0 +1,15 @@
+{
+	"src/ConfigHandler.moon": "0x010000",
+	"src/DataHandler.moon": "0x010000",
+	"src/DataWrapper.moon": "0x010000",
+	"src/Line.moon": "0x010000",
+	"src/LineCollection.moon": "0x010000",
+	"src/Log.moon": "0x010000",
+	"src/Math.moon": "0x010000",
+	"src/MotionHandler.moon": "0x010000",
+	"src/ShakeShapeHandler.moon": "0x010000",
+	"src/Tags.moon": "0x010000",
+	"src/Transform.moon": "0x010000",
+	"src/TrimHandler.moon": "0x010000",
+	"Aegisub-Motion.moon": "0x010000"
+}
