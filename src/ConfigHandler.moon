@@ -1,7 +1,13 @@
-json = require "json"
-log = require "a-mo.Log"
+json = require 'json'
+log  = require 'a-mo.Log'
+bit  = require 'bit'
 
 class ConfigHandler
+	@version: 0x010000
+	@version_major: bit.rshift( @version, 16 )
+	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
+	@version_patch: bit.band( @version, 0xFF )
+	@version_string: ("%d.%d.%d")\format @version_major, @version_minor, @version_patch
 
 	-- The minimum required format for `optionTables` is
 	-- { section: { optionname: { value: optionvalue, config: (true|false) } } }

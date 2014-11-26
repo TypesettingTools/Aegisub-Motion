@@ -1,4 +1,12 @@
 log = require 'a-mo.Log'
+bit = require 'bit'
+
+version = 0x010000
+version_major = bit.rshift( version, 16 )
+version_minor = bit.band( bit.rshift( version, 8 ), 0xFF )
+version_patch = bit.band( version, 0xFF )
+version_string = ("%d.%d.%d")\format version_major, version_minor, version_patch
+
 local Transform
 
 -- In the following conversion functions, self refers to the tag table.
@@ -79,6 +87,12 @@ formatMulti = ( value ) =>
 	return ("%s(%s)")\format @tag, table.concat value, ','
 
 return {
+	:version
+	:version_major
+	:version_minor
+	:version_patch
+	:version_string
+
 	repeatTags: {
 		"fontName", "fontSize", "fontSp", "xscale", "yscale", "zrot", "xrot", "yrot", "border", "xborder", "yborder", "shadow", "xshadow", "yshadow", "reset", "alpha", "alpha1", "alpha2", "alpha3", "alpha4", "color1", "color2", "color3", "color4", "be", "blur", "xshear", "yshear", "drawing"
 	}

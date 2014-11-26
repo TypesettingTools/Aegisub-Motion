@@ -1,8 +1,15 @@
 log               = require 'a-mo.Log'
 ShakeShapeHandler = require 'a-mo.ShakeShapeHandler'
 DataHandler       = require 'a-mo.DataHandler'
+bit               = require 'bit'
 
 class DataWrapper
+	@version: 0x010000
+	@version_major: bit.rshift( @version, 16 )
+	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
+	@version_patch: bit.band( @version, 0xFF )
+	@version_string: ("%d.%d.%d")\format @version_major, @version_minor, @version_patch
+
 	new: =>
 
 	tryDataHandler = ( input ) =>

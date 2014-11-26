@@ -3,8 +3,14 @@ Transform      = require 'a-mo.Transform'
 Math           = require 'a-mo.Math'
 Line           = require 'a-mo.Line'
 log            = require 'a-mo.Log'
+bit            = require 'bit'
 
 class MotionHandler
+	@version: 0x010000
+	@version_major: bit.rshift( @version, 16 )
+	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
+	@version_patch: bit.band( @version, 0xFF )
+	@version_string: ("%d.%d.%d")\format @version_major, @version_minor, @version_patch
 
 	new: ( @lineCollection, mainData, rectClipData = { }, vectClipData = { } ) =>
 		-- Create a local reference to the options table.

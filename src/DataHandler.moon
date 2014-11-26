@@ -1,6 +1,13 @@
 log = require 'a-mo.Log'
+bit = require 'bit'
 
 class DataHandler
+	@version: 0x010000
+	@version_major: bit.rshift( @version, 16 )
+	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
+	@version_patch: bit.band( @version, 0xFF )
+	@version_string: ("%d.%d.%d")\format @version_major, @version_minor, @version_patch
+
 
 	new: ( input, @scriptResX, @scriptResY ) =>
 		-- (length-22)/4
