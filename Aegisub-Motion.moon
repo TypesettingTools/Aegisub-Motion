@@ -9,7 +9,7 @@ export script_version     = "1.0.0-beta1"
 local interface
 
 ffi            = require 'ffi'
-clipboard      = require 'clipboard'
+clipboard      = require 'aegisub.clipboard'
 LineCollection = require 'a-mo.LineCollection'
 ConfigHandler  = require 'a-mo.ConfigHandler'
 DataWrapper    = require 'a-mo.DataWrapper'
