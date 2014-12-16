@@ -3,7 +3,7 @@ log  = require 'a-mo.Log'
 bit  = require 'bit'
 
 class ConfigHandler
-	@version: 0x010000
+	@version: 0x010100
 	@version_major: bit.rshift( @version, 16 )
 	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
 	@version_patch: bit.band( @version, 0xFF )
@@ -28,6 +28,8 @@ class ConfigHandler
 			@configuration[sectionName] = { }
 			for optionName, configEntry in pairs configEntries
 				if configEntry.config
+					if configEntry.name != optionName
+						configEntry.name = optionName
 					@configuration[sectionName][optionName] = configEntry.value
 
 	parse = =>
@@ -51,7 +53,7 @@ class ConfigHandler
 			@fileHandle\close!
 			return true
 		else
-			log.warn "Configuration file \"#{@fileName}\" can't be read. Writing defaults."
+			log.debug "Configuration file \"#{@fileName}\" can't be read. Writing defaults."
 			@write!
 			return false
 
@@ -87,7 +89,7 @@ class ConfigHandler
 			else
 				doConfigUpdate @, resultTable, sectionNames
 		else
-			log.warn "Section Name not provided. You are doing it wrong."
+			log.debug "Section Name not provided. You are doing it wrong."
 
 	doConfigUpdate = ( newValues, sectionName ) =>
 		-- have to loop across @configuration because not all of the
@@ -109,7 +111,7 @@ class ConfigHandler
 				@fileHandle\write serializedConfig
 				@fileHandle\close!
 			else
-				log.warn "Could not write \"#{@fileName}\"."
+				log.warn "Could not write the configuration file \"#{@fileName}\"."
 
 	delete: =>
 		os.remove @fileName
