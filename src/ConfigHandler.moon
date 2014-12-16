@@ -3,7 +3,7 @@ log  = require 'a-mo.Log'
 bit  = require 'bit'
 
 class ConfigHandler
-	@version: 0x010100
+	@version: 0x010101
 	@version_major: bit.rshift( @version, 16 )
 	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
 	@version_patch: bit.band( @version, 0xFF )
@@ -27,9 +27,9 @@ class ConfigHandler
 		for sectionName, configEntries in pairs @optionTables
 			@configuration[sectionName] = { }
 			for optionName, configEntry in pairs configEntries
+				if configEntry.name != optionName and configEntry.class != "label"
+					configEntry.name = optionName
 				if configEntry.config
-					if configEntry.name != optionName
-						configEntry.name = optionName
 					@configuration[sectionName][optionName] = configEntry.value
 
 	parse = =>
