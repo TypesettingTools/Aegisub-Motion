@@ -5,7 +5,7 @@ bit = require 'bit'
 windows = ffi.os == "Windows"
 
 class TrimHandler
-	@version: 0x010000
+	@version: 0x010001
 	@version_major: bit.rshift( @version, 16 )
 	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
 	@version_patch: bit.band( @version, 0xFF )
@@ -53,6 +53,7 @@ class TrimHandler
 	-- }
 	new: ( trimConfig ) =>
 		@tokens = { }
+		trimConfig.command = trimConfig.command\gsub "[\t \r\n]*$", ""
 		if trimConfig.command != nil and trimConfig.command != ""
 			@command = trimConfig.command
 		else
@@ -100,6 +101,7 @@ class TrimHandler
 				[true]:  {
 					pre: @tokens.temp
 					ext: ".ps1"
+					-- This needs to be run from cmd or it will not work.
 					exec: 'powershell -c iex "$(gc "%s" -en UTF8)"'
 					preCom: (@makePrefix and "mkdir -Force \"#{@tokens.prefix}\"; & " or "& ")
 					postCom: (@writeLog and " 2>&1 | Out-File #{@tokens.log} -en UTF8; exit $LASTEXITCODE" or "; exit $LASTEXITCODE")
@@ -141,6 +143,8 @@ class TrimHandler
 			unless encodeScriptFile
 				log.windowError "Encoding script could not be written.\nSomething is wrong with your temp dir (#{.pre})."
 			encodeString = .preCom .. @command\gsub( "#{(.-)}", ( token ) -> @tokens[token] ) .. .postCom
+			if windows
+				encodeString = encodeString\gsub "`", "``"
 			log.debug encodeString
 			encodeScriptFile\write encodeString
 			encodeScriptFile\close!
