@@ -6,7 +6,7 @@ util      = require 'aegisub.util'
 bit       = require 'bit'
 
 class Line
-	@version: 0x010000
+	@version: 0x010001
 	@version_major: bit.rshift( @version, 16 )
 	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
 	@version_patch: bit.band( @version, 0xFF )
@@ -58,7 +58,10 @@ class Line
 				@[field] = overrides[field] or line[field]
 
 		for field in *@fieldsToCopy
-			@[field] = overrides[field] or line[field]
+			if overrides[field] != nil
+				@[field] = overrides[field]
+			else
+				@[field] = line[field]
 
 		@duration = @end_time - @start_time
 
