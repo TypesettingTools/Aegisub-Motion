@@ -28,7 +28,7 @@ class DataHandler
 			@yPosScale = @scriptResY/tonumber height
 
 			parse @
-			if #@xPosition != @length or #@yPosition != @length or #@xScale != @length or #@yScale != @length or #@zRotation != @length
+			if #@xPosition != @length or #@yPosition != @length or #@xScale != @length or #@yScale != @length or #@zRotation != @length or 0 == @length
 				return false
 
 			return true
