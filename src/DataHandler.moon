@@ -2,7 +2,7 @@ log = require 'a-mo.Log'
 bit = require 'bit'
 
 class DataHandler
-	@version: 0x010001
+	@version: 0x010002
 	@version_major: bit.rshift( @version, 16 )
 	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
 	@version_patch: bit.band( @version, 0xFF )
