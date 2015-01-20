@@ -2,8 +2,11 @@ Line = require 'a-mo.Line'
 log  = require 'a-mo.Log'
 bit  = require 'bit'
 
+frameFromMs = aegisub.frame_from_ms
+msFromFrame = aegisub.ms_from_frame
+
 class LineCollection
-	@version: 0x010000
+	@version: 0x010001
 	@version_major: bit.rshift( @version, 16 )
 	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
 	@version_patch: bit.band( @version, 0xFF )
@@ -13,7 +16,7 @@ class LineCollection
 		@lines = { }
 		if sel
 			@collectLines sel, validationCb
-			if aegisub.frame_from_ms 0
+			if frameFromMs 0
 				@getFrameInfo!
 
 	-- This method should update various properties such as
@@ -38,10 +41,10 @@ class LineCollection
 				line.styleRef = @styles[line.style]
 
 			if @hasFrameInfo
-				line.startFrame = frame_from_ms line.start_time
-				line.endFrame = frame_from_ms line.end_time
-				@startFrame  = frame_from_ms @startTime
-				@endFrame    = frame_from_ms @endTime
+				line.startFrame = frameFromMs line.start_time
+				line.endFrame = frameFromMs line.end_time
+				@startFrame  = frameFromMs @startTime
+				@endFrame    = frameFromMs @endTime
 				@totalFrames = @endFrame - @startFrame
 
 			table.insert @lines, line
@@ -96,15 +99,13 @@ class LineCollection
 					table.insert @lines, line
 
 	getFrameInfo: =>
-		frame_from_ms = aegisub.frame_from_ms
-		ms_from_frame = aegisub.ms_from_frame
 
 		for line in *@lines
-			line.startFrame = frame_from_ms line.start_time
-			line.endFrame   = frame_from_ms line.end_time
+			line.startFrame = frameFromMs line.start_time
+			line.endFrame   = frameFromMs line.end_time
 
-		@startFrame  = frame_from_ms @startTime
-		@endFrame    = frame_from_ms @endTime
+		@startFrame  = frameFromMs @startTime
+		@endFrame    = frameFromMs @endTime
 		@totalFrames = @endFrame - @startFrame
 		@hasFrameInfo = true
 
