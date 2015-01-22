@@ -196,3 +196,6 @@ class LineCollection
 			for line in *@lines
 				if line.inserted and not line.hasBeenDeleted
 					@sub[line.number] = line
+	getSelection: =>
+		sel = [line.number for line in *@lines when line.selected and line.inserted and not line.hasBeenDeleted]
+		return sel, sel[#sel]
