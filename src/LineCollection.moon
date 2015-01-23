@@ -12,18 +12,22 @@ class LineCollection
 	@version_patch: bit.band( @version, 0xFF )
 	@version_string: ("%d.%d.%d")\format @version_major, @version_minor, @version_patch
 
-	new: ( @sub, sel, validationCb ) =>
+	new: ( @sub, sel, validationCb, selectLines=true ) =>
 		@lines = { }
 		if sel
-			@collectLines sel, validationCb
+			@collectLines sel, validationCb, selectLines
 			if frameFromMs 0
 				@getFrameInfo!
 
 	-- This method should update various properties such as
 	-- (start|end)(Time|Frame).
-	addLine: ( line, validationCb = () -> return true ) =>
+	addLine: ( line, validationCb = (-> return true), selectLine=true ) =>
 		if validationCb line
 			line.parentCollection = @
+			line.inserted = false
+			line.selected = selectLine
+			line.number = nil
+			frame_from_ms = aegisub.frame_from_ms
 
 			-- if @startTime is unset, @endTime should damn well be too.
 			if @startTime
@@ -70,7 +74,7 @@ class LineCollection
 
 		@hasMetaStyles = true
 
-	collectLines: ( sel, validationCb = ( line ) -> return not line.comment ) =>
+	collectLines: ( sel, validationCb = ( ( line ) -> return not line.comment), selectLines=true ) =>
 		unless @hasMetaStyles
 			@generateMetaAndStyles!
 
@@ -82,11 +86,17 @@ class LineCollection
 
 		@startTime  = @sub[sel[1]].start_time
 		@endTime    = @sub[sel[1]].end_time
+		@lastLineNumber = 0
 
 		for i = #sel, 1, -1
 			with line = Line @sub[sel[i]], @
 				if validationCb line
 					.number = sel[i]
+					@firstLineNumber = math.min .number, @firstLineNumber or .number
+					@lastLineNumber = math.max .number, @lastLineNumber
+					.inserted = true
+					.hasBeenDeleted = false
+					.selected = selectLines
 					.humanizedNumber = .number - dialogueStart
 					.styleRef = @styles[.style]
 
@@ -129,19 +139,17 @@ class LineCollection
 
 	combineIdenticalLines: =>
 		lastLine = @lines[1]
-		newLineTable = { }
+		linesToSkip = { }
 		for i = 2, #@lines
 			log.checkCancellation!
 
 			if lastLine\combineWithLine @lines[i]
+				linesToSkip[#linesToSkip+1] = @lines[i]
 				@shouldInsertLines = true
 				continue
-			else
-				table.insert newLineTable, lastLine
-				lastLine = @lines[i]
+			else lastLine = @lines[i]
+		@deleteLines linesToSkip
 
-		table.insert newLineTable, lastLine
-		@lines = newLineTable
 
 	runCallback: ( callback, reverse ) =>
 		if reverse
@@ -151,24 +159,43 @@ class LineCollection
 			for index = 1, #@lines
 				callback @, @lines[index], index
 
-	deleteLines: =>
-		for line in *@lines
-			line\delete!
+	deleteLines: ( lines=@lines, doShift=true ) =>
+		if lines.__class == Line
+			lines = { lines }
 
-	deleteWithShift: =>
-		shift = #@lines
+		lineSet = {line,true for _,line in pairs lines when not line.hasBeenDeleted}
+		-- make sure all lines are unique and have not actually been already removed
+		lines = [k for k,v in pairs lineSet]
+
+		@sub.delete [line.number for line in *lines when line.inserted]
+
+		@lastLineNumber = @firstLineNumber-1
+		shift = #lines or 0
 		for line in *@lines
-			line\delete!
-			line.number -= shift
-			shift -= 1
+			if lineSet[line]
+				line.hasBeenDeleted = true
+				line.number = nil
+				shift -= line.inserted and 1 or 0
+			elseif not line.hasBeenDeleted and line.inserted
+				line.number -= doShift and shift or 0
+				@lastLineNumber = math.max(line.number, @lastLineNumber)
 
 	insertLines: =>
-		for line in *@lines
-			@sub.insert line.number + 1, line
+		inserted = [line for line in *@lines when not (line.inserted or line.hasBeenDeleted)]
+		for i=#inserted, 1, -1
+			line = inserted[i]
+			line.number = @lastLineNumber + #inserted - i + 1
+			@sub.insert line.number, line
+			line.inserted = true
+		@lastLineNumber = @lastLineNumber + #inserted
 
 	replaceLines: =>
 		if @shouldInsertLines
 			@insertLines!
 		else
 			for line in *@lines
-				@sub[line.number] = line
+				if line.inserted and not line.hasBeenDeleted
+					@sub[line.number] = line
+	getSelection: =>
+		sel = [line.number for line in *@lines when line.selected and line.inserted and not line.hasBeenDeleted]
+		return sel, sel[#sel]

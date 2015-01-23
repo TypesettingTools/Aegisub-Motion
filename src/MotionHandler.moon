@@ -61,6 +61,7 @@ class MotionHandler
 		@resultingCollection = LineCollection @lineCollection.sub
 		@resultingCollection.shouldInsertLines = true
 		@resultingCollection.options = @options
+		@resultingCollection.firstLineNumber = @lineCollection.firstLineNumber
 		-- This has to be copied over for clip interpolation
 		@resultingCollection.meta = @lineCollection.meta
 		for line in *@lineCollection.lines

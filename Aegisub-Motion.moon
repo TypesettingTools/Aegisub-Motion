@@ -221,7 +221,7 @@ prepareLines = ( lineCollection ) ->
 	options = lineCollection.options
 	-- remove the lines while ensuring new lines will be inserted in the
 	-- correct place.
-	lineCollection\deleteWithShift!
+	lineCollection\deleteLines!
 
 	-- Perform all of the manipulation that used to be performed in
 	-- Line.moon but are actually fairly Aegisub-Motion specific.
