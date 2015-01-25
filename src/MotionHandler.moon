@@ -118,7 +118,7 @@ class MotionHandler
 				.text = .text\gsub "\\pos(%b())\\t%((%d+,%d+),\\pos(%b())%)", ( start, time, finish ) ->
 					"\\move" .. start\sub( 1, -2 ) .. ',' .. finish\sub( 2, -2 ) .. ',' .. time .. ")"
 
-			@resultingCollection\addLine (Line line, nil, { wasLinear: true }), nil, true, true
+			@resultingCollection\addLine Line( line, nil, { wasLinear: true } ), nil, true, true
 
 	nonlinear = ( line ) =>
 		for frame = line.relativeEnd, line.relativeStart, -1
@@ -156,7 +156,7 @@ class MotionHandler
 					newText = newText\gsub pattern, ( tag, value ) ->
 						tag .. callback @, value, frame
 
-				@resultingCollection\addLine (Line line, @resultingCollection, { text: newText, start_time: newStartTime, end_time: newEndTime, transformShift: timeDelta }),
+				@resultingCollection\addLine Line( line, @resultingCollection, { text: newText, start_time: newStartTime, end_time: newEndTime, transformShift: timeDelta } ),
 											 nil, true, true
 
 	position = ( pos, frame ) =>
