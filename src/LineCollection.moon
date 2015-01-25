@@ -187,21 +187,27 @@ class LineCollection
 
 	insertLines: =>
 		toInsert = [line for line in *@lines when not (line.inserted or line.hasBeenDeleted)]
-		tailLines = [line for line in *toInsert when not line.number]
-		numberedLines = [line for line in *toInsert when line.number]
+		tailLines, numberedLines = {}, {}
 
-		for i=1,#tailLines
-			tailLines[i].number = @lastLineNumber + i
-			tailLines[i].inserted = true
+		for i=1,#toInsert
+			line = toInsert[i]
+			if line.number
+				numberedLines[#numberedLines+1] = line
+				line.i = i
+			else
+				tailLines[#tailLines+1] = line
+				line.number = @lastLineNumber + i
+				line.inserted = true
 
-		table.sort numberedLines, (a,b) -> return a.number < b.number
+		table.sort numberedLines, (a,b) ->
+			return a.number < b.number or a.number==b.number and a.i < b.i
 		for line in *numberedLines
 			@sub.insert line.number, line
 			line.inserted = true
 			@lastLineNumber = math.max @lastLineNumber, line.number
 
 		unless #tailLines==0
-			@sub.insert @lastLineNumber +1, unpack tailLines
+			@sub.insert @lastLineNumber+1, unpack tailLines
 			@lastLineNumber = math.max @lastLineNumber, tailLines[#tailLines].number
 
 	replaceLines: =>
