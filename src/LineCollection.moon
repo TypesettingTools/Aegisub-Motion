@@ -27,12 +27,12 @@ class LineCollection
 
 	-- This method should update various properties such as
 	-- (start|end)(Time|Frame).
-	addLine: ( line, validationCb = (-> return true), selectLine=true ) =>
+	addLine: ( line, validationCb = (-> return true), selectLine=true, index=false ) =>
 		if validationCb line
 			line.parentCollection = @
 			line.inserted = false
 			line.selected = selectLine
-			line.number = nil
+			line.number = index==true and line.number or index or nil
 			frame_from_ms = aegisub.frame_from_ms
 
 			-- if @startTime is unset, @endTime should damn well be too.
@@ -175,25 +175,34 @@ class LineCollection
 
 		@sub.delete [line.number for line in *lines when line.inserted]
 
-		@lastLineNumber = @firstLineNumber-1
+		@lastLineNumber = @firstLineNumber
 		shift = #lines or 0
 		for line in *@lines
 			if lineSet[line]
 				line.hasBeenDeleted = true
-				line.number = nil
 				shift -= line.inserted and 1 or 0
 			elseif not line.hasBeenDeleted and line.inserted
 				line.number -= doShift and shift or 0
 				@lastLineNumber = math.max(line.number, @lastLineNumber)
 
 	insertLines: =>
-		inserted = [line for line in *@lines when not (line.inserted or line.hasBeenDeleted)]
-		for i=#inserted, 1, -1
-			line = inserted[i]
-			line.number = @lastLineNumber + #inserted - i + 1
+		toInsert = [line for line in *@lines when not (line.inserted or line.hasBeenDeleted)]
+		tailLines = [line for line in *toInsert when not line.number]
+		numberedLines = [line for line in *toInsert when line.number]
+
+		for i=1,#tailLines
+			tailLines[i].number = @lastLineNumber + i
+			tailLines[i].inserted = true
+
+		table.sort numberedLines, (a,b) -> return a.number < b.number
+		for line in *numberedLines
 			@sub.insert line.number, line
 			line.inserted = true
-		@lastLineNumber = @lastLineNumber + #inserted
+			@lastLineNumber = math.max @lastLineNumber, line.number
+
+		unless #tailLines==0
+			@sub.insert @lastLineNumber +1, unpack tailLines
+			@lastLineNumber = math.max @lastLineNumber, tailLines[#tailLines].number
 
 	replaceLines: =>
 		if @shouldInsertLines
