@@ -14,19 +14,25 @@ class LineCollection
 
 	new: ( @sub, sel, validationCb, selectLines=true ) =>
 		@lines = { }
-		if sel
+		if sel and #sel>0
 			@collectLines sel, validationCb, selectLines
 			if frameFromMs 0
 				@getFrameInfo!
+		else
+			for i=#@sub,1,-1 do
+				if @sub[i].class == "dialogue" then
+					@lastLineNumber = i
+					@firstLineNumber = i
+					break
 
 	-- This method should update various properties such as
 	-- (start|end)(Time|Frame).
-	addLine: ( line, validationCb = (-> return true), selectLine=true ) =>
+	addLine: ( line, validationCb = (-> return true), selectLine=true, index=false ) =>
 		if validationCb line
 			line.parentCollection = @
 			line.inserted = false
 			line.selected = selectLine
-			line.number = nil
+			line.number = index==true and line.number or index or nil
 			frame_from_ms = aegisub.frame_from_ms
 
 			-- if @startTime is unset, @endTime should damn well be too.
@@ -169,25 +175,40 @@ class LineCollection
 
 		@sub.delete [line.number for line in *lines when line.inserted]
 
-		@lastLineNumber = @firstLineNumber-1
+		@lastLineNumber = @firstLineNumber
 		shift = #lines or 0
 		for line in *@lines
 			if lineSet[line]
 				line.hasBeenDeleted = true
-				line.number = nil
 				shift -= line.inserted and 1 or 0
 			elseif not line.hasBeenDeleted and line.inserted
 				line.number -= doShift and shift or 0
 				@lastLineNumber = math.max(line.number, @lastLineNumber)
 
 	insertLines: =>
-		inserted = [line for line in *@lines when not (line.inserted or line.hasBeenDeleted)]
-		for i=#inserted, 1, -1
-			line = inserted[i]
-			line.number = @lastLineNumber + #inserted - i + 1
+		toInsert = [line for line in *@lines when not (line.inserted or line.hasBeenDeleted)]
+		tailLines, numberedLines = {}, {}
+
+		for i=1,#toInsert
+			line = toInsert[i]
+			if line.number
+				numberedLines[#numberedLines+1] = line
+				line.i = i
+			else
+				tailLines[#tailLines+1] = line
+				line.number = @lastLineNumber + i
+				line.inserted = true
+
+		table.sort numberedLines, (a,b) ->
+			return a.number < b.number or a.number==b.number and a.i < b.i
+		for line in *numberedLines
 			@sub.insert line.number, line
 			line.inserted = true
-		@lastLineNumber = @lastLineNumber + #inserted
+			@lastLineNumber = math.max @lastLineNumber, line.number
+
+		unless #tailLines==0
+			@sub.insert @lastLineNumber+1, unpack tailLines
+			@lastLineNumber = math.max @lastLineNumber, tailLines[#tailLines].number
 
 	replaceLines: =>
 		if @shouldInsertLines

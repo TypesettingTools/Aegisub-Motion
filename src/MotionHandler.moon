@@ -61,7 +61,6 @@ class MotionHandler
 		@resultingCollection = LineCollection @lineCollection.sub
 		@resultingCollection.shouldInsertLines = true
 		@resultingCollection.options = @options
-		@resultingCollection.firstLineNumber = @lineCollection.firstLineNumber
 		-- This has to be copied over for clip interpolation
 		@resultingCollection.meta = @lineCollection.meta
 		for line in *@lineCollection.lines
@@ -77,6 +76,7 @@ class MotionHandler
 		totalLines = #@lineCollection.lines
 		-- The lines are collected in reverse order in LineCollection so
 		-- that we don't need to do things in reverse here.
+		insertNumber = @lineCollection.lines[totalLines].number
 		for index = 1, totalLines
 			with line = @lineCollection.lines[index]
 
@@ -84,7 +84,7 @@ class MotionHandler
 				.relativeStart = .startFrame - @lineCollection.startFrame + 1
 				-- end frame of line relative to start frame of tracked data
 				.relativeEnd = .endFrame - @lineCollection.startFrame
-
+				.number = insertNumber
 				.method @, line
 
 			setProgress index/totalLines
@@ -118,7 +118,7 @@ class MotionHandler
 				.text = .text\gsub "\\pos(%b())\\t%((%d+,%d+),\\pos(%b())%)", ( start, time, finish ) ->
 					"\\move" .. start\sub( 1, -2 ) .. ',' .. finish\sub( 2, -2 ) .. ',' .. time .. ")"
 
-			@resultingCollection\addLine Line line, nil, { wasLinear: true }
+			@resultingCollection\addLine Line( line, nil, { wasLinear: true } ), nil, true, true
 
 	nonlinear = ( line ) =>
 		for frame = line.relativeEnd, line.relativeStart, -1
@@ -156,7 +156,8 @@ class MotionHandler
 					newText = newText\gsub pattern, ( tag, value ) ->
 						tag .. callback @, value, frame
 
-				@resultingCollection\addLine Line line, @resultingCollection, { text: newText, start_time: newStartTime, end_time: newEndTime, transformShift: timeDelta }
+				@resultingCollection\addLine Line( line, @resultingCollection, { text: newText, start_time: newStartTime, end_time: newEndTime, transformShift: timeDelta } ),
+											 nil, true, true
 
 	position = ( pos, frame ) =>
 		x, y = pos\match "([%-%d%.]+),([%-%d%.]+)"
