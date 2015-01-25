@@ -14,10 +14,16 @@ class LineCollection
 
 	new: ( @sub, sel, validationCb, selectLines=true ) =>
 		@lines = { }
-		if sel
+		if sel and #sel>0
 			@collectLines sel, validationCb, selectLines
 			if frameFromMs 0
 				@getFrameInfo!
+		else
+			for i=#@sub,1,-1 do
+				if @sub[i].class == "dialogue" then
+					@lastLineNumber = i
+					@firstLineNumber = i
+					break
 
 	-- This method should update various properties such as
 	-- (start|end)(Time|Frame).
