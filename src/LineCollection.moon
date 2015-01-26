@@ -6,7 +6,7 @@ frameFromMs = aegisub.frame_from_ms
 msFromFrame = aegisub.ms_from_frame
 
 class LineCollection
-	@version: 0x010001
+	@version: 0x010100
 	@version_major: bit.rshift( @version, 16 )
 	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
 	@version_patch: bit.band( @version, 0xFF )
