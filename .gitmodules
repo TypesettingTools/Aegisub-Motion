@@ -3,4 +3,4 @@
 	url = https://github.com/harningt/luajson.git
 [submodule "docs"]
 	path = docs
-	url = https://github.com/torque/Aegisub-Motion.wiki.git
+	url = https://github.com/TypesettingCartel/Aegisub-Motion.wiki.git
