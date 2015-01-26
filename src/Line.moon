@@ -6,7 +6,7 @@ util      = require 'aegisub.util'
 bit       = require 'bit'
 
 class Line
-	@version: 0x010001
+	@version: 0x010100
 	@version_major: bit.rshift( @version, 16 )
 	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
 	@version_patch: bit.band( @version, 0xFF )
