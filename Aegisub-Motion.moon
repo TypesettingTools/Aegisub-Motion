@@ -105,9 +105,10 @@ fetchDataFromClipboard = ->
 	-- According to vague reports, Aegisub clipboard usage crashes it on
 	-- Linux. Disable any clipboard use until I find a better way to
 	-- handle this.
-	if ffi.os != "Linux"
-		-- If there's nothing on the clipboard, clipboard.get returns nil.
-		return clipboard.get! or ""
+	dataString = (ffi.os != "Linux") and clipboard.get!
+
+	-- If there's nothing on the clipboard, clipboard.get returns nil.
+	return dataString or ""
 
 prepareConfig = ( config, mainData, clipData, lineCollection ) ->
 	rectClipData, vectClipData = nil, nil
