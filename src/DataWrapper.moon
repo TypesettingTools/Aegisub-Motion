@@ -4,7 +4,7 @@ DataHandler       = require 'a-mo.DataHandler'
 bit               = require 'bit'
 
 class DataWrapper
-	@version: 0x010000
+	@version: 0x010001
 	@version_major: bit.rshift( @version, 16 )
 	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
 	@version_patch: bit.band( @version, 0xFF )
@@ -29,6 +29,9 @@ class DataWrapper
 		return false
 
 	bestEffortParsingAttempt: ( input, scriptResX, scriptResY ) =>
+		if "string" != type( input )
+			return false
+
 		@scriptResX, @scriptResY = tonumber( scriptResX ), tonumber( scriptResY )
 		if input\match '^Adobe After Effects 6.0 Keyframe Data'
 			if tryDataHandler @, input
