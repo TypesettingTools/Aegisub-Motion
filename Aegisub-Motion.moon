@@ -6,7 +6,7 @@ export script_description = "A set of tools for simplifying the process of creat
 export script_author      = "torque"
 export script_version     = "1.0.0-beta2"
 
-local interface
+local interface, setProgress, setTask
 
 ffi            = require 'ffi'
 clipboard      = require 'aegisub.clipboard'
@@ -207,7 +207,6 @@ fadToTransform = ( fadStart, fadEnd, alpha, value, lineDuration ) ->
 	str
 
 prepareLines = ( lineCollection ) ->
-	setProgress = aegisub.progress.set
 	setProgress 0
 
 	totalLines = #lineCollection.lines
@@ -295,7 +294,6 @@ prepareLines = ( lineCollection ) ->
 
 
 postprocLines = ( lineCollection ) ->
-	setProgress = aegisub.progress.set
 	setProgress 0
 
 	totalLines = #lineCollection.lines
@@ -316,7 +314,8 @@ postprocLines = ( lineCollection ) ->
 	lineCollection\combineIdenticalLines!
 
 applyProcessor = ( subtitles, selectedLines ) ->
-	setTask = aegisub.progress.task
+	setTask     = aegisub.progress.task
+	setProgress = aegisub.progress.set
 
 	setTask "Loading Interface"
 	initializeInterface!
@@ -399,7 +398,7 @@ applyProcessor = ( subtitles, selectedLines ) ->
 				currentDialog = "clip"
 
 			when false, buttons.clip.namedList.abort
-				aegisub.progress.task "ABORT"
+				setTask "ABORT"
 				aegisub.cancel!
 
 			when buttons.clip.namedList.close
@@ -492,7 +491,7 @@ trimProcessorEach = ( subtitles, selectedLines ) ->
 	trimProcessor subtitles, selectedLines, nil, true
 
 revertProcessor = ( subtitles, selectedLines ) ->
-	setTask = aegisub.progress.task
+	setTask     = aegisub.progress.task
 	setProgress = aegisub.progress.set
 	setTask "Collecting UUIDs"
 	-- A table of all UUIDs found in the selected lines
