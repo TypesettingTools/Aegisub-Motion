@@ -18,7 +18,38 @@ LineCollection = require 'a-mo.LineCollection'
 log            = require 'a-mo.Log'
 Math           = require 'a-mo.Math'
 MotionHandler  = require 'a-mo.MotionHandler'
+Statistics     = require 'a-mo.Statistics'
 TrimHandler    = require 'a-mo.TrimHandler'
+
+statsTemplate = {
+	apply: {
+		longestTrack: 0
+		lines: { largestInput: 0, largestOutput: 0, totalOutput: 0 }
+		bytes: { largestInput: 0, largestOutput: 0, totalOutput: 0 }
+		runCount: 0
+	}
+	trim: {
+		runCount: 0
+		clipsCreated: 0
+	}
+	trimEach: {
+		runCount: 0
+	}
+	revert: {
+		lines: { total: 0 }
+		bytes: { total: 0 }
+		runCount: 0
+	}
+	uuid: 0
+}
+
+initStats = ->
+	stats = Statistics statsTemplate, "aegisub-motion.stats.json"
+	if 0 == stats\getValue "uuid"
+		stats\setValue "uuid", Math.uuid!
+		stats\write!
+
+	return stats
 
 initializeInterface = ->
 	-- Set up interface tables.
@@ -328,6 +359,8 @@ applyProcessor = ( subtitles, selectedLines ) ->
 	options\read!
 	options\updateInterface { "main", "clip" }
 
+	stats = initStats!
+
 	lineCollection = LineCollection subtitles, selectedLines
 
 	currentVideoFrame = aegisub.project_properties!.video_position
@@ -422,9 +455,12 @@ applyProcessor = ( subtitles, selectedLines ) ->
 	rectClipData, vectClipData = prepareConfig config, mainData, clipData, lineCollection
 	lineCollection.options = config
 
-
 	setTask "Preprocessing Lines"
 	prepareLines lineCollection
+	stats\setMax "apply.longestTrack", lineCollection.totalFrames
+	stats\setMax "apply.lines.largestInput", #lineCollection.lines
+	for line in *lineCollection.lines
+		stats\setMax "apply.bytes.largestInput", #line.text
 
 	if mainData.type and 'SRS' != mainData.type
 		mainData.dataObject\addReferenceFrame config.main.startFrame
@@ -441,6 +477,14 @@ applyProcessor = ( subtitles, selectedLines ) ->
 	setTask "Postprocessing Lines"
 	postprocLines newLines
 	newLines\replaceLines!
+
+	stats\setMax "apply.lines.largestOutput", #newLines.lines
+	stats\incrementValue "apply.lines.totalOutput", #newLines.lines
+	for line in *newLines.lines
+		stats\setMax "apply.bytes.largestOutput", #line.text
+		stats\incrementValue "apply.bytes.totalOutput", #line.text
+	stats\incrementValue "apply.runCount"
+	stats\write!
 
 trimConfigDialog = ( options ) ->
 	options\updateInterface "trim"
@@ -461,6 +505,7 @@ trimProcessor = ( subtitles, selectedLines, activeLine, eachFlag ) ->
 	initializeInterface!
 	options = ConfigHandler interface, "aegisub-motion.json", true, script_version
 
+	stats = initStats!
 	options\read!
 	-- Check if encBin has been set.
 
@@ -481,11 +526,16 @@ You must specify the path to your encoding binary.
 				seenRanges[collectionRange] = true
 				trim\calculateTrimLength lineCollection
 				trim\performTrim!
+				stats\incrementValue "trim.clipsCreated"
+		stats\incrementValue "trimEach.runCount"
+
 	else
 		lineCollection = LineCollection subtitles, selectedLines
 		trim\calculateTrimLength lineCollection
 		trim\performTrim!
+		stats\incrementValue "trim.runCount"
 
+	stats\write!
 	return selectedLines
 
 trimProcessorEach = ( subtitles, selectedLines ) ->
@@ -494,6 +544,8 @@ trimProcessorEach = ( subtitles, selectedLines ) ->
 revertProcessor = ( subtitles, selectedLines ) ->
 	setTask     = aegisub.progress.task
 	setProgress = aegisub.progress.set
+	stats = initStats!
+
 	setTask "Collecting UUIDs"
 	-- A table of all UUIDs found in the selected lines
 	uuids = { }
@@ -534,6 +586,7 @@ revertProcessor = ( subtitles, selectedLines ) ->
 						if index < oldLine.number
 							oldLine.number = index
 						elseif index > oldLine.number
+							stats\incrementValue "revert.bytes.total", #line.text
 							indicesToNuke[#indicesToNuke+1] = index
 
 		setProgress index/totalLines
@@ -545,6 +598,11 @@ revertProcessor = ( subtitles, selectedLines ) ->
 
 	-- Delete the remainders.
 	subtitles.delete indicesToNuke
+	stats\incrementValue "revert.lines.total", #indicesToNuke
+
+	stats\incrementValue "revert.runCount"
+	stats\write!
+	return nil
 
 canRun = ( sub, selectedLines ) ->
 	if not aegisub.frame_from_ms 0
