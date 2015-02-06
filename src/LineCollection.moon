@@ -156,7 +156,8 @@ class LineCollection
 			else lastLine = @lines[i]
 		@deleteLines linesToSkip
 
-
+	-- The index that is passed to the callback is intended for progress
+	-- reporting only.
 	runCallback: ( callback, reverse ) =>
 		if reverse
 			for index = #@lines, 1, -1
@@ -165,7 +166,7 @@ class LineCollection
 			for index = 1, #@lines
 				callback @, @lines[index], index
 
-	deleteLines: ( lines=@lines, doShift=true ) =>
+	deleteLines: ( lines = @lines, doShift=true ) =>
 		if lines.__class == Line
 			lines = { lines }
 
@@ -189,25 +190,26 @@ class LineCollection
 		toInsert = [line for line in *@lines when not (line.inserted or line.hasBeenDeleted)]
 		tailLines, numberedLines = {}, {}
 
-		for i=1,#toInsert
+		for i = 1, #toInsert
 			line = toInsert[i]
 			if line.number
-				numberedLines[#numberedLines+1] = line
+				numberedLines[#numberedLines + 1] = line
 				line.i = i
 			else
-				tailLines[#tailLines+1] = line
+				tailLines[#tailLines + 1] = line
 				line.number = @lastLineNumber + i
 				line.inserted = true
 
-		table.sort numberedLines, (a,b) ->
-			return a.number < b.number or a.number==b.number and a.i < b.i
+		table.sort numberedLines, ( a, b ) ->
+			return (a.number < b.number) or (a.number == b.number) and (a.i < b.i)
+
 		for line in *numberedLines
 			@sub.insert line.number, line
 			line.inserted = true
 			@lastLineNumber = math.max @lastLineNumber, line.number
 
-		unless #tailLines==0
-			@sub.insert @lastLineNumber+1, unpack tailLines
+		unless #tailLines == 0
+			@sub.insert @lastLineNumber + 1, unpack tailLines
 			@lastLineNumber = math.max @lastLineNumber, tailLines[#tailLines].number
 
 	replaceLines: =>
@@ -217,6 +219,7 @@ class LineCollection
 			for line in *@lines
 				if line.inserted and not line.hasBeenDeleted
 					@sub[line.number] = line
+
 	getSelection: =>
 		sel = [line.number for line in *@lines when line.selected and line.inserted and not line.hasBeenDeleted]
 		return sel, sel[#sel]
