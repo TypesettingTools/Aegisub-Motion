@@ -1,7 +1,7 @@
 bit  = require 'bit'
 json = require 'json'
 
-log  = require 'a-mo.log'
+log  = require 'a-mo.Log'
 
 -- example = {
 -- 	macroRunCount: {
@@ -19,7 +19,7 @@ log  = require 'a-mo.log'
 -- No way to migrate to different layouts. Seems like a pain in the ass.
 -- Probably won't get implemented.
 class Statistics
-	@version: 0x000100
+	@version: 0x000101
 	@version_major: bit.rshift( @version, 16 )
 	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
 	@version_patch: bit.band( @version, 0xFF )
