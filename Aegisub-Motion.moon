@@ -502,6 +502,9 @@ trimConfigurator = ->
 	trimConfigDialog options
 
 trimProcessor = ( subtitles, selectedLines, activeLine, eachFlag ) ->
+	setTask     = aegisub.progress.task
+	setProgress = aegisub.progress.set
+
 	initializeInterface!
 	options = ConfigHandler interface, "aegisub-motion.json", true, script_version
 
