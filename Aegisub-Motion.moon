@@ -41,11 +41,6 @@ initializeInterface = ->
 
 			zRotation: { class: "checkbox", x: 0, y: 7,  width: 3,  height: 1, config: true, label: "&Rotation",     value: false, hint: "Apply rotation data to the selected lines." }
 
-			-- rndLabel:  { class: "label",    x: 7, y: 6,  width: 3,  height: 1,                                  label: "Rounding" }
-			-- posRound:  { class: "intedit",  x: 7, y: 7,  width: 2,  height: 1, config: true, min: 0, max: 5,         value: 2,     hint: "How many decimal places of accuracy the resulting positions should have (also applied to origin)." }
-			-- sclRound:  { class: "intedit",  x: 7, y: 8,  width: 2,  height: 1, config: true, min: 0, max: 5,         value: 2,     hint: "How many decimal places of accuracy the resulting scales should have (also applied to border, shadow, and blur)." }
-			-- rotRound:  { class: "intedit",  x: 7, y: 9,  width: 2,  height: 1, config: true, min: 0, max: 5,         value: 2,     hint: "How many decimal places of accuracy the resulting rotations should have." }
-
 			writeConf: { class: "checkbox", x: 0, y: 9 , width: 4,  height: 1, config: true, label: "&Write config", value: true,  hint: "Write current settings to the configuration file." }
 			relative:  { class: "checkbox", x: 4, y: 9 , width: 3,  height: 1, config: true, label: "R&elative",     value: true,  hint: "Start frame should be relative to the beginning of the selection rather than the beginning of the video." }
 			startFrame:{ class: "intedit",  x: 7, y: 9 , width: 2,  height: 1, config: true, value: 1,     hint: "Frame used as the starting point for the tracking data. \"-1\" corresponds to the last frame." }
@@ -55,8 +50,6 @@ initializeInterface = ->
 			rectClip:  { class: "checkbox", x: 0, y: 8,  width: 3,  height: 1, config: true, label: "Rect C&lip",    value: true,  hint: "Apply tracking data to the rectangular clip contained in the line." }
 			vectClip:  { class: "checkbox", x: 3, y: 8,  width: 3,  height: 1, config: true, label: "&Vect Clip",    value: true,  hint: "Apply tracking data to the vector clip contained in the line." }
 			killTrans: { class: "checkbox", x: 6, y: 8,  width: 3,  height: 1, config: true, label: "Interp. &transforms", value: true, hint: "Attempt to interpolate transform value instead of just shifting transform times." }
-
-			-- delsourc:  { class: "label",    x: 0, y: 0,  width: 0,  height: 0, config: true, label: "", value: false }
 		}
 		clip: {
 			-- mnemonics: xySRe + GCA
