@@ -8,16 +8,17 @@ export script_version     = "1.0.0-beta2"
 
 local interface, setProgress, setTask
 
-ffi            = require 'ffi'
 clipboard      = require 'aegisub.clipboard'
-LineCollection = require 'a-mo.LineCollection'
+ffi            = require 'ffi'
+json           = require 'json'
+
 ConfigHandler  = require 'a-mo.ConfigHandler'
 DataWrapper    = require 'a-mo.DataWrapper'
+LineCollection = require 'a-mo.LineCollection'
+log            = require 'a-mo.Log'
+Math           = require 'a-mo.Math'
 MotionHandler  = require 'a-mo.MotionHandler'
 TrimHandler    = require 'a-mo.TrimHandler'
-Math           = require 'a-mo.Math'
-log            = require 'a-mo.Log'
-json           = require 'json'
 
 initializeInterface = ->
 	-- Set up interface tables.
