@@ -6,7 +6,7 @@ util      = require 'aegisub.util'
 bit       = require 'bit'
 
 class Line
-	@version: 0x010100
+	@version: 0x010101
 	@version_major: bit.rshift( @version, 16 )
 	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
 	@version_patch: bit.band( @version, 0xFF )
@@ -55,7 +55,10 @@ class Line
 			if "table" == type line[field]
 				@[field] = util.deep_copy overrides[field] or line[field]
 			else
-				@[field] = overrides[field] or line[field]
+				if overrides[field] != nil
+					@[field] = overrides[field]
+				else
+					@[field] = line[field]
 
 		for field in *@fieldsToCopy
 			if overrides[field] != nil
