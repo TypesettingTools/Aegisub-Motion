@@ -6,7 +6,7 @@ log            = require 'a-mo.Log'
 bit            = require 'bit'
 
 class MotionHandler
-	@version: 0x010001
+	@version: 0x010002
 	@version_major: bit.rshift( @version, 16 )
 	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
 	@version_patch: bit.band( @version, 0xFF )
@@ -156,8 +156,15 @@ class MotionHandler
 					newText = newText\gsub pattern, ( tag, value ) ->
 						tag .. callback @, value, frame
 
-				@resultingCollection\addLine Line( line, @resultingCollection, { text: newText, start_time: newStartTime, end_time: newEndTime, transformShift: timeDelta } ),
-											 nil, true, true
+				newLine = Line line, @resultingCollection, {
+					text: newText,
+					start_time: newStartTime,
+					end_time: newEndTime,
+					transformShift: timeDelta
+				}
+				newLine.karaokeShift = (newStartTime - .start_time)*0.1
+
+				@resultingCollection\addLine newLine, nil, true, true
 
 	position = ( pos, frame ) =>
 		x, y = pos\match "([%-%d%.]+),([%-%d%.]+)"
