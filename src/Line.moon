@@ -6,7 +6,7 @@ util      = require 'aegisub.util'
 bit       = require 'bit'
 
 class Line
-	@version: 0x010200
+	@version: 0x010300
 	@version_major: bit.rshift( @version, 16 )
 	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
 	@version_patch: bit.band( @version, 0xFF )
@@ -73,43 +73,29 @@ class Line
 	extraMetrics: ( styleRef = @styleRef ) =>
 		alignPattern = tags.allTags.align.pattern
 		posPattern   = tags.allTags.pos.pattern
+		moveTag      = tags.allTags.move
 		@runCallbackOnOverrides ( tagBlock ) =>
 			tagBlock\gsub alignPattern, ( value ) ->
 				unless @align
 					@align = tonumber value
 
 			tagBlock\gsub posPattern, ( value ) ->
-				unless @xPosition
+				unless @xPosition or @move
 					x, y = value\match "([%.%d%-]+),([%.%d%-]+)"
 					@xPosition, @yPosition = tonumber( x ), tonumber( y )
+
+			tagBlock\gsub moveTag.pattern, ( value ) ->
+				unless @xPosition or @move
+					@move = moveTag\convert value
 
 		unless @align
 			@align = styleRef.align
 
-		unless @xPosition
+		unless @xPosition or @move
 			@xPosition, @yPosition = @getDefaultPosition!
 			return false
 
 		return true
-
-	-- this should not have been added and the name is probably misleading.
-	moveToPosition: ( time ) =>
-		moveTag = tags.allTags.move
-		posTag = tags.allTags.pos
-		found = false
-		@runCallbackOnOverrides ( tagBlock ) =>
-			tagBlock = tagBlock\gsub moveTag.pattern, ( value ) ->
-				found = true
-				move = moveTag\convert value
-				progress = (time - move.start)/(move.end - move.start)
-				newPos = moveTag\interpolate {move.x1, move.y1}, {move.x2, move.y2}, progress
-				@xPosition = newPos[1]
-				@yPosition = newPos[2]
-				return posTag\format newPos
-
-			return tagBlock
-		-- shitty hacks
-		return found
 
 	formatTime = ( time ) ->
 		seconds = time/1000
