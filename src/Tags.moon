@@ -1,7 +1,7 @@
 log = require 'a-mo.Log'
 bit = require 'bit'
 
-version = 0x010100
+version = 0x010200
 version_major = bit.rshift( version, 16 )
 version_minor = bit.band( bit.rshift( version, 8 ), 0xFF )
 version_patch = bit.band( version, 0xFF )
@@ -27,6 +27,11 @@ convertColorValue = ( value ) =>
 	output.b = output[1]
 	output.g = output[2]
 	return output
+
+convertKaraoke = ( ... ) =>
+	args = {...}
+	@tag = args[1]
+	return tonumber args[2]
 
 -- This doesn't actually work with vector clips but i dont care.
 convertMultiValue = ( value ) =>
@@ -80,6 +85,11 @@ formatAlpha = ( alpha ) =>
 formatColor = ( color ) =>
 	return ("%s&H%02X%02X%02X&")\format @tag, color.b, color.g, color.r
 
+formatKaraoke = ( time ) =>
+	result = ("%s%d")\format @tag, value
+	@tag = nil
+	return result
+
 formatTransform = ( transform ) =>
 	return transform\toString!
 
@@ -123,6 +133,7 @@ allTags = {
 	strike:   { pattern: "\\s([01])"         , tag: "\\s"    , format: formatInt   , style: "strikeout"                     , convert: convertNumberValue }
 	drawing:  { pattern: "\\p(%d+)"          , tag: "\\p"    , format: formatInt                                            , convert: convertNumberValue    }
 	transform:{ pattern: "\\t(%(.-%))"       , tag: "\\t"    , format: formatTransform                                      , convert: convertTransformValue }
+	karaoke:  { pattern: "(\\[kK][fo]?)(%d+)"                , format: formatInt                                            , convert: convertKaraoke }
 	-- Problematic tags:
 	pos:      { fieldnames: { "x", "y" }        , output: "multi", pattern: "\\pos%(([%.%d%-]+,[%.%d%-]+)%)", tag: "\\pos"  , format: formatMulti, convert: convertMultiValue, global: true }
 	org:      { fieldnames: { "x", "y" }        , output: "multi", pattern: "\\org%(([%.%d%-]+,[%.%d%-]+)%)", tag: "\\org"  , format: formatMulti, convert: convertMultiValue, global: true }
