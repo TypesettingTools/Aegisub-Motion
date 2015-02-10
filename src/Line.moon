@@ -6,7 +6,7 @@ util      = require 'aegisub.util'
 bit       = require 'bit'
 
 class Line
-	@version: 0x010101
+	@version: 0x010200
 	@version_major: bit.rshift( @version, 16 )
 	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
 	@version_patch: bit.band( @version, 0xFF )
@@ -357,6 +357,21 @@ class Line
 			transform.startTime += @transformShift
 			transform.endTime += @transformShift
 			return result
+
+	shiftKaraoke: ( shift = @karaokeShift ) =>
+		karaokeTag = tags.allTags.karaoke
+		@runCallbackOnOverrides ( tagBlock ) =>
+			return tagBlock\gsub karaokeTag.pattern, ( ... ) ->
+				time = karaokeTag\convert ...
+				if shift > 0
+					newTime = time - shift
+					shift -= time
+					if newTime > 0
+						return karaokeTag\format newTime
+					else
+						return ""
+				else
+					return nil
 
 	combineWithLine: ( line ) =>
 		if @text == line.text and @style == line.style and (@start_time == line.end_time or @end_time == line.start_time)
