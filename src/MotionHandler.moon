@@ -6,7 +6,7 @@ log            = require 'a-mo.Log'
 bit            = require 'bit'
 
 class MotionHandler
-	@version: 0x010002
+	@version: 0x010100
 	@version_major: bit.rshift( @version, 16 )
 	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
 	@version_patch: bit.band( @version, 0xFF )
@@ -121,6 +121,8 @@ class MotionHandler
 			@resultingCollection\addLine Line( line, nil, { wasLinear: true } ), nil, true, true
 
 	nonlinear = ( line ) =>
+		moveTag = tags.allTags.move
+		posTag = tags.allTags.pos
 		for frame = line.relativeEnd, line.relativeStart, -1
 			with line
 				aegisub.progress.set (frame - .relativeStart)/(.relativeEnd - .relativeStart) * 100
@@ -140,6 +142,12 @@ class MotionHandler
 					t3 -= timeDelta
 					t4 -= timeDelta
 					("\\fade(%s,%s,%s,%d,%d,%d,%d)")\format a1, a2, a3, t1, t2, t3, t4
+
+				if .move
+					newText = newText\gsub moveTag.pattern, ->
+						move = .move
+						progress = (timeDelta - move.start)/(move.end - move.start)
+						return posTag\format moveTag\interpolate {move.x1, move.y1}, {move.x2, move.y2}, progress
 
 				-- In theory, this is more optimal if we loop over the frames on
 				-- the outside loop and over the lines on the inside loop, as
