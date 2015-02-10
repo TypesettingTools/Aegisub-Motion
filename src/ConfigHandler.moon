@@ -3,7 +3,7 @@ log  = require 'a-mo.Log'
 bit  = require 'bit'
 
 class ConfigHandler
-	@version: 0x010101
+	@version: 0x010102
 	@version_major: bit.rshift( @version, 16 )
 	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
 	@version_patch: bit.band( @version, 0xFF )
@@ -46,6 +46,20 @@ class ConfigHandler
 						if configSection[optionName] != nil
 							configSection[optionName] = optionValue
 
+	doInterfaceUpdate = ( interfaceSection, sectionName ) =>
+		for tableKey, tableValue in pairs interfaceSection
+			if tableValue.config and @configuration[sectionName][tableKey] != nil
+				tableValue.value = @configuration[sectionName][tableKey]
+
+	doConfigUpdate = ( newValues, sectionName ) =>
+		-- have to loop across @configuration because not all of the
+		-- fields in the result table are going to be serialized, and it
+		-- contains no information about which ones should be and which
+		-- ones should not be.
+		for configKey, configValue in pairs @configuration[sectionName]
+			if newValues[configKey] != nil
+				@configuration[sectionName][configKey] = newValues[configKey]
+
 	-- Public methods
 	read: =>
 		if @fileHandle = io.open @fileName, 'r'
@@ -63,20 +77,20 @@ class ConfigHandler
 		if sectionNames
 			if "table" == type sectionNames
 				for sectionName in *sectionNames
-					doInterfaceUpdate @, @optionTables[sectionName], sectionName
+					if @configuration[sectionName]
+						doInterfaceUpdate @, @optionTables[sectionName], sectionName
+					else
+						log.debug "Cannot update section %s, as it doesn't exist.", sectionName
 			else
-				doInterfaceUpdate @, @optionTables[sectionNames], sectionNames
+				if @configuration[sectionNames]
+					doInterfaceUpdate @, @optionTables[sectionNames], sectionNames
+				else
+					log.debug "Cannot update section %s, as it doesn't exist.", sectionNames
 
 		else
 			for sectionName, section in pairs @optionTables
 				if @configuration[sectionName] != nil
 					doInterfaceUpdate @, section, sectionName
-
-	doInterfaceUpdate = ( section, sectionName ) =>
-		for tableKey, tableValue in pairs section
-			log.debug "#{tableKey}: #{tableValue}"
-			if tableValue.config and @configuration[sectionName][tableKey] != nil
-				tableValue.value = @configuration[sectionName][tableKey]
 
 	-- maybe updateConfigurationFromDialog (but then we're getting into
 	-- obj-c identifier verbosity territory, and I'd rather not go there)
@@ -91,22 +105,12 @@ class ConfigHandler
 		else
 			log.debug "Section Name not provided. You are doing it wrong."
 
-	doConfigUpdate = ( newValues, sectionName ) =>
-		-- have to loop across @configuration because not all of the
-		-- fields in the result table are going to be serialized, and it
-		-- contains no information about which ones should be and which
-		-- ones should not be.
-		for configKey, configValue in pairs @configuration[sectionName]
-			if newValues[configKey] != nil
-				@configuration[sectionName][configKey] = newValues[configKey]
-
 	write: =>
 		-- Make sure @configuration is not an empty table.
 		unless next( @configuration ) == nil
 			@configuration.__version = @version
 			serializedConfig = json.encode @configuration
 			@configuration.__version = nil
-			log.debug serializedConfig
 			if @fileHandle = io.open @fileName, 'w'
 				@fileHandle\write serializedConfig
 				@fileHandle\close!
