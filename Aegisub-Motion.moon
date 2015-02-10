@@ -340,6 +340,8 @@ postprocLines = ( lineCollection ) ->
 			else
 				line\detokenizeTransforms!
 
+		line\shiftKaraoke!
+
 		setProgress index/totalLines
 
 	-- No progress for this.
