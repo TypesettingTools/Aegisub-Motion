@@ -6,7 +6,7 @@ log            = require 'a-mo.Log'
 bit            = require 'bit'
 
 class MotionHandler
-	@version: 0x010100
+	@version: 0x010101
 	@version_major: bit.rshift( @version, 16 )
 	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
 	@version_patch: bit.band( @version, 0xFF )
@@ -94,8 +94,8 @@ class MotionHandler
 	linear = ( line ) =>
 		with line
 			startFrameTime = aegisub.ms_from_frame aegisub.frame_from_ms .start_time
-			frameAfterStartTime = aegisub.ms_from_frame aegisub.frame_from_ms(.start_time) + 1
-			frameBeforeEndTime = aegisub.ms_from_frame aegisub.frame_from_ms(.end_time) - 1
+			frameAfterStartTime = aegisub.ms_from_frame aegisub.frame_from_ms( .start_time ) + 1
+			frameBeforeEndTime = aegisub.ms_from_frame aegisub.frame_from_ms( .end_time ) - 1
 			endFrameTime = aegisub.ms_from_frame aegisub.frame_from_ms .end_time
 			-- Calculates the time length (in ms) from the start of the first
 			-- subtitle frame to the actual start of the line time.
@@ -105,11 +105,17 @@ class MotionHandler
 			-- line is on and the end time of the line.
 			endTime = math.floor 0.5*(frameBeforeEndTime + endFrameTime) - .start_time
 
+			if .move
+				.text = .text\gsub moveTag.pattern, ->
+					move = .move
+					progress = (.start_time - move.start)/(move.end - move.start)
+					return posTag\format moveTag\interpolate {move.x1, move.y1}, {move.x2, move.y2}, progress
+
 			for pattern, callback in pairs @callbacks
 				log.checkCancellation!
 				.text = .text\gsub pattern, ( tag, value ) ->
 					values = { }
-					for frame in *{ line.relativeStart, line.relativeEnd }
+					for frame in *{ .relativeStart, .relativeEnd }
 						@lineTrackingData\calculateCurrentState frame
 						values[#values+1] = callback @, value, frame
 					("%s%s\\t(%d,%d,%s%s)")\format tag, values[1], beginTime, endTime, tag, values[2]

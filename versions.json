@@ -6,7 +6,7 @@
 	"src/LineCollection.moon": "0x010100",
 	"src/Log.moon": "0x010000",
 	"src/Math.moon": "0x010000",
-	"src/MotionHandler.moon": "0x010100",
+	"src/MotionHandler.moon": "0x010101",
 	"src/ShakeShapeHandler.moon": "0x010000",
 	"src/Statistics.moon": "0x000101",
 	"src/Tags.moon": "0x010200",
