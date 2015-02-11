@@ -1,5 +1,6 @@
 LineCollection = require 'a-mo.LineCollection'
 Transform      = require 'a-mo.Transform'
+tags           = require 'a-mo.Tags'
 Math           = require 'a-mo.Math'
 Line           = require 'a-mo.Line'
 log            = require 'a-mo.Log'
