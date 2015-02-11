@@ -1,6 +1,8 @@
 ### Aegisub-Motion.moon ###
 
-#### v1.0.0 Beta 2 ####
+##### [PLEASE REPORT BUGS YOU ENCOUNTER](#help-i-need-somebody-help-not-just-anybody)
+
+#### v1.0.0 Beta 4 ####
 
 Aegisub-Motion has been rewritten from the ground up to be even slower
 and more error prone than ever before.
@@ -70,8 +72,6 @@ working on writing up some brand-spanking-new documentation to accompany
 the 1.0.0 release.
 
 #### Help! I need somebody! Help! Not just anybody! ####
-
-##### PLEASE REPORT BUGS YOU ENCOUNTER
 
 I am here to fulfill your emotional and physical needs 24/7, 52 weeks a
 year. If you use IRC, I'm `torque` on `freenode` and `rizon`. If you use
