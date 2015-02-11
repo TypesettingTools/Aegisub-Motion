@@ -3,7 +3,7 @@ Math = require 'a-mo.Math'
 bit  = require 'bit'
 
 class Transform
-	@version: 0x010100
+	@version: 0x010200
 	@version_major: bit.rshift( @version, 16 )
 	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
 	@version_patch: bit.band( @version, 0xFF )
@@ -65,50 +65,60 @@ class Transform
 		@priorValues = { k, v for k, v in pairs line.properties }
 		-- Fill out all of the possible tag defaults for tags that aren't
 		-- defined by styles. This works great for everything except \clip,
-		-- which defaults to 0,0,width,height
-		for tagName, tag in ipairs tags.allTags
-			if tag.transformable and not tag.style
-				@priorValues[tagName] = 0
+		-- which defaults to 0, 0, width, height
+		for tag in *tags.transformTags
+			unless tag.style
+				@priorValues[tag] = 0
 
-		@priorValues.rectClip  = { 0, 0, line.parentCollection.meta.PlayResX, line.parentCollection.meta.PlayResY }
-		@priorValues.rectiClip = { 0, 0, line.parentCollection.meta.PlayResX, line.parentCollection.meta.PlayResY }
+		@priorValues[tags.allTags.rectClip]  = { 0, 0, line.parentCollection.meta.PlayResX, line.parentCollection.meta.PlayResY }
+		@priorValues[tags.allTags.rectiClip] = { 0, 0, line.parentCollection.meta.PlayResX, line.parentCollection.meta.PlayResY }
 
-		unless @index
-			log.windowError "An error has occurred with transform\ninterpolation in line #{line.humanizedNumber}."
+		count = math.floor @index
+		i = 1
+		text\gsub "({.-})", ( tagBlock ) ->
+			if i == count
+				tagBlock = tagBlock\gsub "(.+)#{placeholder}", "%1"
 
-		major = math.floor @index
-
-		line\runCallbackOnOverrides ( line, tagBlock, number ) ->
-			for tagName, oldVal in pairs @effectTags
-				tag = tags.allTags[tagName]
-				tagBlock\gsub tag.pattern, ( value ) ->
-					@priorValues[tagName] = tag\convert value
-
+			for tag, _ in pairs @effectTags
 				if tag.affectedBy
-					for otherTag in *tag.affectedBy
-						newTag = tags.allTags[otherTag]
-						tagBlock\gsub newTag.pattern, ( value ) ->
-							@priorValues[tagName] = newTag\convert value,
-			major
+					newTagBlock = tagBlock\gsub ".-"..tag.pattern, ( value ) ->
+						@priorValues[tag] = tag\convert value
+						return ""
+					for tagName in *tag.affectedBy
+						newTag = tags.allTags[tagName]
+						newTagBlock = newTagBlock\gsub ".-"..newTag.pattern, ( value ) ->
+							@priorValues[tag] = newTag\convert value
+							return ""
+				else
+					tagBlock\gsub tag.pattern, ( value ) ->
+						@priorValues[tag] = tag\convert value
 
-	interpolate: ( time ) =>
+			i += 1
+			return nil,
+			count
+
+	interpolate: ( line, text, index, time ) =>
+		log.dump time
+		placeholder = line.tPlaceholder index
+		@collectPriorState line, text, placeholder
+
 		linearProgress = (time - @startTime)/(@endTime - @startTime)
-		if linearProgress <= 0
-			return ""
-		elseif linearProgress >= 1
-			return @effect
-
 		progress = math.pow linearProgress, @accel
 
-		for tagName, endValue in pairs @effectTags
-			tag = tags.allTags[tagName]
-			startValue = @priorValues[tagName]
-			interpValue = tag\interpolate startValue, endValue, progress
-			-- This is an atrocity against god and man
-			@effect = @effect\gsub tag.pattern, ->
-				return tag\format Math.round interpValue, 2
+		text = text\gsub placeholder, ->
+			resultString = {}
+			for tag, endValues in pairs @effectTags
+				if linearProgress <= 0
+					return tag\format @priorValues[tag]
+				elseif linearProgress >= 1
+					return tag\format endValues.last
 
-		return @effect
+				value = @priorValues[tag]
+				for endValue in *endValues
+					value = tag\interpolate value, endValue, progress
 
+				table.insert resultString, tag\format value
 
+			return table.concat resultString
 
+		return text
