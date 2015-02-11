@@ -6,7 +6,7 @@ log            = require 'a-mo.Log'
 bit            = require 'bit'
 
 class MotionHandler
-	@version: 0x010101
+	@version: 0x010102
 	@version_major: bit.rshift( @version, 16 )
 	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
 	@version_patch: bit.band( @version, 0xFF )
@@ -134,10 +134,10 @@ class MotionHandler
 				aegisub.progress.set (frame - .relativeStart)/(.relativeEnd - .relativeStart) * 100
 				log.checkCancellation!
 
-				newStartTime = aegisub.ms_from_frame( @lineCollection.startFrame + frame - 1 )
-				newEndTime   = aegisub.ms_from_frame( @lineCollection.startFrame + frame )
+				newStartTime = math.floor(math.max(0, aegisub.ms_from_frame( @lineCollection.startFrame + frame - 1 ))/10)*10
+				newEndTime   = math.floor(aegisub.ms_from_frame( @lineCollection.startFrame + frame )/10)*10
 
-				timeDelta = newStartTime - aegisub.ms_from_frame( @lineCollection.startFrame + .relativeStart - 1 )
+				timeDelta = newStartTime - math.floor(math.max(0,aegisub.ms_from_frame( @lineCollection.startFrame + .relativeStart - 1 ))/10)*10
 
 				newText = .text\gsub "\\fade(%b())", ( fade ) ->
 					a1, a2, a3, t1, t2, t3, t4 = fade\match("(%d+),(%d+),(%d+),(%d+),(%d+),(%d+),(%d+)")
