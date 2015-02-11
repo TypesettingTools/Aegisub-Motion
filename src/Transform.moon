@@ -3,7 +3,7 @@ Math = require 'a-mo.Math'
 bit  = require 'bit'
 
 class Transform
-	@version: 0x010000
+	@version: 0x010100
 	@version_major: bit.rshift( @version, 16 )
 	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
 	@version_patch: bit.band( @version, 0xFF )
@@ -32,7 +32,9 @@ class Transform
 		return object
 
 	new: ( @startTime, @endTime, @accel, @effect, @index, @parentLine ) =>
+		@gatherTagsInEffect!
 
+	__tostring: => return @toString!
 	toString: ( line = @parentLine ) =>
 		if @effect == ""
 			return ""
@@ -47,16 +49,19 @@ class Transform
 			return ("\\t(%s,%s,%s,%s)")\format @startTime, @endTime, @accel, @effect
 
 	gatherTagsInEffect: =>
-		@effectTags = {}
-		for name, tag in pairs tags.allTags
-			@effect = @effect\gsub tag.pattern, ( value ) ->
-				if tag.transformable and not @effectTags[name]
-					@effectTags[name] = tag\convert value
-					return nil
-				else
-					return ""
+		if @effectTags
+			return
+		@effectTags = { }
+		for tag in *tags.transformTags
+			@effect\gsub tag.pattern, ( value ) ->
+				log.debug "Found tag: %s -> %s", tag.name, value
+				unless @effectTags[tag]
+					@effectTags[tag] = { }
+				endValue = tag\convert value
+				table.insert @effectTags[tag], endValue
+				@effectTags[tag].last = endValue
 
-	collectPriorState: ( line = @parentLine ) =>
+	collectPriorState: ( line, text, placeholder ) =>
 		@priorValues = { k, v for k, v in pairs line.properties }
 		-- Fill out all of the possible tag defaults for tags that aren't
 		-- defined by styles. This works great for everything except \clip,
@@ -105,6 +110,5 @@ class Transform
 
 		return @effect
 
-	__tostring: => return @toString!
 
 
