@@ -1,7 +1,7 @@
 log = require 'a-mo.Log'
 bit = require 'bit'
 
-version = 0x010200
+version = 0x010300
 version_major = bit.rshift( version, 16 )
 version_minor = bit.band( bit.rshift( version, 8 ), 0xFF )
 version_patch = bit.band( version, 0xFF )
@@ -137,7 +137,7 @@ allTags = {
 	-- Problematic tags:
 	pos:      { fieldnames: { "x", "y" }        , output: "multi", pattern: "\\pos%(([%.%d%-]+,[%.%d%-]+)%)", tag: "\\pos"  , format: formatMulti, convert: convertMultiValue, global: true }
 	org:      { fieldnames: { "x", "y" }        , output: "multi", pattern: "\\org%(([%.%d%-]+,[%.%d%-]+)%)", tag: "\\org"  , format: formatMulti, convert: convertMultiValue, global: true }
-	fad:      { fieldnames: { "in", "out" }     , output: "multi", pattern: "\\fad%((%d+,%d+)%)"            , tag: "\\fad"  , format: formatMulti, convert: convertMultiValue, global: true }
+	fad:      { fieldnames: { "in", "out" }     , output: "multi", pattern: "\\fade?%((%d+,%d+)%)"          , tag: "\\fad"  , format: formatMulti, convert: convertMultiValue, global: true }
 	vectClip: { fieldnames: { "scale", "shape" }, output: "multi", pattern: "\\clip%((%d+,)?([^,]-)%)"      , tag: "\\clip" , format: formatMulti, convert: convertMultiValue, global: true }
 	vectiClip:{ fieldnames: { "scale", "shape" }, output: "multi", pattern: "\\iclip%((%d+,)?([^,]-)%)"     , tag: "\\iclip", format: formatMulti, convert: convertMultiValue, global: true }
 	rectClip: { fieldnames: { "xLeft", "yTop", "xRight", "yBottom" }, output: "multi", pattern: "\\clip%(([%-%d%.]+,[%-%d%.]+,[%-%d%.]+,[%-%d%.]+)%)?" , transformable: true, tag: "\\clip" , format: formatMulti, convert: convertMultiValue, interpolate: interpolateMulti,    global: true }
@@ -146,6 +146,24 @@ allTags = {
 	fade:     { fieldnames: { "a1", "a2", "a3", "a4", "in", "mid", "out" }, output: "multi", pattern: "\\fade%((%d+,%d+,%d+,%d+,[%d%-]+,[%d%-]+,[%d%-]+)%)"                 , tag: "\\fade" , format: formatMulti, convert: convertMultiValue, global: true }
 }
 
+repeatTags = { }
+oneTimeTags = { }
+styleTags = { }
+transformTags = { }
+
+for k, v in pairs allTags
+	v.name = k
+	unless v.global
+		table.insert repeatTags, v
+	else
+		table.insert oneTimeTags, v
+
+	if v.style
+		table.insert styleTags, v
+
+	if v.transformable
+		table.insert transformTags, v
+
 return {
 	:version
 	:version_major
@@ -153,9 +171,10 @@ return {
 	:version_patch
 	:version_string
 
-	repeatTags:    [ k for k, v in pairs allTags when not v.global ]
-	oneTimeTags:   [ k for k, v in pairs allTags when v.global ]
-	transformTags: [ k for k, v in pairs allTags when v.transformable ]
+	:repeatTags
+	:oneTimeTags
+	:styleTags
+	:transformTags
 
 	:allTags
 }

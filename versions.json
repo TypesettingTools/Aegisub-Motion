@@ -9,7 +9,7 @@
 	"src/MotionHandler.moon": "0x010102",
 	"src/ShakeShapeHandler.moon": "0x010000",
 	"src/Statistics.moon": "0x000101",
-	"src/Tags.moon": "0x010200",
+	"src/Tags.moon": "0x010300",
 	"src/Transform.moon": "0x010000",
 	"src/TrimHandler.moon": "0x010001",
 	"Aegisub-Motion.moon": "0x010000"
