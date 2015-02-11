@@ -2,7 +2,7 @@
 
 ##### [PLEASE REPORT BUGS YOU ENCOUNTER](#help-i-need-somebody-help-not-just-anybody)
 
-#### v1.0.0 Beta 4 ####
+#### v1.0.0 Beta 5 ####
 
 Aegisub-Motion has been rewritten from the ground up to be even slower
 and more error prone than ever before.
