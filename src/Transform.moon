@@ -3,7 +3,7 @@ Math = require 'a-mo.Math'
 bit  = require 'bit'
 
 class Transform
-	@version: 0x010200
+	@version: 0x010201
 	@version_major: bit.rshift( @version, 16 )
 	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
 	@version_patch: bit.band( @version, 0xFF )
@@ -98,7 +98,6 @@ class Transform
 			count
 
 	interpolate: ( line, text, index, time ) =>
-		log.dump time
 		placeholder = line.tPlaceholder index
 		@collectPriorState line, text, placeholder
 
@@ -109,15 +108,15 @@ class Transform
 			resultString = {}
 			for tag, endValues in pairs @effectTags
 				if linearProgress <= 0
-					return tag\format @priorValues[tag]
+					table.insert resultString, tag\format @priorValues[tag]
 				elseif linearProgress >= 1
-					return tag\format endValues.last
+					table.insert resultString, tag\format endValues.last
+				else
+					value = @priorValues[tag]
+					for endValue in *endValues
+						value = tag\interpolate value, endValue, progress
 
-				value = @priorValues[tag]
-				for endValue in *endValues
-					value = tag\interpolate value, endValue, progress
-
-				table.insert resultString, tag\format value
+					table.insert resultString, tag\format value
 
 			return table.concat resultString
 
