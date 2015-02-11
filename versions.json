@@ -2,7 +2,7 @@
 	"src/ConfigHandler.moon": "0x010102",
 	"src/DataHandler.moon": "0x010002",
 	"src/DataWrapper.moon": "0x010001",
-	"src/Line.moon": "0x010300",
+	"src/Line.moon": "0x010400",
 	"src/LineCollection.moon": "0x010100",
 	"src/Log.moon": "0x010000",
 	"src/Math.moon": "0x010000",

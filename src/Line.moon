@@ -5,8 +5,11 @@ Transform = require 'a-mo.Transform'
 util      = require 'aegisub.util'
 bit       = require 'bit'
 
+frameFromMs = aegisub.frame_from_ms
+msFromFrame = aegisub.ms_from_frame
+
 class Line
-	@version: 0x010300
+	@version: 0x010400
 	@version_major: bit.rshift( @version, 16 )
 	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
 	@version_patch: bit.band( @version, 0xFF )
@@ -24,7 +27,8 @@ class Line
 	}
 
 	splitChar:    "\\\6"
-	tPlaceholder: "\\\3"
+	tPlaceholder: ( count ) -> "\\\3#{count}\\\3"
+	tTokenPattern: "\\\3(%d+)\\\3"
 
 	defaultXPosition: {
 		-- align 3, 6, 9
@@ -103,6 +107,10 @@ class Line
 		hours   = minutes/60
 		return ("%d:%02d:%05.2f")\format math.floor( hours ), math.floor( minutes%60 ), seconds%60
 
+	__tostring: =>
+		@createRaw!
+		return @raw
+
 	createRaw: =>
 		line = {
 			(@comment and ("Comment: %d")\format( @layer ) or ("Dialogue: %d")\format( @layer ))
@@ -142,14 +150,13 @@ class Line
 		tagCollection = { }
 		positions = { }
 		@runCallbackOnOverrides ( tagBlock, major ) =>
-			for tagName in *tags.oneTimeTags
-				tag = tags.allTags[tagName]
+			for tag in *tags.oneTimeTags
 				tagBlock = tagBlock\gsub tag.pattern, ( value ) ->
-					unless tagCollection[tagName]
-						tagCollection[tagName] = @.generateTagIndex major, tagBlock\find tag.pattern
+					unless tagCollection[tag.name]
+						tagCollection[tag.name] = @.generateTagIndex major, tagBlock\find tag.pattern
 						return nil
 					else
-						log.debug "#{tagName} previously found at #{tagCollection[tagName]}"
+						log.debug "#{tag.name} previously found at #{tagCollection[tag.name]}"
 						return ""
 			return tagBlock
 
@@ -177,8 +184,7 @@ class Line
 						tagBlock = tagBlock\gsub tags.allTags[v[1]].pattern, ""
 
 		@runCallbackOnOverrides ( tagBlock ) =>
-			for tagName in *tags.repeatTags
-				tag = tags.allTags[tagName]
+			for tag in *tags.repeatTags
 				-- Calculates the number of times the pattern will be replaced.
 				_, num = tagBlock\gsub tag.pattern, ""
 				-- Replaces all instances except the last one.
@@ -279,17 +285,16 @@ class Line
 
 	getPropertiesFromStyle: ( styleRef = @styleRef ) =>
 		@properties = { }
-		for name, tag in pairs tags.allTags
-			if tag.style
-				switch tag.type
-					when "alpha"
-						@properties[name] = tag\convert styleRef[tag.style]\sub( 3, 4 )
+		for tag in *tags.styleTags
+			switch tag.type
+				when "alpha"
+					@properties[tag] = tag\convert styleRef[tag.style]\sub( 3, 4 )
 
-					when "color"
-						@properties[name] = tag\convert styleRef[tag.style]\sub( 5, 10 )
+				when "color"
+					@properties[tag] = tag\convert styleRef[tag.style]\sub( 5, 10 )
 
-					else
-						@properties[name] = tag\convert styleRef[tag.style]
+				else
+					@properties[tag] = tag\convert styleRef[tag.style]
 
 	-- Because duplicate tags may exist within transforms, it becomes
 	-- useful to remove transforms from a line before doing various
@@ -301,16 +306,18 @@ class Line
 			@runCallbackOnOverrides ( tagBlock ) =>
 				return tagBlock\gsub tags.allTags.transform.pattern, ( transform ) ->
 					count += 1
+					token = @.tPlaceholder count
 					transform = Transform\fromString transform, @duration, @.generateTagIndex( tagBlock\find transform ), @
+					transform.token = token
 					@transforms[count] = transform
 					-- create a token for the transforms
-					return @tPlaceholder .. tostring( count ) .. @tPlaceholder
+					return token
 			@transformsAreTokenized = true
 
 	loopOverTokenizedTransforms: ( callback ) =>
 		if @transformsAreTokenized
 			@runCallbackOnOverrides ( tagBlock ) =>
-				return tagBlock\gsub @tPlaceholder .. "(%d+)" .. @tPlaceholder, callback
+				return tagBlock\gsub @tTokenPattern, callback
 
 			@transformsAreTokenized = false
 
@@ -333,16 +340,21 @@ class Line
 			return "\\t" .. @transforms[tonumber index].rawString
 
 	interpolateTransforms: =>
-		@loopOverTokenizedTransforms ( index ) ->
-			transform = @transforms[tonumber index]
+		for transform in *@transforms
 			transform.startTime -= @transformShift
 			transform.endTime -= @transformShift
-			transform\gatherTagsInEffect!
-			transform\collectPriorState @
-			result = transform\interpolate aegisub.ms_from_frame(aegisub.frame_from_ms(@start_time)+1) - @start_time
+
+		newText = @text
+		@loopOverTokenizedTransforms ( index ) ->
+			transform = @transforms[tonumber index]
+			frame = frameFromMs @start_time
+			newText = transform\interpolate @, newText, index, math.floor( 0.5*( msFromFrame( frame ) + msFromFrame( frame + 1 ) ) ) - @start_time
+			return nil
+		@text = newText
+
+		for transform in *@transforms
 			transform.startTime += @transformShift
 			transform.endTime += @transformShift
-			return result
 
 	shiftKaraoke: ( shift = @karaokeShift ) =>
 		karaokeTag = tags.allTags.karaoke
