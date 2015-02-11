@@ -9,7 +9,7 @@ frameFromMs = aegisub.frame_from_ms
 msFromFrame = aegisub.ms_from_frame
 
 class Line
-	@version: 0x010400
+	@version: 0x010401
 	@version_major: bit.rshift( @version, 16 )
 	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
 	@version_patch: bit.band( @version, 0xFF )
@@ -361,11 +361,16 @@ class Line
 		@runCallbackOnOverrides ( tagBlock ) =>
 			return tagBlock\gsub karaokeTag.pattern, ( ... ) ->
 				time = karaokeTag\convert ...
+
 				if shift > 0
+					oldShift = -shift
 					newTime = time - shift
 					shift -= time
 					if newTime > 0
-						return karaokeTag\format newTime
+						if karaokeTag.tag == "\\kf"
+							return karaokeTag\format( oldShift ) .. karaokeTag\format time
+						else
+							return karaokeTag\format newTime
 					else
 						return ""
 				else
