@@ -252,8 +252,19 @@ prepareLines = ( lineCollection ) ->
 	-- Line.moon but are actually fairly Aegisub-Motion specific.
 	lineCollection\runCallback ( line, index ) =>
 
-		-- Add our signature extradata.
-		line\setExtraData 'a-mo', { originalText: line.text, uuid: Math.uuid! }
+		-- If a line already contains a-mo extradata, it is probably being
+		-- tracked again after being tracked. There are some reasons to do
+		-- this, but it results in a huge amount of extradata garbage if
+		-- unchecked. Presumably 99% of tracking that isn't this case will
+		-- be on lines without extradata. This isn't a perfect solution, but
+		-- it is probably better than before. This doesn't change
+		-- extradata's lack of resilience toward copying lines between
+		-- scripts.
+		if line\getExtraData 'a-mo'
+			line.retrack = true
+		else
+			-- Add our signature extradata.
+			line\setExtraData 'a-mo', { originalText: line.text, uuid: Math.uuid! }
 
 		-- Get default style properties (will be used later if transform
 		-- interpolation is enabled)
