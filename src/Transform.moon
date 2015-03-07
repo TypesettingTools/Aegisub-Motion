@@ -75,7 +75,6 @@ class Transform
 		if @effectTags[tags.allTags.rectiClip]
 			@priorValues[tags.allTags.rectiClip] = { 0, 0, line.parentCollection.meta.PlayResX, line.parentCollection.meta.PlayResY }
 
-		count = math.floor @index
 		i = 1
 		text\gsub "({.-})", ( tagBlock ) ->
 			if i == count
@@ -97,7 +96,7 @@ class Transform
 
 			i += 1
 			return nil,
-			count
+			@index
 
 	interpolate: ( line, text, index, time ) =>
 		placeholder = line.tPlaceholder index

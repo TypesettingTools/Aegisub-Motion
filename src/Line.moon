@@ -303,11 +303,13 @@ class Line
 		unless @transformsAreTokenized
 			@transforms = { }
 			count = 0
+			tagIndex = 0
 			@runCallbackOnOverrides ( tagBlock ) =>
+				tagIndex += 1
 				return tagBlock\gsub tags.allTags.transform.pattern, ( transform ) ->
 					count += 1
 					token = @.tPlaceholder count
-					transform = Transform\fromString transform, @duration, @.generateTagIndex( tagBlock\find transform ), @
+					transform = Transform\fromString transform, @duration, tagIndex, @
 					transform.token = token
 					@transforms[count] = transform
 					-- create a token for the transforms
