@@ -3,7 +3,7 @@ Math = require 'a-mo.Math'
 bit  = require 'bit'
 
 class Transform
-	@version: 0x010201
+	@version: 0x010202
 	@version_major: bit.rshift( @version, 16 )
 	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
 	@version_patch: bit.band( @version, 0xFF )

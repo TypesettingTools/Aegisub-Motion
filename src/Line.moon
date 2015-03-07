@@ -9,7 +9,7 @@ frameFromMs = aegisub.frame_from_ms
 msFromFrame = aegisub.ms_from_frame
 
 class Line
-	@version: 0x010401
+	@version: 0x010402
 	@version_major: bit.rshift( @version, 16 )
 	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
 	@version_patch: bit.band( @version, 0xFF )
