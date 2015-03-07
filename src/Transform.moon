@@ -61,16 +61,19 @@ class Transform
 				@effectTags[tag].last = endValue
 
 	collectPriorState: ( line, text, placeholder ) =>
-		@priorValues = { k, v for k, v in pairs line.properties }
-		-- Fill out all of the possible tag defaults for tags that aren't
-		-- defined by styles. This works great for everything except \clip,
-		-- which defaults to 0, 0, width, height
-		for tag in *tags.transformTags
-			unless tag.style
+		-- Fill out all of the relevant tag defaults. This works great for
+		-- everything except \clip, which defaults to 0, 0, width, height
+		@priorValues = { }
+		for tag, _ in pairs @effectTags
+			if tag.style
+				@priorValues[tag] = line.properties[tag]
+			else
 				@priorValues[tag] = 0
 
-		@priorValues[tags.allTags.rectClip]  = { 0, 0, line.parentCollection.meta.PlayResX, line.parentCollection.meta.PlayResY }
-		@priorValues[tags.allTags.rectiClip] = { 0, 0, line.parentCollection.meta.PlayResX, line.parentCollection.meta.PlayResY }
+		if @effectTags[tags.allTags.rectClip]
+			@priorValues[tags.allTags.rectClip]  = { 0, 0, line.parentCollection.meta.PlayResX, line.parentCollection.meta.PlayResY }
+		if @effectTags[tags.allTags.rectiClip]
+			@priorValues[tags.allTags.rectiClip] = { 0, 0, line.parentCollection.meta.PlayResX, line.parentCollection.meta.PlayResY }
 
 		count = math.floor @index
 		i = 1
