@@ -331,9 +331,6 @@ class Line
 			transform.endTime += @transformShift
 			return result
 
-		if @transformEnded
-			@transformEnded = nil
-
 	-- detokenize using transform.rawString
 	dontTouchTransforms: =>
 		@loopOverTokenizedTransforms ( index ) ->

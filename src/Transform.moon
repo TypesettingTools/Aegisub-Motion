@@ -39,7 +39,6 @@ class Transform
 		if @effect == ""
 			return ""
 		elseif @endTime <= 0
-			line.transformEnded = true
 			return @effect
 		elseif @startTime > line.duration or @endTime < @startTime
 			return ""
