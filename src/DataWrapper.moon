@@ -1,15 +1,31 @@
-log               = require 'a-mo.Log'
-ShakeShapeHandler = require 'a-mo.ShakeShapeHandler'
-DataHandler       = require 'a-mo.DataHandler'
-bit               = require 'bit'
+local log, DataHandler, ShakeShapeHandler
+version = '1.0.1'
+
+success, DependencyControl = pcall require, 'l0.DependencyControl'
+
+if success
+	version = DependencyControl {
+		name: 'DataWrapper',
+		:version,
+		description: 'A class for wrapping motion data.',
+		author: 'torque',
+		url: 'https://github.com/TypesettingCartel/Aegisub-Motion'
+		moduleName: 'a-mo.DataWrapper'
+		feed: 'https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json'
+		{
+			{ 'a-mo.Log',               version: '1.0.0' }
+			{ 'a-mo.DataHandler',       version: '1.0.2' }
+			{ 'a-mo.ShakeShapeHandler', version: '1.0.0' }
+		}
+	}
+	log, DataHandler, ShakeShapeHandler = version\requireModules!
+else
+	log               = require 'a-mo.Log'
+	DataHandler       = require 'a-mo.DataHandler'
+	ShakeShapeHandler = require 'a-mo.ShakeShapeHandler'
 
 class DataWrapper
-	@version: 0x010001
-	@version_major: bit.rshift( @version, 16 )
-	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
-	@version_patch: bit.band( @version, 0xFF )
-	@version_string: ("%d.%d.%d")\format @version_major, @version_minor, @version_patch
-
+	@version: version
 	new: =>
 
 	tryDataHandler = ( input ) =>
