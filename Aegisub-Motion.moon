@@ -4,22 +4,45 @@
 export script_name        = "Aegisub-Motion"
 export script_description = "A set of tools for simplifying the process of creating and applying motion tracking data with Aegisub."
 export script_author      = "torque"
-export script_version     = "1.0.0-beta5"
+export script_version     = "1.0.0"
 
 local interface, setProgress, setTask
+local versionRecord, clipboard, json, ConfigHandler, DataWrapper
+local LineCollection, log, Math, MotionHandler, Statistics, TrimHandler
 
-clipboard      = require 'aegisub.clipboard'
-ffi            = require 'ffi'
-json           = require 'json'
+success, DependencyControl = pcall require, "l0.DependencyControl"
 
-ConfigHandler  = require 'a-mo.ConfigHandler'
-DataWrapper    = require 'a-mo.DataWrapper'
-LineCollection = require 'a-mo.LineCollection'
-log            = require 'a-mo.Log'
-Math           = require 'a-mo.Math'
-MotionHandler  = require 'a-mo.MotionHandler'
-Statistics     = require 'a-mo.Statistics'
-TrimHandler    = require 'a-mo.TrimHandler'
+if success
+	versionRecord = DependencyControl {
+		url: 'https://github.com/TypesettingCartel/Aegisub-Motion'
+		moduleName: 'a-mo.Aegisub-Motion'
+		feed: 'https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json'
+		{
+			'aegisub.clipboard'
+			'json'
+			{ 'a-mo.ConfigHandler',  version: '1.1.2' }
+			{ 'a-mo.DataWrapper',    version: '1.0.1' }
+			{ 'a-mo.LineCollection', version: '1.1.0' }
+			{ 'a-mo.Log' ,           version: '1.0.0' }
+			{ 'a-mo.Math' ,          version: '1.0.0' }
+			{ 'a-mo.MotionHandler',  version: '1.1.2' }
+			{ 'a-mo.Statistics' ,    version: '0.1.1' }
+			{ 'a-mo.TrimHandler',    version: '1.0.1' }
+		}
+	}
+	clipboard, json, ConfigHandler, DataWrapper, LineCollection, log, Math, MotionHandler, Statistics, TrimHandler = versionRecord\requireModules!
+
+else
+	clipboard      = require 'aegisub.clipboard'
+	json           = require 'json'
+	ConfigHandler  = require 'a-mo.ConfigHandler'
+	DataWrapper    = require 'a-mo.DataWrapper'
+	LineCollection = require 'a-mo.LineCollection'
+	log            = require 'a-mo.Log'
+	Math           = require 'a-mo.Math'
+	MotionHandler  = require 'a-mo.MotionHandler'
+	Statistics     = require 'a-mo.Statistics'
+	TrimHandler    = require 'a-mo.TrimHandler'
 
 statsTemplate = {
 	apply: {
@@ -130,7 +153,7 @@ fetchDataFromClipboard = ->
 	-- According to vague reports, Aegisub clipboard usage crashes it on
 	-- Linux. Disable any clipboard use until I find a better way to
 	-- handle this.
-	dataString = (ffi.os != "Linux") and clipboard.get!
+	dataString = (jit.os != "Linux") and clipboard.get!
 
 	-- If there's nothing on the clipboard, clipboard.get returns nil.
 	return dataString or ""
