@@ -1,13 +1,31 @@
-log  = require 'a-mo.Log'
-Math = require 'a-mo.Math'
-bit  = require 'bit'
+local log, Math, tags
+version = '1.2.2'
+
+success, DependencyControl = pcall require, 'l0.DependencyControl'
+
+if success
+	version = DependencyControl {
+		name: 'Transform'
+		:version
+		description: 'A class for managing the transform tag.'
+		author: 'torque'
+		url: 'https://github.com/TypesettingCartel/Aegisub-Motion'
+		moduleName: 'a-mo.Transform'
+		feed: 'https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json'
+		{
+			{ 'a-mo.Log',  version: '1.0.0' }
+			{ 'a-mo.Math', version: '1.0.0' }
+			{ 'a-mo.Tags', version: '1.3.0' }
+		}
+	}
+	log, Math, tags = version\requireModules!
+
+else
+	log  = require 'a-mo.Log'
+	Math = require 'a-mo.Math'
 
 class Transform
-	@version: 0x010202
-	@version_major: bit.rshift( @version, 16 )
-	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
-	@version_patch: bit.band( @version, 0xFF )
-	@version_string: ("%d.%d.%d")\format @version_major, @version_minor, @version_patch
+	@version: version
 
 	tags = tags or require 'a-mo.Tags'
 
