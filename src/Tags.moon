@@ -1,13 +1,26 @@
-log = require 'a-mo.Log'
-bit = require 'bit'
+local log, Transform
+version = '1.3.0'
 
-version = 0x010300
-version_major = bit.rshift( version, 16 )
-version_minor = bit.band( bit.rshift( version, 8 ), 0xFF )
-version_patch = bit.band( version, 0xFF )
-version_string = ("%d.%d.%d")\format version_major, version_minor, version_patch
+success, DependencyControl = pcall require, 'l0.DependencyControl'
 
-local Transform
+if success
+	version = DependencyControl {
+		name: 'Tags'
+		:version
+		description: 'A mess for manipulating tags.'
+		author: 'torque'
+		url: 'https://github.com/TypesettingCartel/Aegisub-Motion'
+		moduleName: 'a-mo.Tags'
+		feed: 'https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json'
+		{
+			{ 'a-mo.Log',       version: '1.0.0' }
+			{ 'a-mo.Transform', version: '1.2.2' }
+		}
+	}
+	log, Transform = version\requireModules!
+
+else
+	log  = require 'a-mo.Log'
 
 -- In the following conversion functions, self refers to the tag table.
 convertStringValue = ( value ) =>
@@ -87,7 +100,6 @@ formatColor = ( color ) =>
 
 formatKaraoke = ( time ) =>
 	result = ("%s%d")\format @tag, value
-	@tag = nil
 	return result
 
 formatTransform = ( transform ) =>
@@ -166,10 +178,6 @@ for k, v in pairs allTags
 
 return {
 	:version
-	:version_major
-	:version_minor
-	:version_patch
-	:version_string
 
 	:repeatTags
 	:oneTimeTags
