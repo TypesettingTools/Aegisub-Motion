@@ -153,7 +153,7 @@ prepareConfig = ( config, mainData, clipData, lineCollection ) ->
 			unless data\bestEffortParsingAttempt configField.data, lineCollection.meta.PlayResX, lineCollection.meta.PlayResY
 				log.windowError "You put something in the data box\nbut it is wrong in ways I can't imagine."
 			unless data.dataObject\checkLength totalFrames
-				log.windowError "The length of your #{field} data (#{data.length}) doesn't match\nthe length of your lines (#{totalFrames}) and I quit."
+				log.windowError "The length of your #{field} data (#{data.dataObject.length} frames) doesn't match\nthe length of your lines (#{totalFrames} frames) and I quit."
 
 			if configField.rectClip
 				rectClipData = data
@@ -389,7 +389,7 @@ applyProcessor = ( subtitles, selectedLines ) ->
 			interface.main.data.value = rawInputData
 			interface.main.dataLabel.label = "                Data is the correct length."
 		else
-			interface.main.dataLabel.label = "Data was the wrong length. Exp: #{lineCollection.totalFrames} Act: #{mainData.length}"
+			interface.main.dataLabel.label = "Data had the wrong framecount. Expected: #{lineCollection.totalFrames}. Got: #{mainData.dataObject.length}"
 
 	if options.configuration.main.relative
 		relativeFrame = currentVideoFrame - lineCollection.startFrame + 1
