@@ -1,17 +1,38 @@
-LineCollection = require 'a-mo.LineCollection'
-Transform      = require 'a-mo.Transform'
-tags           = require 'a-mo.Tags'
-Math           = require 'a-mo.Math'
-Line           = require 'a-mo.Line'
-log            = require 'a-mo.Log'
-bit            = require 'bit'
+local log, Line, LineCollection, Math, tags, Transform
+version = '1.1.2'
+
+success, DependencyControl = pcall require, 'l0.DependencyControl'
+
+if success
+	version = DependencyControl {
+		name: 'MotionHandler'
+		:version
+		description: 'A class for applying motion data to a LineCollection.'
+		author: 'torque'
+		url: 'https://github.com/TypesettingCartel/Aegisub-Motion'
+		moduleName: 'a-mo.MotionHandler'
+		feed: 'https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json'
+		{
+			{ 'a-mo.Log',            version: '1.0.0' }
+			{ 'a-mo.Line',           version: '1.4.2' }
+			{ 'a-mo.LineCollection', version: '1.1.0' }
+			{ 'a-mo.Math',           version: '1.0.0' }
+			{ 'a-mo.Tags',           version: '1.3.0' }
+			{ 'a-mo.Transform',      version: '1.2.2' }
+		}
+	}
+	log, Line, LineCollection, Math, tags, Transform = version\requireModules!
+
+else
+	Line           = require 'a-mo.Line'
+	LineCollection = require 'a-mo.LineCollection'
+	log            = require 'a-mo.Log'
+	Math           = require 'a-mo.Math'
+	tags           = require 'a-mo.Tags'
+	Transform      = require 'a-mo.Transform'
 
 class MotionHandler
-	@version: 0x010102
-	@version_major: bit.rshift( @version, 16 )
-	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
-	@version_patch: bit.band( @version, 0xFF )
-	@version_string: ("%d.%d.%d")\format @version_major, @version_minor, @version_patch
+	@version: version
 
 	new: ( @lineCollection, mainData, rectClipData = { }, vectClipData = { } ) =>
 		-- Create a local reference to the options table.
