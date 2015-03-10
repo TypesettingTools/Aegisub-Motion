@@ -1,0 +1,449 @@
+{
+  "dependencyControlFeedFormatVersion": "0.1.0",
+  "name": "Aegisub-Motion",
+  "description": "A set of tools for simplifying the process of creating and applying motion tracking data with Aegisub.",
+  "baseUrl": "https://github.com/TypesettingCartel/Aegisub-Motion",
+  "fileBaseUrl": "https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/@{channel}/",
+  "url": "@{baseUrl}",
+  "maintainer": "torque",
+  "macros": {
+    "a-mo.Aegisub-Motion": {
+      "url": "@{baseUrl}",
+      "author": "torque",
+      "name": "Aegisub-Motion",
+      "description": "The main macro.",
+      "channels": {
+        "DepCtrl": {
+          "version": "1.0.0",
+          "released": "2015-03-09",
+          "default": true,
+          "files": [
+            {
+              "name": ".moon",
+              "url": "@{fileBaseUrl}Aegisub-Motion@{fileName}",
+              // "sha1": ""
+            }
+          ],
+          "requiredModules": [
+            {
+              "moduleName": "a-mo.ConfigHandler",
+              "version": "1.1.2"
+            },
+            {
+              "moduleName": "a-mo.DataWrapper",
+              "version": "1.0.1"
+            },
+            {
+              "moduleName": "a-mo.LineCollection",
+              "version": "1.1.0"
+            },
+            {
+              "moduleName": "a-mo.Log",
+              "version": "1.0.0"
+            },
+            {
+              "moduleName": "a-mo.Math",
+              "version": "1.0.0"
+            },
+            {
+              "moduleName": "a-mo.MotionHandler",
+              "version": "1.1.2"
+            },
+            {
+              "moduleName": "a-mo.Statistics",
+              "version": "0.1.1"
+            },
+            {
+              "moduleName": "a-mo.TrimHandler",
+              "version": "1.0.1"
+            },
+            { "moduleName": "aegisub.clipboard" },
+            { "moduleName": "json" }
+          ]
+        }
+      }
+    }
+  },
+  "modules": {
+    "a-mo.ConfigHandler": {
+      "url": "@{baseUrl}",
+      "author": "torque",
+      "name": "ConfigHandler",
+      "description": "A class for mapping dialogs to persistent configuration.",
+      "channels": {
+        "DepCtrl": {
+          "version": "1.1.2",
+          "released": "2015-03-09",
+          "default": true,
+          "files": [
+            {
+              "name": ".moon",
+              "url": "@{fileBaseUrl}src/ConfigHandler@{fileName}",
+              // "sha1": ""
+            }
+          ],
+          "requiredModules": [
+            {
+              "moduleName": "a-mo.Log",
+              "version": "1.0.0"
+            },
+            { "moduleName": "json" }
+          ]
+        }
+      }
+    },
+    "a-mo.DataHandler": {
+      "url": "@{baseUrl}",
+      "author": "torque",
+      "name": "DataHandler",
+      "description": "A class for parsing After Effects motion data.",
+      "channels": {
+        "DepCtrl": {
+          "version": "1.0.2",
+          "released": "2015-03-09",
+          "default": true,
+          "files": [
+            {
+              "name": ".moon",
+              "url": "@{fileBaseUrl}src/DataHandler@{fileName}",
+              // "sha1": ""
+            }
+          ],
+          "requiredModules": [
+            {
+              "moduleName": "a-mo.Log",
+              "version": "1.0.0"
+            }
+          ]
+        }
+      }
+    },
+    "a-mo.DataWrapper": {
+      "url": "@{baseUrl}",
+      "author": "torque",
+      "name": "DataWrapper",
+      "description": "A class for wrapping motion data.",
+      "channels": {
+        "DepCtrl": {
+          "version": "1.0.1",
+          "released": "2015-03-09",
+          "default": true,
+          "files": [
+            {
+              "name": ".moon",
+              "url": "@{fileBaseUrl}src/DataWrapper@{fileName}",
+              // "sha1": ""
+            }
+          ],
+          "requiredModules": [
+            {
+              "moduleName": "a-mo.Log",
+              "version": "1.0.0"
+            },
+            {
+              "moduleName": "a-mo.DataHandler",
+              "version": "1.0.2"
+            },
+            {
+              "moduleName": "a-mo.ShakeShapeHandler",
+              "version": "1.0.0"
+            }
+          ]
+        }
+      }
+    },
+    "a-mo.Line": {
+      "url": "@{baseUrl}",
+      "author": "torque",
+      "name": "Line",
+      "description": "A class for containing and manipulating a line.",
+      "channels": {
+        "DepCtrl": {
+          "version": "1.4.2",
+          "released": "2015-03-09",
+          "default": true,
+          "files": [
+            {
+              "name": ".moon",
+              "url": "@{fileBaseUrl}src/Line@{fileName}",
+              // "sha1": ""
+            }
+          ],
+          "requiredModules": [
+            {
+              "moduleName": "a-mo.Tags",
+              "version": "1.3.0"
+            },
+            {
+              "moduleName": "a-mo.Transform",
+              "version": "1.2.2"
+            },
+            {
+              "moduleName": "a-mo.Log",
+              "version": "1.0.0"
+            },
+            { "moduleName": "aegisub.util" },
+            { "moduleName": "json" }
+          ]
+        }
+      }
+    },
+    "a-mo.LineCollection": {
+      "url": "@{baseUrl}",
+      "author": "torque",
+      "name": "LineCollection",
+      "description": "A class for handling collections of lines.",
+      "channels": {
+        "DepCtrl": {
+          "version": "1.1.0",
+          "released": "2015-03-09",
+          "default": true,
+          "files": [
+            {
+              "name": ".moon",
+              "url": "@{fileBaseUrl}src/LineCollection@{fileName}",
+              // "sha1": ""
+            }
+          ],
+          "requiredModules": [
+            {
+              "moduleName": "a-mo.Line",
+              "version": "1.4.2"
+            },
+            {
+              "moduleName": "a-mo.Log",
+              "version": "1.0.0"
+            }
+          ]
+        }
+      }
+    },
+    "a-mo.Log": {
+      "url": "@{baseUrl}",
+      "author": "torque",
+      "name": "Log",
+      "description": "A collection of methods for dumping text everywhere.",
+      "channels": {
+        "DepCtrl": {
+          "version": "1.0.0",
+          "released": "2015-03-09",
+          "default": true,
+          "files": [
+            {
+              "name": ".moon",
+              "url": "@{fileBaseUrl}src/Log@{fileName}",
+              // "sha1": ""
+            }
+          ],
+          "requiredModules": []
+        }
+      }
+    },
+    "a-mo.Math": {
+      "url": "@{baseUrl}",
+      "author": "torque",
+      "name": "Math",
+      "description": "Extra math functions.",
+      "channels": {
+        "DepCtrl": {
+          "version": "1.0.0",
+          "released": "2015-03-09",
+          "default": true,
+          "files": [
+            {
+              "name": ".moon",
+              "url": "@{fileBaseUrl}src/Math@{fileName}",
+              // "sha1": ""
+            }
+          ],
+          "requiredModules": []
+        }
+      }
+    },
+    "a-mo.MotionHandler": {
+      "url": "@{baseUrl}",
+      "author": "torque",
+      "name": "MotionHandler",
+      "description": "A class for applying motion data to a LineCollection.",
+      "channels": {
+        "DepCtrl": {
+          "version": "1.1.2",
+          "released": "2015-03-09",
+          "default": true,
+          "files": [
+            {
+              "name": ".moon",
+              "url": "@{fileBaseUrl}src/MotionHandler@{fileName}",
+              // "sha1": ""
+            }
+          ],
+          "requiredModules": [
+            {
+              "moduleName": "a-mo.Line",
+              "version": "1.4.2"
+            },
+            {
+              "moduleName": "a-mo.LineCollection",
+              "version": "1.1.0"
+            },
+            {
+              "moduleName": "a-mo.Log",
+              "version": "1.0.0"
+            },
+            {
+              "moduleName": "a-mo.Math",
+              "version": "1.0.0"
+            },
+            {
+              "moduleName": "a-mo.Tags",
+              "version": "1.3.0"
+            },
+            {
+              "moduleName": "a-mo.Transform",
+              "version": "1.2.2"
+            }
+          ]
+        }
+      }
+    },
+    "a-mo.ShakeShapeHandler": {
+      "url": "@{baseUrl}",
+      "author": "torque",
+      "name": "ShakeShapeHandler",
+      "description": "A class for parsing shake shape motion data.",
+      "channels": {
+        "DepCtrl": {
+          "version": "1.0.0",
+          "released": "2015-03-09",
+          "default": true,
+          "files": [
+            {
+              "name": ".moon",
+              "url": "@{fileBaseUrl}src/ShakeShapeHandler@{fileName}",
+              // "sha1": ""
+            }
+          ],
+          "requiredModules": [
+            {
+              "moduleName": "a-mo.Log",
+              "version": "1.0.0"
+            }
+          ]
+        }
+      }
+    },
+    "a-mo.Statistics": {
+      "url": "@{baseUrl}",
+      "author": "torque",
+      "name": "Statistics",
+      "description": "A class for STATS.",
+      "channels": {
+        "DepCtrl": {
+          "version": "0.1.1",
+          "released": "2015-03-09",
+          "default": true,
+          "files": [
+            {
+              "name": ".moon",
+              "url": "@{fileBaseUrl}src/Statistics@{fileName}",
+              // "sha1": ""
+            }
+          ],
+          "requiredModules": [
+            {
+              "moduleName": "a-mo.Log",
+              "version": "1.0.0"
+            },
+            { "moduleName": "json" }
+          ]
+        }
+      }
+    },
+    "a-mo.Tags": {
+      "url": "@{baseUrl}",
+      "author": "torque",
+      "name": "Tags",
+      "description": "A mess for manipulating tags.",
+      "channels": {
+        "DepCtrl": {
+          "version": "1.3.0",
+          "released": "2015-03-09",
+          "default": true,
+          "files": [
+            {
+              "name": ".moon",
+              "url": "@{fileBaseUrl}src/Tags@{fileName}",
+              // "sha1": ""
+            }
+          ],
+          "requiredModules": [
+            {
+              "moduleName": "a-mo.Log",
+              "version": "1.0.0"
+            },
+            {
+              "moduleName": "a-mo.Transform",
+              "version": "1.2.2"
+            }
+          ]
+        }
+      }
+    },
+    "a-mo.Transform": {
+      "url": "@{baseUrl}",
+      "author": "torque",
+      "name": "Transform",
+      "description": "A class for managing the transform tag.",
+      "channels": {
+        "DepCtrl": {
+          "version": "1.2.2",
+          "released": "2015-03-09",
+          "default": true,
+          "files": [
+            {
+              "name": ".moon",
+              "url": "@{fileBaseUrl}src/Transform@{fileName}",
+              // "sha1": ""
+            }
+          ],
+          "requiredModules": [
+            {
+              "moduleName": "a-mo.Log",
+              "version": "1.0.0"
+            },
+            {
+              "moduleName": "a-mo.Tags",
+              "version": "1.3.0"
+            }
+          ]
+        }
+      }
+    },
+    "a-mo.TrimHandler": {
+      "url": "@{baseUrl}",
+      "author": "torque",
+      "name": "TrimHandler",
+      "description": "A class for managing the transform tag.",
+      "channels": {
+        "DepCtrl": {
+          "version": "1.0.1",
+          "released": "2015-03-09",
+          "default": true,
+          "files": [
+            {
+              "name": ".moon",
+              "url": "@{fileBaseUrl}src/TrimHandler@{fileName}",
+              // "sha1": ""
+            }
+          ],
+          "requiredModules": [
+            {
+              "moduleName": "a-mo.Log",
+              "version": "1.0.0"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
