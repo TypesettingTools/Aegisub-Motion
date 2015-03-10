@@ -423,7 +423,7 @@
       "url": "@{baseUrl}",
       "author": "torque",
       "name": "TrimHandler",
-      "description": "A class for managing the transform tag.",
+      "description": "A class for encoding video clips.",
       "channels": {
         "DepCtrl": {
           "version": "1.0.1",
