@@ -1,4 +1,6 @@
 return {
+	version: "1.0.0"
+
 	round: ( num, idp ) ->
 		mult = 10^(idp or 0)
 		math.floor( num * mult + 0.5 ) / mult
