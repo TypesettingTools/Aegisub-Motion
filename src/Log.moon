@@ -1,4 +1,6 @@
 return {
+	version: "1.0.0"
+
 	debug: (...) ->
 		aegisub.log 4, ...
 		aegisub.log 4, '\n'
