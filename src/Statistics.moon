@@ -1,7 +1,27 @@
-bit  = require 'bit'
-json = require 'json'
+local json, log
+version = '0.1.1'
 
-log  = require 'a-mo.Log'
+success, DependencyControl = pcall require, 'l0.DependencyControl'
+
+if success
+	version = DependencyControl {
+		name: 'Statistics'
+		:version
+		description: 'A class for proving how cool you are.'
+		author: 'torque'
+		url: 'https://github.com/TypesettingCartel/Aegisub-Motion'
+		moduleName: 'a-mo.Statistics'
+		feed: 'https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json'
+		{
+			{ 'json' }
+			{ 'a-mo.Log',  version: '1.0.0' }
+		}
+	}
+	json, log = version\requireModules!
+
+else
+	json = require 'json'
+	log  = require 'a-mo.Log'
 
 -- example = {
 -- 	macroRunCount: {
@@ -19,11 +39,7 @@ log  = require 'a-mo.Log'
 -- No way to migrate to different layouts. Seems like a pain in the ass.
 -- Probably won't get implemented.
 class Statistics
-	@version: 0x000101
-	@version_major: bit.rshift( @version, 16 )
-	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
-	@version_patch: bit.band( @version, 0xFF )
-	@version_string: ("%d.%d.%d")\format @version_major, @version_minor, @version_patch
+	@version: version
 
 	new: ( @stats, fileName, filePath = aegisub.decode_path( '?user' ) ) =>
 		@fileName = ('%s/%s')\format filePath, fileName
