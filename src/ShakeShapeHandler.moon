@@ -1,12 +1,28 @@
-log = require 'a-mo.Log'
-bit = require 'bit'
+local log
+version = '1.0.0'
+
+success, DependencyControl = pcall require, 'l0.DependencyControl'
+
+if success
+	version = DependencyControl {
+		name: 'ShakeShapeHandler'
+		:version
+		description: 'A class for parsing shake shape motion data.'
+		author: 'torque'
+		url: 'https://github.com/TypesettingCartel/Aegisub-Motion'
+		moduleName: 'a-mo.ShakeShapeHandler'
+		feed: 'https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json'
+		{
+			{ 'a-mo.Log',  version: '1.0.0' }
+		}
+	}
+	log = version\requireModules!
+
+else
+	log  = require 'a-mo.Log'
 
 class ShakeShapeHandler
-	@version: 0x010000
-	@version_major: bit.rshift( @version, 16 )
-	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
-	@version_patch: bit.band( @version, 0xFF )
-	@version_string: ("%d.%d.%d")\format @version_major, @version_minor, @version_patch
+	@version: version
 
 	new: ( input, @scriptHeight ) =>
 		if input
