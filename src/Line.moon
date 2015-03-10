@@ -1,19 +1,40 @@
-log       = require 'a-mo.Log'
-json      = require 'json'
-tags      = require 'a-mo.Tags'
-Transform = require 'a-mo.Transform'
-util      = require 'aegisub.util'
-bit       = require 'bit'
+local util, json, log, tags, Transform
+version = '1.4.2'
+
+success, DependencyControl = pcall require, 'l0.DependencyControl'
+
+if success
+	version = DependencyControl {
+		name: 'Line',
+		:version,
+		description: 'A class for containing and manipulating a line.',
+		author: 'torque',
+		url: 'https://github.com/TypesettingCartel/Aegisub-Motion'
+		moduleName: 'a-mo.Line'
+		feed: 'https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json'
+		{
+			{ 'aegisub.util' }
+			{ 'json' }
+			{ 'a-mo.Log',       version: '1.0.0' }
+			{ 'a-mo.Tags',      version: '1.3.0' }
+			{ 'a-mo.Transform', version: '1.2.2' }
+		}
+	}
+	util, json, log, tags, Transform = version\requireModules!
+
+else
+	util      = require 'aegisub.util'
+	json      = require 'json'
+
+	log       = require 'a-mo.Log'
+	tags      = require 'a-mo.Tags'
+	Transform = require 'a-mo.Transform'
 
 frameFromMs = aegisub.frame_from_ms
 msFromFrame = aegisub.ms_from_frame
 
 class Line
-	@version: 0x010402
-	@version_major: bit.rshift( @version, 16 )
-	@version_minor: bit.band( bit.rshift( @version, 8 ), 0xFF )
-	@version_patch: bit.band( @version, 0xFF )
-	@version_string: ("%d.%d.%d")\format @version_major, @version_minor, @version_patch
+	@version: version
 
 	fieldsToDeepCopy: {
 		'extra'
