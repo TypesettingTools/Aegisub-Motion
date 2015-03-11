@@ -1,5 +1,5 @@
 local log, Transform
-version = '1.3.0'
+version = '##__TAGS_VERSION__##'
 
 success, DependencyControl = pcall require, 'l0.DependencyControl'
 
@@ -13,8 +13,8 @@ if success
 		moduleName: 'a-mo.Tags'
 		feed: 'https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json'
 		{
-			{ 'a-mo.Log',       version: '1.0.0' }
-			{ 'a-mo.Transform', version: '1.2.2' }
+			{ 'a-mo.Log',       version: '##__LOG_VERSION__##'       }
+			{ 'a-mo.Transform', version: '##__TRANSFORM_VERSION__##' }
 		}
 	}
 	log, Transform = version\requireModules!

@@ -1,5 +1,5 @@
 local log
-version = '1.0.0'
+version = '##__SHAKESHAPEHANDLER_VERSION__##'
 
 success, DependencyControl = pcall require, 'l0.DependencyControl'
 
@@ -13,7 +13,7 @@ if success
 		moduleName: 'a-mo.ShakeShapeHandler'
 		feed: 'https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json'
 		{
-			{ 'a-mo.Log',  version: '1.0.0' }
+			{ 'a-mo.Log',  version: '##__LOG_VERSION__##' }
 		}
 	}
 	log = version\requireModules!

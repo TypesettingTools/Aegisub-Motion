@@ -1,5 +1,5 @@
 local log, DataHandler, ShakeShapeHandler
-version = '1.0.1'
+version = '##__DATAWRAPPER_VERSION__##'
 
 success, DependencyControl = pcall require, 'l0.DependencyControl'
 
@@ -13,9 +13,9 @@ if success
 		moduleName: 'a-mo.DataWrapper'
 		feed: 'https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json'
 		{
-			{ 'a-mo.Log',               version: '1.0.0' }
-			{ 'a-mo.DataHandler',       version: '1.0.2' }
-			{ 'a-mo.ShakeShapeHandler', version: '1.0.0' }
+			{ 'a-mo.Log',               version: '##__LOG_VERSION__##'               }
+			{ 'a-mo.DataHandler',       version: '##__DATAHANDLER_VERSION__##'       }
+			{ 'a-mo.ShakeShapeHandler', version: '##__SHAKESHAPEHANDLER_VERSION__##' }
 		}
 	}
 	log, DataHandler, ShakeShapeHandler = version\requireModules!

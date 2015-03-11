@@ -14,48 +14,48 @@
       "description": "The main macro.",
       "channels": {
         "DepCtrl": {
-          "version": "1.0.0",
+          "version": "##__AEGISUB-MOTION_VERSION__##",
           "released": "2015-03-09",
           "default": true,
           "files": [
             {
               "name": ".moon",
               "url": "@{fileBaseUrl}Aegisub-Motion@{fileName}",
-              // "sha1": ""
+              "sha1": "##__AEGISUB-MOTION_HASH__##"
             }
           ],
           "requiredModules": [
             {
               "moduleName": "a-mo.ConfigHandler",
-              "version": "1.1.2"
+              "version": "##__CONFIGHANDLER_VERSION__##"
             },
             {
               "moduleName": "a-mo.DataWrapper",
-              "version": "1.0.1"
+              "version": "##__DATAWRAPPER_VERSION__##"
             },
             {
               "moduleName": "a-mo.LineCollection",
-              "version": "1.1.0"
+              "version": "##__LINECOLLECTION_VERSION__##"
             },
             {
               "moduleName": "a-mo.Log",
-              "version": "1.0.0"
+              "version": "##__LOG_VERSION__##"
             },
             {
               "moduleName": "a-mo.Math",
-              "version": "1.0.0"
+              "version": "##__MATH_VERSION__##"
             },
             {
               "moduleName": "a-mo.MotionHandler",
-              "version": "1.1.2"
+              "version": "##__MOTIONHANDLER_VERSION__##"
             },
             {
               "moduleName": "a-mo.Statistics",
-              "version": "0.1.1"
+              "version": "##__STATISTICS_VERSION__##"
             },
             {
               "moduleName": "a-mo.TrimHandler",
-              "version": "1.0.1"
+              "version": "##__TRIMHANDLER_VERSION__##"
             },
             { "moduleName": "aegisub.clipboard" },
             { "moduleName": "json" }
@@ -72,20 +72,20 @@
       "description": "A class for mapping dialogs to persistent configuration.",
       "channels": {
         "DepCtrl": {
-          "version": "1.1.2",
+          "version": "##__CONFIGHANDLER_VERSION__##",
           "released": "2015-03-09",
           "default": true,
           "files": [
             {
               "name": ".moon",
               "url": "@{fileBaseUrl}src/ConfigHandler@{fileName}",
-              // "sha1": ""
+              "sha1": "##__CONFIGHANDLER_HASH__##"
             }
           ],
           "requiredModules": [
             {
               "moduleName": "a-mo.Log",
-              "version": "1.0.0"
+              "version": "##__LOG_VERSION__##"
             },
             { "moduleName": "json" }
           ]
@@ -99,20 +99,20 @@
       "description": "A class for parsing After Effects motion data.",
       "channels": {
         "DepCtrl": {
-          "version": "1.0.2",
+          "version": "##__DATAHANDLER_VERSION__##",
           "released": "2015-03-09",
           "default": true,
           "files": [
             {
               "name": ".moon",
               "url": "@{fileBaseUrl}src/DataHandler@{fileName}",
-              // "sha1": ""
+              "sha1": "##__DATAHANDLER_HASH__##"
             }
           ],
           "requiredModules": [
             {
               "moduleName": "a-mo.Log",
-              "version": "1.0.0"
+              "version": "##__LOG_VERSION__##"
             }
           ]
         }
@@ -125,28 +125,28 @@
       "description": "A class for wrapping motion data.",
       "channels": {
         "DepCtrl": {
-          "version": "1.0.1",
+          "version": "##__DATAWRAPPER_VERSION__##",
           "released": "2015-03-09",
           "default": true,
           "files": [
             {
               "name": ".moon",
               "url": "@{fileBaseUrl}src/DataWrapper@{fileName}",
-              // "sha1": ""
+              "sha1": "##__DATAWRAPPER_HASH__##"
             }
           ],
           "requiredModules": [
             {
               "moduleName": "a-mo.Log",
-              "version": "1.0.0"
+              "version": "##__LOG_VERSION__##"
             },
             {
               "moduleName": "a-mo.DataHandler",
-              "version": "1.0.2"
+              "version": "##__DATAHANDLER_VERSION__##"
             },
             {
               "moduleName": "a-mo.ShakeShapeHandler",
-              "version": "1.0.0"
+              "version": "##__SHAKESHAPEHANDLER_VERSION__##"
             }
           ]
         }
@@ -159,28 +159,28 @@
       "description": "A class for containing and manipulating a line.",
       "channels": {
         "DepCtrl": {
-          "version": "1.4.2",
+          "version": "##__LINE_VERSION__##",
           "released": "2015-03-09",
           "default": true,
           "files": [
             {
               "name": ".moon",
               "url": "@{fileBaseUrl}src/Line@{fileName}",
-              // "sha1": ""
+              "sha1": "##__LINE_HASH__##"
             }
           ],
           "requiredModules": [
             {
               "moduleName": "a-mo.Tags",
-              "version": "1.3.0"
+              "version": "##__TAGS_VERSION__##"
             },
             {
               "moduleName": "a-mo.Transform",
-              "version": "1.2.2"
+              "version": "##__TRANSFORM_VERSION__##"
             },
             {
               "moduleName": "a-mo.Log",
-              "version": "1.0.0"
+              "version": "##__LOG_VERSION__##"
             },
             { "moduleName": "aegisub.util" },
             { "moduleName": "json" }
@@ -195,24 +195,24 @@
       "description": "A class for handling collections of lines.",
       "channels": {
         "DepCtrl": {
-          "version": "1.1.0",
+          "version": "##__LINECOLLECTION_VERSION__##",
           "released": "2015-03-09",
           "default": true,
           "files": [
             {
               "name": ".moon",
               "url": "@{fileBaseUrl}src/LineCollection@{fileName}",
-              // "sha1": ""
+              "sha1": "##__LINECOLLECTION_HASH__##"
             }
           ],
           "requiredModules": [
             {
               "moduleName": "a-mo.Line",
-              "version": "1.4.2"
+              "version": "##__LINE_VERSION__##"
             },
             {
               "moduleName": "a-mo.Log",
-              "version": "1.0.0"
+              "version": "##__LOG_VERSION__##"
             }
           ]
         }
@@ -225,14 +225,14 @@
       "description": "A collection of methods for dumping text everywhere.",
       "channels": {
         "DepCtrl": {
-          "version": "1.0.0",
+          "version": "##__LOG_VERSION__##",
           "released": "2015-03-09",
           "default": true,
           "files": [
             {
               "name": ".moon",
               "url": "@{fileBaseUrl}src/Log@{fileName}",
-              // "sha1": ""
+              "sha1": "##__LOG_HASH__##"
             }
           ],
           "requiredModules": []
@@ -246,14 +246,14 @@
       "description": "Extra math functions.",
       "channels": {
         "DepCtrl": {
-          "version": "1.0.0",
+          "version": "##__MATH_VERSION__##",
           "released": "2015-03-09",
           "default": true,
           "files": [
             {
               "name": ".moon",
               "url": "@{fileBaseUrl}src/Math@{fileName}",
-              // "sha1": ""
+              "sha1": "##__MATH_HASH__##"
             }
           ],
           "requiredModules": []
@@ -267,40 +267,40 @@
       "description": "A class for applying motion data to a LineCollection.",
       "channels": {
         "DepCtrl": {
-          "version": "1.1.2",
+          "version": "##__MOTIONHANDLER_VERSION__##",
           "released": "2015-03-09",
           "default": true,
           "files": [
             {
               "name": ".moon",
               "url": "@{fileBaseUrl}src/MotionHandler@{fileName}",
-              // "sha1": ""
+              "sha1": "##__MOTIONHANDLER_HASH__##"
             }
           ],
           "requiredModules": [
             {
               "moduleName": "a-mo.Line",
-              "version": "1.4.2"
+              "version": "##__LINE_VERSION__##"
             },
             {
               "moduleName": "a-mo.LineCollection",
-              "version": "1.1.0"
+              "version": "##__LINECOLLECTION_VERSION__##"
             },
             {
               "moduleName": "a-mo.Log",
-              "version": "1.0.0"
+              "version": "##__LOG_VERSION__##"
             },
             {
               "moduleName": "a-mo.Math",
-              "version": "1.0.0"
+              "version": "##__MATH_VERSION__##"
             },
             {
               "moduleName": "a-mo.Tags",
-              "version": "1.3.0"
+              "version": "##__TAGS_VERSION__##"
             },
             {
               "moduleName": "a-mo.Transform",
-              "version": "1.2.2"
+              "version": "##__TRANSFORM_VERSION__##"
             }
           ]
         }
@@ -313,20 +313,20 @@
       "description": "A class for parsing shake shape motion data.",
       "channels": {
         "DepCtrl": {
-          "version": "1.0.0",
+          "version": "##__SHAKESHAPEHANDLER_VERSION__##",
           "released": "2015-03-09",
           "default": true,
           "files": [
             {
               "name": ".moon",
               "url": "@{fileBaseUrl}src/ShakeShapeHandler@{fileName}",
-              // "sha1": ""
+              "sha1": "##__SHAKESHAPEHANDLER_HASH__##"
             }
           ],
           "requiredModules": [
             {
               "moduleName": "a-mo.Log",
-              "version": "1.0.0"
+              "version": "##__LOG_VERSION__##"
             }
           ]
         }
@@ -339,20 +339,20 @@
       "description": "A class for STATS.",
       "channels": {
         "DepCtrl": {
-          "version": "0.1.1",
+          "version": "##__STATISTICS_VERSION__##",
           "released": "2015-03-09",
           "default": true,
           "files": [
             {
               "name": ".moon",
               "url": "@{fileBaseUrl}src/Statistics@{fileName}",
-              // "sha1": ""
+              "sha1": "##__STATISTICS_HASH__##"
             }
           ],
           "requiredModules": [
             {
               "moduleName": "a-mo.Log",
-              "version": "1.0.0"
+              "version": "##__LOG_VERSION__##"
             },
             { "moduleName": "json" }
           ]
@@ -366,24 +366,24 @@
       "description": "A mess for manipulating tags.",
       "channels": {
         "DepCtrl": {
-          "version": "1.3.0",
+          "version": "##__TAGS_VERSION__##",
           "released": "2015-03-09",
           "default": true,
           "files": [
             {
               "name": ".moon",
               "url": "@{fileBaseUrl}src/Tags@{fileName}",
-              // "sha1": ""
+              "sha1": "##__TAGS_HASH__##"
             }
           ],
           "requiredModules": [
             {
               "moduleName": "a-mo.Log",
-              "version": "1.0.0"
+              "version": "##__LOG_VERSION__##"
             },
             {
               "moduleName": "a-mo.Transform",
-              "version": "1.2.2"
+              "version": "##__TRANSFORM_VERSION__##"
             }
           ]
         }
@@ -396,24 +396,24 @@
       "description": "A class for managing the transform tag.",
       "channels": {
         "DepCtrl": {
-          "version": "1.2.2",
+          "version": "##__TRANSFORM_VERSION__##",
           "released": "2015-03-09",
           "default": true,
           "files": [
             {
               "name": ".moon",
               "url": "@{fileBaseUrl}src/Transform@{fileName}",
-              // "sha1": ""
+              "sha1": "##__TRANSFORM_HASH__##"
             }
           ],
           "requiredModules": [
             {
               "moduleName": "a-mo.Log",
-              "version": "1.0.0"
+              "version": "##__LOG_VERSION__##"
             },
             {
               "moduleName": "a-mo.Tags",
-              "version": "1.3.0"
+              "version": "##__TAGS_VERSION__##"
             }
           ]
         }
@@ -426,20 +426,20 @@
       "description": "A class for encoding video clips.",
       "channels": {
         "DepCtrl": {
-          "version": "1.0.1",
+          "version": "##__TRIMHANDLER_VERSION__##",
           "released": "2015-03-09",
           "default": true,
           "files": [
             {
               "name": ".moon",
               "url": "@{fileBaseUrl}src/TrimHandler@{fileName}",
-              // "sha1": ""
+              "sha1": "##__TRIMHANDLER_HASH__##"
             }
           ],
           "requiredModules": [
             {
               "moduleName": "a-mo.Log",
-              "version": "1.0.0"
+              "version": "##__LOG_VERSION__##"
             }
           ]
         }

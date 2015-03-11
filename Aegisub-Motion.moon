@@ -4,7 +4,7 @@
 export script_name        = "Aegisub-Motion"
 export script_description = "A set of tools for simplifying the process of creating and applying motion tracking data with Aegisub."
 export script_author      = "torque"
-export script_version     = "1.0.0"
+export script_version     = "##__AEGISUB-MOTION_VERSION__##"
 
 local interface, setProgress, setTask
 local versionRecord, clipboard, json, ConfigHandler, DataWrapper
@@ -20,14 +20,14 @@ if success
 		{
 			'aegisub.clipboard'
 			'json'
-			{ 'a-mo.ConfigHandler',  version: '1.1.2' }
-			{ 'a-mo.DataWrapper',    version: '1.0.1' }
-			{ 'a-mo.LineCollection', version: '1.1.0' }
-			{ 'a-mo.Log' ,           version: '1.0.0' }
-			{ 'a-mo.Math' ,          version: '1.0.0' }
-			{ 'a-mo.MotionHandler',  version: '1.1.2' }
-			{ 'a-mo.Statistics' ,    version: '0.1.1' }
-			{ 'a-mo.TrimHandler',    version: '1.0.1' }
+			{ 'a-mo.ConfigHandler',  version: '##__CONFIGHANDLER_VERSION__##'  }
+			{ 'a-mo.DataWrapper',    version: '##__DATAWRAPPER_VERSION__##'    }
+			{ 'a-mo.LineCollection', version: '##__LINECOLLECTION_VERSION__##' }
+			{ 'a-mo.Log' ,           version: '##__LOG_VERSION__##'            }
+			{ 'a-mo.Math' ,          version: '##__MATH_VERSION__##'           }
+			{ 'a-mo.MotionHandler',  version: '##__MOTIONHANDLER_VERSION__##'  }
+			{ 'a-mo.Statistics' ,    version: '##__STATISTICS_VERSION__##'     }
+			{ 'a-mo.TrimHandler',    version: '##__TRIMHANDLER_VERSION__##'    }
 		}
 	}
 	clipboard, json, ConfigHandler, DataWrapper, LineCollection, log, Math, MotionHandler, Statistics, TrimHandler = versionRecord\requireModules!

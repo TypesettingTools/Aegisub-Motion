@@ -1,5 +1,5 @@
 local log, Line, LineCollection, Math, tags, Transform
-version = '1.1.2'
+version = '##__MOTIONHANDLER_VERSION__##'
 
 success, DependencyControl = pcall require, 'l0.DependencyControl'
 
@@ -13,12 +13,12 @@ if success
 		moduleName: 'a-mo.MotionHandler'
 		feed: 'https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json'
 		{
-			{ 'a-mo.Log',            version: '1.0.0' }
-			{ 'a-mo.Line',           version: '1.4.2' }
-			{ 'a-mo.LineCollection', version: '1.1.0' }
-			{ 'a-mo.Math',           version: '1.0.0' }
-			{ 'a-mo.Tags',           version: '1.3.0' }
-			{ 'a-mo.Transform',      version: '1.2.2' }
+			{ 'a-mo.Log',            version: '##__LOG_VERSION__##'            }
+			{ 'a-mo.Line',           version: '##__LINE_VERSION__##'           }
+			{ 'a-mo.LineCollection', version: '##__LINECOLLECTION_VERSION__##' }
+			{ 'a-mo.Math',           version: '##__MATH_VERSION__##'           }
+			{ 'a-mo.Tags',           version: '##__TAGS_VERSION__##'           }
+			{ 'a-mo.Transform',      version: '##__TRANSFORM_VERSION__##'      }
 		}
 	}
 	log, Line, LineCollection, Math, tags, Transform = version\requireModules!

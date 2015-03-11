@@ -1,5 +1,5 @@
 local json, log
-version = '0.1.1'
+version = '##__STATISTICS_VERSION__##'
 
 success, DependencyControl = pcall require, 'l0.DependencyControl'
 
@@ -14,7 +14,7 @@ if success
 		feed: 'https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json'
 		{
 			{ 'json' }
-			{ 'a-mo.Log',  version: '1.0.0' }
+			{ 'a-mo.Log',  version: '##__LOG_VERSION__##' }
 		}
 	}
 	json, log = version\requireModules!

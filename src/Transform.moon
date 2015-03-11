@@ -1,5 +1,5 @@
 local log, Math, tags
-version = '1.2.2'
+version = '##__TRANSFORM_VERSION__##'
 
 success, DependencyControl = pcall require, 'l0.DependencyControl'
 
@@ -13,9 +13,9 @@ if success
 		moduleName: 'a-mo.Transform'
 		feed: 'https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json'
 		{
-			{ 'a-mo.Log',  version: '1.0.0' }
-			{ 'a-mo.Math', version: '1.0.0' }
-			{ 'a-mo.Tags', version: '1.3.0' }
+			{ 'a-mo.Log',  version: '##__LOG_VERSION__##'  }
+			{ 'a-mo.Math', version: '##__MATH_VERSION__##' }
+			{ 'a-mo.Tags', version: '##__TAGS_VERSION__##' }
 		}
 	}
 	log, Math, tags = version\requireModules!

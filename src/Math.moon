@@ -1,5 +1,5 @@
 return {
-	version: "1.0.0"
+	version: "##__MATH_VERSION__##"
 
 	round: ( num, idp ) ->
 		mult = 10^(idp or 0)

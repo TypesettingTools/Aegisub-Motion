@@ -1,5 +1,5 @@
 return {
-	version: "1.0.0"
+	version: "##__LOG_VERSION__##"
 
 	debug: (...) ->
 		aegisub.log 4, ...
