@@ -40,9 +40,9 @@ for name, version in pairs versions
 		print "#{filename}: replacing #{template}_VERSION with #{versions[nameMap[template]]}"
 		return versions[nameMap[template]]
 
-	-- file = io.open filename, 'w'
-	-- file\write contents
-	-- file\close!
+	file = io.open filename, 'wb'
+	file\write contents
+	file\close!
 
 filename = 'DependencyControl.json'
 file = io.open filename
@@ -62,6 +62,6 @@ contents = contents\gsub '##__([A-Z-]+)_HASH__##', ( template ) ->
 	print "#{filename}: replacing #{template}_HASH with #{hash}"
 	return hash
 
--- file = io.open filename, 'w'
--- file\write contents
--- file\close!
+file = io.open filename, 'wb'
+file\write contents
+file\close!
