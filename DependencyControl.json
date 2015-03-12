@@ -15,7 +15,6 @@
       "channels": {
         "DepCtrl": {
           "version": "##__AEGISUB-MOTION_VERSION__##",
-          "released": "2015-03-09",
           "default": true,
           "files": [
             {
@@ -73,7 +72,6 @@
       "channels": {
         "DepCtrl": {
           "version": "##__CONFIGHANDLER_VERSION__##",
-          "released": "2015-03-09",
           "default": true,
           "files": [
             {
@@ -100,7 +98,6 @@
       "channels": {
         "DepCtrl": {
           "version": "##__DATAHANDLER_VERSION__##",
-          "released": "2015-03-09",
           "default": true,
           "files": [
             {
@@ -126,7 +123,6 @@
       "channels": {
         "DepCtrl": {
           "version": "##__DATAWRAPPER_VERSION__##",
-          "released": "2015-03-09",
           "default": true,
           "files": [
             {
@@ -160,7 +156,6 @@
       "channels": {
         "DepCtrl": {
           "version": "##__LINE_VERSION__##",
-          "released": "2015-03-09",
           "default": true,
           "files": [
             {
@@ -196,7 +191,6 @@
       "channels": {
         "DepCtrl": {
           "version": "##__LINECOLLECTION_VERSION__##",
-          "released": "2015-03-09",
           "default": true,
           "files": [
             {
@@ -226,7 +220,6 @@
       "channels": {
         "DepCtrl": {
           "version": "##__LOG_VERSION__##",
-          "released": "2015-03-09",
           "default": true,
           "files": [
             {
@@ -247,7 +240,6 @@
       "channels": {
         "DepCtrl": {
           "version": "##__MATH_VERSION__##",
-          "released": "2015-03-09",
           "default": true,
           "files": [
             {
@@ -268,7 +260,6 @@
       "channels": {
         "DepCtrl": {
           "version": "##__MOTIONHANDLER_VERSION__##",
-          "released": "2015-03-09",
           "default": true,
           "files": [
             {
@@ -314,7 +305,6 @@
       "channels": {
         "DepCtrl": {
           "version": "##__SHAKESHAPEHANDLER_VERSION__##",
-          "released": "2015-03-09",
           "default": true,
           "files": [
             {
@@ -340,7 +330,6 @@
       "channels": {
         "DepCtrl": {
           "version": "##__STATISTICS_VERSION__##",
-          "released": "2015-03-09",
           "default": true,
           "files": [
             {
@@ -367,7 +356,6 @@
       "channels": {
         "DepCtrl": {
           "version": "##__TAGS_VERSION__##",
-          "released": "2015-03-09",
           "default": true,
           "files": [
             {
@@ -397,7 +385,6 @@
       "channels": {
         "DepCtrl": {
           "version": "##__TRANSFORM_VERSION__##",
-          "released": "2015-03-09",
           "default": true,
           "files": [
             {
@@ -427,7 +414,6 @@
       "channels": {
         "DepCtrl": {
           "version": "##__TRIMHANDLER_VERSION__##",
-          "released": "2015-03-09",
           "default": true,
           "files": [
             {
