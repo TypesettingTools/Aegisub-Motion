@@ -5,6 +5,7 @@ export script_name        = "Aegisub-Motion"
 export script_description = "A set of tools for simplifying the process of creating and applying motion tracking data with Aegisub."
 export script_author      = "torque"
 export script_version     = "##__AEGISUB-MOTION_VERSION__##"
+export script_namespace   = "a-mo.Aegisub-Motion"
 
 local interface, setProgress, setTask
 local versionRecord, clipboard, json, ConfigHandler, DataWrapper
@@ -15,7 +16,6 @@ success, DependencyControl = pcall require, "l0.DependencyControl"
 if success
 	versionRecord = DependencyControl {
 		url: 'https://github.com/TypesettingCartel/Aegisub-Motion'
-		moduleName: 'a-mo.Aegisub-Motion'
 		feed: 'https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json'
 		{
 			'aegisub.clipboard'
