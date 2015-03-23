@@ -34,8 +34,8 @@ class DataHandler
 		if next @rawData
 			unless @rawData[1]\match "Adobe After Effects 6.0 Keyframe Data"
 				return false
-			width  = @rawData[3]\match "Source Width\t([0-9]+)"
-			height = @rawData[4]\match "Source Height\t([0-9]+)"
+			width  = @rawData[3]\match "Source Width[\t ]+([0-9]+)"
+			height = @rawData[4]\match "Source Height[\t ]+([0-9]+)"
 			unless width and height
 				return false
 			@xPosScale = @scriptResX/tonumber width
@@ -69,15 +69,15 @@ class DataHandler
 		length = 0
 		section = 0
 		for _index, line in ipairs @rawData
-			unless line\match("^\t")
+			unless line\match("^[\t ]+")
 				if line == "Position" or line == "Scale" or line == "Rotation"
 					section += 1
 			else
-				line\gsub "^\t([%d%.%-]+)\t([%d%.%-e%+]+)(.*)", ( value1, value2, remainder ) ->
+				line\gsub "^[\t ]+([%d%.%-]+)[\t ]+([%d%.%-e%+]+)(.*)", ( value1, value2, remainder ) ->
 					switch section
 						when 1
 							table.insert @xPosition, @xPosScale*tonumber value2
-							table.insert @yPosition, @yPosScale*tonumber remainder\match "\t([%d%.%-e%+]+)"
+							table.insert @yPosition, @yPosScale*tonumber remainder\match "^[\t ]+([%d%.%-e%+]+)"
 							length += 1
 						when 2
 							-- Sort of future proof against having different scale
