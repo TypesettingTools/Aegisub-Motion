@@ -1,5 +1,5 @@
 versions = {
-	'src/ConfigHandler':     '1.1.3'
+	'src/ConfigHandler':     '1.1.4'
 	'src/DataHandler':       '1.0.3'
 	'src/DataWrapper':       '1.0.2'
 	'src/Line':              '1.4.3'

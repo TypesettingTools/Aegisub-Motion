@@ -15,7 +15,6 @@ if success
 		{
 			{ 'json' }
 			{ 'a-mo.Log', version: '##__LOG_VERSION__##' }
-			}
 		}
 	}
 	json, log = version\requireModules!
