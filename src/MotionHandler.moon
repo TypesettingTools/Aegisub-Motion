@@ -109,7 +109,7 @@ class MotionHandler
 				.number = insertNumber
 				.method @, line
 
-			setProgress index/totalLines
+			setProgress index/totalLines*100
 
 		return @resultingCollection
 
@@ -153,7 +153,6 @@ class MotionHandler
 		posTag = tags.allTags.pos
 		for frame = line.relativeEnd, line.relativeStart, -1
 			with line
-				aegisub.progress.set (frame - .relativeStart)/(.relativeEnd - .relativeStart) * 100
 				log.checkCancellation!
 
 				newStartTime = math.floor(math.max(0, aegisub.ms_from_frame( @lineCollection.startFrame + frame - 1 ))/10)*10

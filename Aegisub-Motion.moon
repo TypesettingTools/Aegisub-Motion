@@ -291,7 +291,7 @@ prepareLines = ( lineCollection ) ->
 	-- Perform all of the manipulation that used to be performed in
 	-- Line.moon but are actually fairly Aegisub-Motion specific.
 	lineCollection\runCallback ( line, index ) =>
-
+		log.checkCancellation!
 		-- If a line already contains a-mo extradata, it is probably being
 		-- tracked again after being tracked. There are some reasons to do
 		-- this, but it results in a huge amount of extradata garbage if
@@ -377,7 +377,7 @@ prepareLines = ( lineCollection ) ->
 					return clip
 			return tagBlock
 
-		setProgress index/totalLines
+		setProgress index/totalLines*100
 
 postprocLines = ( lineCollection ) ->
 	setProgress 0
@@ -397,7 +397,8 @@ postprocLines = ( lineCollection ) ->
 		line\shiftKaraoke!
 		line.text = line.text\gsub "{}", ""
 
-		setProgress index/totalLines
+		setProgress index/totalLines*100
+		log.checkCancellation!
 
 	-- No progress for this.
 	lineCollection\combineIdenticalLines!
@@ -649,7 +650,7 @@ revertProcessor = ( subtitles, selectedLines ) ->
 							stats\incrementValue "revert.bytes.total", #line.text
 							indicesToNuke[#indicesToNuke+1] = index
 
-		setProgress index/totalLines
+		setProgress index/totalLines*100
 
 	setTask "Replacing Lines"
 	-- Replace the lines.
