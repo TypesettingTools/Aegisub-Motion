@@ -176,7 +176,7 @@ prepareConfig = ( config, mainData, clipData, lineCollection ) ->
 		else
 			-- Be extremely lazy and just re-parse data from scratch.
 			unless data\bestEffortParsingAttempt configField.data, lineCollection.meta.PlayResX, lineCollection.meta.PlayResY
-				log.windowError "You put something in the data box\nbut it is wrong in ways I can't imagine."
+				log.windowError "You put something in the #{field} data box\nbut it is wrong in ways I can't imagine."
 			unless data.dataObject\checkLength totalFrames
 				log.windowError "The length of your #{field} data (#{data.dataObject.length} frames) doesn't match\nthe length of your lines (#{totalFrames} frames) and I quit."
 
