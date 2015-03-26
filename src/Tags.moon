@@ -12,8 +12,12 @@ if haveDepCtrl
 		url: 'https://github.com/TypesettingCartel/Aegisub-Motion'
 		moduleName: 'a-mo.Tags'
 		feed: 'https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json'
+		{
+			{ 'a-mo.Log',       version: '1.0.0'       }
+			{ 'a-mo.Transform', version: '1.2.3' }
+		}
 	}
-	log = require 'a-mo.Log'
+	log, Transform = version\requireModules!
 
 else
 	log = require 'a-mo.Log'

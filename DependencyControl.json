@@ -395,6 +395,11 @@
               "moduleName": "a-mo.Log",
               "version": "##__LOG_VERSION__##",
               "feed": "https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json"
+            },
+            {
+              "moduleName": "a-mo.Transform",
+              "version": "##__TRANSFORM_VERSION__##",
+              "feed": "https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json"
             }
           ]
         }
