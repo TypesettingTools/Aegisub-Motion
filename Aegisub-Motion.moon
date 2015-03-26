@@ -11,9 +11,9 @@ local interface, setProgress, setTask
 local versionRecord, clipboard, json, ConfigHandler, DataWrapper
 local LineCollection, log, Math, MotionHandler, Statistics, TrimHandler
 
-success, DependencyControl = pcall require, "l0.DependencyControl"
+haveDepCtrl, DependencyControl = pcall require, "l0.DependencyControl"
 
-if success
+if haveDepCtrl
 	versionRecord = DependencyControl {
 		url: 'https://github.com/TypesettingCartel/Aegisub-Motion'
 		feed: 'https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json'
@@ -672,17 +672,26 @@ canRun = ( sub, selectedLines ) ->
 		return false, "You must have lines selected to use this macro."
 	true
 
-aegisub.register_macro "#{script_name}/Apply", "Applies properly formatted motion tracking data to selected subtitles.",
-	applyProcessor, canRun
+if haveDepCtrl
+	versionRecord\registerMacros {
+		{ "Apply", "Applies properly formatted motion tracking data to selected subtitles.", applyProcessor, canRun }
+		{ "Revert", "Removes properly formatted motion tracking data from selected subtitles.", revertProcessor }
+		{ "Trim", "Cuts and encodes the current scene for use with motion tracking software.", trimProcessor, canRun }
+		{ "Trim Each", "Cuts and encodes selected scenes for use with motion tracking software.", trimProcessorEach, canRun }
+		{ "Trim Settings", "Opens a gui to configure the trim tool.", trimConfigurator }
+	}
+else
+	aegisub.register_macro "#{script_name}/Apply", "Applies properly formatted motion tracking data to selected subtitles.",
+		applyProcessor, canRun
 
-aegisub.register_macro "#{script_name}/Revert", "Removes properly formatted motion tracking data from selected subtitles.",
-	revertProcessor
+	aegisub.register_macro "#{script_name}/Revert", "Removes properly formatted motion tracking data from selected subtitles.",
+		revertProcessor
 
-aegisub.register_macro "#{script_name}/Trim", "Cuts and encodes the current scene for use with motion tracking software.",
-	trimProcessor, canRun
+	aegisub.register_macro "#{script_name}/Trim", "Cuts and encodes the current scene for use with motion tracking software.",
+		trimProcessor, canRun
 
-aegisub.register_macro "#{script_name}/Trim Each", "Cuts and encodes selected scenes for use with motion tracking software.",
-	trimProcessorEach, canRun
+	aegisub.register_macro "#{script_name}/Trim Each", "Cuts and encodes selected scenes for use with motion tracking software.",
+		trimProcessorEach, canRun
 
-aegisub.register_macro "#{script_name}/Trim Settings", "Sets options for the trim tool.",
-	trimConfigurator
+	aegisub.register_macro "#{script_name}/Trim Settings", "Opens a gui to configure the trim tool.",
+		trimConfigurator

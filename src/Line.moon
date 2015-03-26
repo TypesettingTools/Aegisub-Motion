@@ -1,9 +1,9 @@
 local util, json, log, tags, Transform
 version = '##__LINE_VERSION__##'
 
-success, DependencyControl = pcall require, 'l0.DependencyControl'
+haveDepCtrl, DependencyControl = pcall require, 'l0.DependencyControl'
 
-if success
+if haveDepCtrl
 	version = DependencyControl {
 		name: 'Line',
 		:version,
@@ -436,3 +436,8 @@ class Line
 			return res
 		else
 			return value
+
+if haveDepCtrl
+	return version\register Line
+else
+	return Line

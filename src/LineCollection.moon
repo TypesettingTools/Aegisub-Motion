@@ -1,9 +1,9 @@
 local log, Line
 version = '##__LINECOLLECTION_VERSION__##'
 
-success, DependencyControl = pcall require, 'l0.DependencyControl'
+haveDepCtrl, DependencyControl = pcall require, 'l0.DependencyControl'
 
-if success
+if haveDepCtrl
 	version = DependencyControl {
 		name: 'LineCollection'
 		:version
@@ -240,3 +240,8 @@ class LineCollection
 	getSelection: =>
 		sel = [line.number for line in *@lines when line.selected and line.inserted and not line.hasBeenDeleted]
 		return sel, sel[#sel]
+
+if haveDepCtrl
+	return version\register LineCollection
+else
+	return LineCollection

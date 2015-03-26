@@ -1,9 +1,9 @@
 local json, log
 version = '##__STATISTICS_VERSION__##'
 
-success, DependencyControl = pcall require, 'l0.DependencyControl'
+haveDepCtrl, DependencyControl = pcall require, 'l0.DependencyControl'
 
-if success
+if haveDepCtrl
 	version = DependencyControl {
 		name: 'Statistics'
 		:version
@@ -141,3 +141,8 @@ class Statistics
 	getValue: ( fieldName ) =>
 		pushFieldPriv @, fieldName
 		return fieldPriv[fieldNamePriv]
+
+if haveDepCtrl
+	return version\register Statistics
+else
+	return Statistics

@@ -1,9 +1,9 @@
 local json, log
 version = '##__CONFIGHANDLER_VERSION__##'
 
-success, DependencyControl = pcall require, 'l0.DependencyControl'
+haveDepCtrl, DependencyControl = pcall require, 'l0.DependencyControl'
 
-if success
+if haveDepCtrl
 	version = DependencyControl {
 		name: 'ConfigHandler',
 		:version,
@@ -136,4 +136,7 @@ class ConfigHandler
 	delete: =>
 		os.remove @fileName
 
-return ConfigHandler
+if haveDepCtrl
+	return version\register ConfigHandler
+else
+	return ConfigHandler

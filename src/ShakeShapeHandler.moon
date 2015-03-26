@@ -1,9 +1,9 @@
 local log
 version = '##__SHAKESHAPEHANDLER_VERSION__##'
 
-success, DependencyControl = pcall require, 'l0.DependencyControl'
+haveDepCtrl, DependencyControl = pcall require, 'l0.DependencyControl'
 
-if success
+if haveDepCtrl
 	version = DependencyControl {
 		name: 'ShakeShapeHandler'
 		:version
@@ -103,3 +103,8 @@ class ShakeShapeHandler
 			true
 		else
 			false
+
+if haveDepCtrl
+	return version\register ShakeShapeHandler
+else
+	return ShakeShapeHandler

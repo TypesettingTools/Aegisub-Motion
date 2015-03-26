@@ -1,9 +1,9 @@
 local log
 version = '##__TRIMHANDLER_VERSION__##'
 
-success, DependencyControl = pcall require, 'l0.DependencyControl'
+haveDepCtrl, DependencyControl = pcall require, 'l0.DependencyControl'
 
-if success
+if haveDepCtrl
 	version = DependencyControl {
 		name: 'TrimHandler'
 		:version
@@ -164,3 +164,8 @@ class TrimHandler
 			encodeScriptFile\write encodeString
 			encodeScriptFile\close!
 			.execFunc .exec\format encodeScript
+
+if haveDepCtrl
+	return version\register TrimHandler
+else
+	return TrimHandler

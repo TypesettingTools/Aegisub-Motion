@@ -1,9 +1,9 @@
 local log, Line, LineCollection, Math, tags, Transform
 version = '##__MOTIONHANDLER_VERSION__##'
 
-success, DependencyControl = pcall require, 'l0.DependencyControl'
+haveDepCtrl, DependencyControl = pcall require, 'l0.DependencyControl'
 
-if success
+if haveDepCtrl
 	version = DependencyControl {
 		name: 'MotionHandler'
 		:version
@@ -265,3 +265,7 @@ class MotionHandler
 	vectorClipSRS = ( clip, frame ) =>
 		return '(' .. @vectClipData.data[frame] .. ')'
 
+if haveDepCtrl
+	return version\register MotionHandler
+else
+	return MotionHandler

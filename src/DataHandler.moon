@@ -1,9 +1,9 @@
 local log
 version = '##__DATAHANDLER_VERSION__##'
 
-success, DependencyControl = pcall require, 'l0.DependencyControl'
+haveDepCtrl, DependencyControl = pcall require, 'l0.DependencyControl'
 
-if success
+if haveDepCtrl
 	version = DependencyControl {
 		name: 'DataHandler',
 		:version,
@@ -119,3 +119,8 @@ class DataHandler
 		@xRatio = @xScale[frame]/@xStartScale
 		@yRatio = @yScale[frame]/@yStartScale
 		@zRotationDiff = @zRotation[frame] - @zStartRotation
+
+if haveDepCtrl
+	return version\register DataHandler
+else
+	return DataHandler

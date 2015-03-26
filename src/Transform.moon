@@ -1,9 +1,9 @@
 local log, Math, tags
 version = '##__TRANSFORM_VERSION__##'
 
-success, DependencyControl = pcall require, 'l0.DependencyControl'
+haveDepCtrl, DependencyControl = pcall require, 'l0.DependencyControl'
 
-if success
+if haveDepCtrl
 	version = DependencyControl {
 		name: 'Transform'
 		:version
@@ -140,3 +140,8 @@ class Transform
 			return table.concat resultString
 
 		return text
+
+if haveDepCtrl
+	return version\register Transform
+else
+	return Transform

@@ -1,9 +1,9 @@
 local log, Transform
 version = '##__TAGS_VERSION__##'
 
-success, DependencyControl = pcall require, 'l0.DependencyControl'
+haveDepCtrl, DependencyControl = pcall require, 'l0.DependencyControl'
 
-if success
+if haveDepCtrl
 	version = DependencyControl {
 		name: 'Tags'
 		:version
@@ -176,7 +176,7 @@ for k, v in pairs allTags
 	if v.transformable
 		table.insert transformTags, v
 
-return {
+tags = {
 	:version
 
 	:repeatTags
@@ -186,3 +186,8 @@ return {
 
 	:allTags
 }
+
+if haveDepCtrl
+	return version\register tags
+else
+	return tags

@@ -1,9 +1,9 @@
 local log, DataHandler, ShakeShapeHandler
 version = '##__DATAWRAPPER_VERSION__##'
 
-success, DependencyControl = pcall require, 'l0.DependencyControl'
+haveDepCtrl, DependencyControl = pcall require, 'l0.DependencyControl'
 
-if success
+if haveDepCtrl
 	version = DependencyControl {
 		name: 'DataWrapper',
 		:version,
@@ -65,3 +65,8 @@ class DataWrapper
 				return true
 
 		return false
+
+if haveDepCtrl
+	return version\register DataWrapper
+else
+	return DataWrapper
