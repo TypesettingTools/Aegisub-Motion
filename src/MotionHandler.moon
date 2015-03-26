@@ -48,7 +48,7 @@ class MotionHandler
 		-- because the SRS data contains a center_x and center_y field for
 		-- each frame.
 		unless 'SRS' == mainData.type or @options.main.clipOnly
-			if @options.main.xPosition or @options.main.yPosition
+			if @options.main.xPosition or @options.main.yPosition or @options.main.xScale or @options.main.zRotation
 
 				if @options.main.absPos
 					@callbacks["(\\pos)%(([%-%d%.]+,[%-%d%.]+)%)"] = absolutePosition
