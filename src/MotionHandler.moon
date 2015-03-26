@@ -40,6 +40,8 @@ class MotionHandler
 		@lineTrackingData = mainData.dataObject
 		@rectClipData = rectClipData.dataObject
 		@vectClipData = vectClipData.dataObject
+		@xDelta = 0
+		@yDelta = 0
 
 		@callbacks = { }
 
@@ -216,6 +218,9 @@ class MotionHandler
 		return x, y
 
 	absolutePosition = ( pos, frame ) =>
+		x, y = pos\match "([%-%d%.]+),([%-%d%.]+)"
+		@xDelta = @lineTrackingData.xPosition[frame] - x
+		@yDelta = @lineTrackingData.yPosition[frame] - y
 		("(%g,%g)")\format Math.round( @lineTrackingData.xPosition[frame], 2 ), Math.round( @lineTrackingData.yPosition[frame], 2 )
 
 	-- Needs to be fixed.
@@ -243,6 +248,7 @@ class MotionHandler
 		@rectClipData.zRotationDiff = 0
 
 		return clip\gsub "([%.%d%-]+),([%.%d%-]+)", ( x, y ) ->
+			x, y = x + @xDelta, y + @yDelta
 			x, y = positionMath x, y, @rectClipData
 			("%g,%g")\format Math.round( x, 2 ), Math.round( y, 2 )
 
@@ -252,6 +258,7 @@ class MotionHandler
 		@vectClipData\calculateCurrentState frame
 
 		return clip\gsub "([%.%d%-]+) ([%.%d%-]+)", ( x, y ) ->
+			x, y = x + @xDelta, y + @yDelta
 			x, y = positionMath x, y, @vectClipData
 			("%g %g")\format Math.round( x, 2 ), Math.round( y, 2 )
 
