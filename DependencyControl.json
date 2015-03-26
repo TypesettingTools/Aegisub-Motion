@@ -26,35 +26,43 @@
           "requiredModules": [
             {
               "moduleName": "a-mo.ConfigHandler",
-              "version": "##__CONFIGHANDLER_VERSION__##"
+              "version": "##__CONFIGHANDLER_VERSION__##",
+              "feed": "https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json"
             },
             {
               "moduleName": "a-mo.DataWrapper",
-              "version": "##__DATAWRAPPER_VERSION__##"
+              "version": "##__DATAWRAPPER_VERSION__##",
+              "feed": "https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json"
             },
             {
               "moduleName": "a-mo.LineCollection",
-              "version": "##__LINECOLLECTION_VERSION__##"
+              "version": "##__LINECOLLECTION_VERSION__##",
+              "feed": "https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json"
             },
             {
               "moduleName": "a-mo.Log",
-              "version": "##__LOG_VERSION__##"
+              "version": "##__LOG_VERSION__##",
+              "feed": "https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json"
             },
             {
               "moduleName": "a-mo.Math",
-              "version": "##__MATH_VERSION__##"
+              "version": "##__MATH_VERSION__##",
+              "feed": "https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json"
             },
             {
               "moduleName": "a-mo.MotionHandler",
-              "version": "##__MOTIONHANDLER_VERSION__##"
+              "version": "##__MOTIONHANDLER_VERSION__##",
+              "feed": "https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json"
             },
             {
               "moduleName": "a-mo.Statistics",
-              "version": "##__STATISTICS_VERSION__##"
+              "version": "##__STATISTICS_VERSION__##",
+              "feed": "https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json"
             },
             {
               "moduleName": "a-mo.TrimHandler",
-              "version": "##__TRIMHANDLER_VERSION__##"
+              "version": "##__TRIMHANDLER_VERSION__##",
+              "feed": "https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json"
             },
             { "moduleName": "aegisub.clipboard" },
             { "moduleName": "json" }
@@ -83,7 +91,8 @@
           "requiredModules": [
             {
               "moduleName": "a-mo.Log",
-              "version": "##__LOG_VERSION__##"
+              "version": "##__LOG_VERSION__##",
+              "feed": "https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json"
             },
             { "moduleName": "json" }
           ]
@@ -109,7 +118,8 @@
           "requiredModules": [
             {
               "moduleName": "a-mo.Log",
-              "version": "##__LOG_VERSION__##"
+              "version": "##__LOG_VERSION__##",
+              "feed": "https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json"
             }
           ]
         }
@@ -134,15 +144,18 @@
           "requiredModules": [
             {
               "moduleName": "a-mo.Log",
-              "version": "##__LOG_VERSION__##"
+              "version": "##__LOG_VERSION__##",
+              "feed": "https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json"
             },
             {
               "moduleName": "a-mo.DataHandler",
-              "version": "##__DATAHANDLER_VERSION__##"
+              "version": "##__DATAHANDLER_VERSION__##",
+              "feed": "https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json"
             },
             {
               "moduleName": "a-mo.ShakeShapeHandler",
-              "version": "##__SHAKESHAPEHANDLER_VERSION__##"
+              "version": "##__SHAKESHAPEHANDLER_VERSION__##",
+              "feed": "https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json"
             }
           ]
         }
@@ -167,15 +180,18 @@
           "requiredModules": [
             {
               "moduleName": "a-mo.Tags",
-              "version": "##__TAGS_VERSION__##"
+              "version": "##__TAGS_VERSION__##",
+              "feed": "https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json"
             },
             {
               "moduleName": "a-mo.Transform",
-              "version": "##__TRANSFORM_VERSION__##"
+              "version": "##__TRANSFORM_VERSION__##",
+              "feed": "https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json"
             },
             {
               "moduleName": "a-mo.Log",
-              "version": "##__LOG_VERSION__##"
+              "version": "##__LOG_VERSION__##",
+              "feed": "https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json"
             },
             { "moduleName": "aegisub.util" },
             { "moduleName": "json" }
@@ -202,11 +218,13 @@
           "requiredModules": [
             {
               "moduleName": "a-mo.Line",
-              "version": "##__LINE_VERSION__##"
+              "version": "##__LINE_VERSION__##",
+              "feed": "https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json"
             },
             {
               "moduleName": "a-mo.Log",
-              "version": "##__LOG_VERSION__##"
+              "version": "##__LOG_VERSION__##",
+              "feed": "https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json"
             }
           ]
         }
@@ -271,27 +289,33 @@
           "requiredModules": [
             {
               "moduleName": "a-mo.Line",
-              "version": "##__LINE_VERSION__##"
+              "version": "##__LINE_VERSION__##",
+              "feed": "https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json"
             },
             {
               "moduleName": "a-mo.LineCollection",
-              "version": "##__LINECOLLECTION_VERSION__##"
+              "version": "##__LINECOLLECTION_VERSION__##",
+              "feed": "https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json"
             },
             {
               "moduleName": "a-mo.Log",
-              "version": "##__LOG_VERSION__##"
+              "version": "##__LOG_VERSION__##",
+              "feed": "https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json"
             },
             {
               "moduleName": "a-mo.Math",
-              "version": "##__MATH_VERSION__##"
+              "version": "##__MATH_VERSION__##",
+              "feed": "https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json"
             },
             {
               "moduleName": "a-mo.Tags",
-              "version": "##__TAGS_VERSION__##"
+              "version": "##__TAGS_VERSION__##",
+              "feed": "https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json"
             },
             {
               "moduleName": "a-mo.Transform",
-              "version": "##__TRANSFORM_VERSION__##"
+              "version": "##__TRANSFORM_VERSION__##",
+              "feed": "https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json"
             }
           ]
         }
@@ -316,7 +340,8 @@
           "requiredModules": [
             {
               "moduleName": "a-mo.Log",
-              "version": "##__LOG_VERSION__##"
+              "version": "##__LOG_VERSION__##",
+              "feed": "https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json"
             }
           ]
         }
@@ -341,7 +366,8 @@
           "requiredModules": [
             {
               "moduleName": "a-mo.Log",
-              "version": "##__LOG_VERSION__##"
+              "version": "##__LOG_VERSION__##",
+              "feed": "https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json"
             },
             { "moduleName": "json" }
           ]
@@ -367,11 +393,8 @@
           "requiredModules": [
             {
               "moduleName": "a-mo.Log",
-              "version": "##__LOG_VERSION__##"
-            },
-            {
-              "moduleName": "a-mo.Transform",
-              "version": "##__TRANSFORM_VERSION__##"
+              "version": "##__LOG_VERSION__##",
+              "feed": "https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json"
             }
           ]
         }
@@ -396,11 +419,13 @@
           "requiredModules": [
             {
               "moduleName": "a-mo.Log",
-              "version": "##__LOG_VERSION__##"
+              "version": "##__LOG_VERSION__##",
+              "feed": "https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json"
             },
             {
               "moduleName": "a-mo.Tags",
-              "version": "##__TAGS_VERSION__##"
+              "version": "##__TAGS_VERSION__##",
+              "feed": "https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json"
             }
           ]
         }
@@ -425,7 +450,8 @@
           "requiredModules": [
             {
               "moduleName": "a-mo.Log",
-              "version": "##__LOG_VERSION__##"
+              "version": "##__LOG_VERSION__##",
+              "feed": "https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json"
             }
           ]
         }

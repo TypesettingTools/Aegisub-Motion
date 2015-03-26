@@ -12,15 +12,11 @@ if haveDepCtrl
 		url: 'https://github.com/TypesettingCartel/Aegisub-Motion'
 		moduleName: 'a-mo.Tags'
 		feed: 'https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json'
-		{
-			{ 'a-mo.Log',       version: '##__LOG_VERSION__##'       }
-			{ 'a-mo.Transform', version: '##__TRANSFORM_VERSION__##' }
-		}
 	}
-	log, Transform = version\requireModules!
+	log = require 'a-mo.Log'
 
 else
-	log  = require 'a-mo.Log'
+	log = require 'a-mo.Log'
 
 -- In the following conversion functions, self refers to the tag table.
 convertStringValue = ( value ) =>
