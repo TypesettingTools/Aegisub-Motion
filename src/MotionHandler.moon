@@ -241,6 +241,7 @@ class MotionHandler
 
 	rectangularClip = ( clip, frame ) =>
 		@rectClipData\calculateCurrentState frame
+		@rectClipData.zRotationDiff = 0
 
 		return clip\gsub "([%.%d%-]+),([%.%d%-]+)", ( x, y ) ->
 			x, y = positionMath x, y, @rectClipData
