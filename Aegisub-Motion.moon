@@ -96,15 +96,16 @@ initializeInterface = ->
 
 			zRotation: { class: "checkbox", x: 0, y: 7,  width: 3,  height: 1, config: true, label: "&Rotation",     value: false, hint: "Apply rotation data to the selected lines." }
 
-			writeConf: { class: "checkbox", x: 0, y: 9 , width: 4,  height: 1, config: true, label: "&Write config", value: true,  hint: "Write current settings to the configuration file." }
-			relative:  { class: "checkbox", x: 4, y: 9 , width: 3,  height: 1, config: true, label: "Relat&ive",     value: true,  hint: "Start frame should be relative to the beginning of the selection rather than the beginning of the video." }
-			startFrame:{ class: "intedit",  x: 7, y: 9 , width: 2,  height: 1, config: true, value: 1,     hint: "Frame used as the starting point for the tracking data. \"-1\" corresponds to the last frame." }
-			linear:    { class: "checkbox", x: 4, y: 10, width: 2,  height: 1, config: true, label: "Li&near",       value: false, hint: "Use transforms and \\move to create a linear transition, instead of frame-by-frame." }
-			clipOnly:  { class: "checkbox", x: 0, y: 10, width: 3,  height: 1, config: true, label: "&Clip Only",    value: false, hint: "Only apply the main data to \\clips present in the line." }
+			writeConf: { class: "checkbox", x: 0, y: 10, width: 4,  height: 1, config: true, label: "&Write config", value: true,  hint: "Write current settings to the configuration file." }
+			relative:  { class: "checkbox", x: 4, y: 10, width: 3,  height: 1, config: true, label: "Relat&ive",     value: true,  hint: "Start frame should be relative to the beginning of the selection rather than the beginning of the video." }
+			startFrame:{ class: "intedit",  x: 7, y: 10, width: 2,  height: 1, config: true,                         value: 1,     hint: "Frame used as the starting point for the tracking data. \"-1\" corresponds to the last frame." }
+			linear:    { class: "checkbox", x: 4, y: 11, width: 2,  height: 1, config: true, label: "Li&near",       value: false, hint: "Use transforms and \\move to create a linear transition, instead of frame-by-frame." }
+			clipOnly:  { class: "checkbox", x: 0, y: 11, width: 3,  height: 1, config: true, label: "&Clip Only",    value: false, hint: "Only apply the main data to \\clips present in the line." }
 
 			rectClip:  { class: "checkbox", x: 0, y: 8,  width: 3,  height: 1, config: true, label: "Rect C&lip",    value: true,  hint: "Apply tracking data to the rectangular clip contained in the line." }
 			vectClip:  { class: "checkbox", x: 3, y: 8,  width: 3,  height: 1, config: true, label: "&Vect Clip",    value: true,  hint: "Apply tracking data to the vector clip contained in the line." }
-			killTrans: { class: "checkbox", x: 6, y: 8,  width: 3,  height: 1, config: true, label: "Interp. &transforms", value: true, hint: "Attempt to interpolate transform value instead of just shifting transform times." }
+			rcToVc:    { class: "checkbox", x: 6, y: 8,  width: 4,  height: 1, config: true, label: "Rect -> Vect",  value: false, hint: "Convert rectangular clips contained in the line to vector clips." }
+			killTrans: { class: "checkbox", x: 0, y: 9,  width: 10, height: 1, config: true, label: "Interpolate &transforms", value: true, hint: "Attempt to interpolate transform value instead of just shifting transform times." }
 		}
 		clip: {
 			-- mnemonics: xySRe + GCA
@@ -119,6 +120,7 @@ initializeInterface = ->
 
 			rectClip:  { class: "checkbox", x: 0, y: 10, width: 3,  height: 1, config: true, label: "Rect C&lip",    value: true,  hint: "Apply tracking data to the rectangular clip contained in the line." }
 			vectClip:  { class: "checkbox", x: 3, y: 10, width: 3,  height: 1, config: true, label: "&Vect Clip",    value: true,  hint: "Apply tracking data to the vector clip contained in the line." }
+			rcToVc:    { class: "checkbox", x: 6, y: 10, width: 4,  height: 1, config: true, label: "Rect -> Vect",  value: false, hint: "Convert rectangular clips contained in the line to vector clips." }
 
 			startLabel:{ class: "label",    x: 7, y: 5, width: 3,  height: 1, label: "Start Frame:" }
 			startFrame:{ class: "intedit",  x: 7, y: 6, width: 3,  height: 1, config: true,                          value: 1,     hint: "Frame used as the starting point for the tracking data. \"-1\" corresponds to the last frame." }
@@ -178,6 +180,9 @@ prepareConfig = ( config, mainData, clipData, lineCollection ) ->
 			unless data.dataObject\checkLength totalFrames
 				log.windowError "The length of your #{field} data (#{data.dataObject.length} frames) doesn't match\nthe length of your lines (#{totalFrames} frames) and I quit."
 
+			if configField.rcToVc
+				configField.rectClip = true
+				configField.vectClip = true
 			if configField.rectClip
 				rectClipData = data
 			if configField.vectClip
@@ -236,6 +241,18 @@ appendMissingTags = ( block, options, styleTable ) ->
 				if tonumber( styleDefault ) != tab.skip
 					block ..= tag .. ("%g")\format styleDefault
 	return block .. "}"
+
+rectClipToVectClip = ( clip ) ->
+	if clip\match "[%-%d%.]+, *[%-%d%.]+"
+		clip = clip\gsub "([%-%d%.]+), *([%-%d%.]+), *([%-%d%.]+), *([%-%d%.]+)", ( l, t, r, b ) ->
+			return table.concat ({
+				"m %g %g "\format l, t
+				"l %g %g "\format r, t
+				"%g %g "\format r, b
+				"%g %g"\format l, b
+			})
+
+	return clip
 
 convertClipToFP = ( clip ) ->
 	-- only muck around with vector clips (convert scaling factor into floating point coordinates).
@@ -351,12 +368,16 @@ prepareLines = ( lineCollection ) ->
 				styleTable = styles[resetStyle] or lineStyle
 				tagBlock = appendMissingTags tagBlock, options, styleTable
 
-			return tagBlock\gsub "(\\i?clip%b())", ( clip ) ->
-				@hasClip = true
-				return convertClipToFP clip
+			if options.main.rectClip or options.main.vectClip or options.clip.rectClip or options.clip.vectClip
+				return tagBlock\gsub "(\\i?clip%b())", ( clip ) ->
+					@hasClip = true
+					clip = convertClipToFP clip
+					if options.main.rcToVc or options.clip.rcToVc
+						clip = rectClipToVectClip clip
+					return clip
+			return tagBlock
 
 		setProgress index/totalLines
-
 
 postprocLines = ( lineCollection ) ->
 	setProgress 0
