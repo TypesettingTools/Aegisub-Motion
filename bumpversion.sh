@@ -9,8 +9,9 @@ git checkout --orphan DepCtrl
 # All files are staged for commit by default, which we don't want.
 git rm --cached -f '*'
 `which moon` VersionDetemplater.moon
-git add Aegisub-Motion.moon DependencyControl.json src/*.moon
-git commit -m "Update."
+mv 'Aegisub-Motion.moon' 'a-mo.Aegisub-Motion.moon'
+git add 'a-mo.Aegisub-Motion.moon' 'DependencyControl.json' src/*.moon
+git commit -m 'Update.'
 # remove untracked files so we can switch back to master.
 git clean -fdx
 git checkout master
