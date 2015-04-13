@@ -19,7 +19,7 @@
           "files": [
             {
               "name": ".moon",
-              "url": "@{fileBaseUrl}Aegisub-Motion@{fileName}",
+              "url": "@{fileBaseUrl}a-mo.Aegisub-Motion@{fileName}",
               "sha1": "##__AEGISUB-MOTION_HASH__##"
             }
           ],
