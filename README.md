@@ -2,12 +2,9 @@
 
 ##### [PLEASE REPORT BUGS YOU ENCOUNTER](#help-i-need-somebody-help-not-just-anybody)
 
-#### v1.0.0 Beta 5 ####
+#### v1.0.0 ####
 
-Aegisub-Motion has been rewritten from the ground up to be even slower
-and more error prone than ever before.
-
-Just kidding, that didn't happen intentionally. I'm just incompetent.
+The dream is real.
 
 #### What do I need to use this? ####
 
@@ -15,29 +12,20 @@ Just kidding, that didn't happen intentionally. I'm just incompetent.
  - Motion tracking software, such as [Blender][blender] or [Mocha Pro][mochapro].
  - Too much goddamn free time.
 
-#### The legacy version is available [here][legacy]
-
-As there are numerous new features and changes being made, the 1.0.0
-pre-releases are not rigorously tested and may have bugs affecting
-needed behavior.
-
-Additionally, the legacy version supports older versions of Aegisub (I
-think 3.0.0 and newer but maybe only 3.1.0 and newer).
-
-Except for the conflicting filenames, the two scripts should be able to
-be installed and loaded simultaneously.
-
-The legacy version will receive NO MAINTENANCE OR UPDATES.
-
 #### How do I install it? ####
 
-What you probably want to do is to install one of [the
-releases][releases]. Due to the way the code is now laid out, installing
-isn't as trivial as dragging a single file into a folder. The releases
-have easy-to-follow instructions included. They are reproduced here for
-your convenience:
+The recommended method is to use [DependencyControl][depctrl]. If you
+cannot use DependencyControl, however, release zips are provided. Note
+that the release zip versions will still use DependencyControl for
+automatic updating if it is available.
 
-#### Installation Instructions ([from a release zip][releases])
+#### Installing with DependencyControl
+Installation instructions for DependencyControl can be found [here](DCInst).
+
+- Save [this copy of Aegisub-Motion.moon][amodep] to your automation autoload directory. Make sure it is named `a-mo.Aegisub-Motion.moon`.
+- Either run Aegisub or reload all automation scripts. All modules should be automatically updated to their latest versions.
+
+#### Installing from a release zip
 
 ##### Windows (Installed Aegisub)
 
@@ -67,22 +55,21 @@ out yourself.
 
 #### How do I use this? ####
 
-It should be pretty much the same as the old version. I'm currently
-working on writing up some brand-spanking-new documentation to accompany
-the 1.0.0 release.
+I fully recommend finding something better to waste your time.
 
 #### Help! I need somebody! Help! Not just anybody! ####
 
-I am here to fulfill your emotional and physical needs 24/7, 52 weeks a
-year. If you use IRC, I'm `torque` on `freenode` and `rizon`. If you use
-twitter, I'm [`@a_rinwe`][twitter]. Also, this repository has an [issues
-page][issues] if you want to be formal about it. If you don't use any of
-those things, too bad!
+If you use IRC, I'm `torque` on `freenode` and `rizon`. Feel free to ask
+questions. Also, this repository has an [issues page][issues] if you
+want to be formal about it.
 
 [blender]: http://www.blender.org/
 [mochapro]: http://www.imagineersystems.com/products/mocha-pro/
-[legacy]: https://github.com/torque/Aegisub-Motion/tree/legacy
-[releases]: https://github.com/torque/aegisub-motion/releases
-[wiki]: https://github.com/torque/aegisub-motion/wiki
+[legacy]: https://github.com/TypesettingTools/Aegisub-Motion/tree/legacy
+[depctrl]: https://github.com/TypesettingTools/DependencyControl
+[DCInst]: https://github.com/TypesettingTools/DependencyControl#install-instructions
+[amodep]: https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/Aegisub-Motion.moon
+[releases]: https://github.com/TypesettingTools/aegisub-motion/releases
+[wiki]: https://github.com/TypesettingTools/aegisub-motion/wiki
 [twitter]: https://twitter.com/a_rinwe
-[issues]: https://github.com/torque/aegisub-motion/issues
+[issues]: https://github.com/TypesettingTools/aegisub-motion/issues
