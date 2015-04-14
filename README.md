@@ -20,7 +20,7 @@ that the release zip versions will still use DependencyControl for
 automatic updating if it is available.
 
 #### Installing with DependencyControl
-Installation instructions for DependencyControl can be found [here](DCInst).
+Installation instructions for DependencyControl can be found [here][DCInst].
 
 - Save [this copy of Aegisub-Motion.moon][amodep] to your automation autoload directory. Make sure it is named `a-mo.Aegisub-Motion.moon`.
 - Either run Aegisub or reload all automation scripts. All modules should be automatically updated to their latest versions.
