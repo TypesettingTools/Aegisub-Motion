@@ -68,8 +68,7 @@ want to be formal about it.
 [legacy]: https://github.com/TypesettingTools/Aegisub-Motion/tree/legacy
 [depctrl]: https://github.com/TypesettingTools/DependencyControl
 [DCInst]: https://github.com/TypesettingTools/DependencyControl#install-instructions
-[amodep]: https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/Aegisub-Motion.moon
+[amodep]: https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/a-mo.Aegisub-Motion.moon
 [releases]: https://github.com/TypesettingTools/aegisub-motion/releases
 [wiki]: https://github.com/TypesettingTools/aegisub-motion/wiki
-[twitter]: https://twitter.com/a_rinwe
 [issues]: https://github.com/TypesettingTools/aegisub-motion/issues
