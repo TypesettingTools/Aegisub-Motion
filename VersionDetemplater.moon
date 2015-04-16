@@ -12,7 +12,7 @@ versions = {
 	'src/Tags':              '1.3.1'
 	'src/Transform':         '1.2.4'
 	'src/TrimHandler':       '1.0.2'
-	'Aegisub-Motion':        '1.0.0'
+	'Aegisub-Motion':        '1.0.1'
 }
 nameMap = {
 	CONFIGHANDLER:     'src/ConfigHandler'

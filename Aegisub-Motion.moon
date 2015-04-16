@@ -232,15 +232,15 @@ importantTags = {
 
 -- A style table is passed to this function so that it can cope with
 -- \r.
-appendMissingTags = ( block, options, styleTable ) ->
-	block = block\sub 1, -2
+getMissingTags = ( block, options, styleTable ) ->
+	result = ""
 	for tag, tab in pairs importantTags
 		if options[tab.opt]
 			if not block\match tag .. "[%-%d%.]+"
 				styleDefault = styleTable[tab.key]
 				if tonumber( styleDefault ) != tab.skip
-					block ..= tag .. ("%g")\format styleDefault
-	return block .. "}"
+					result ..= tag .. ("%g")\format styleDefault
+	return result
 
 rectClipToVectClip = ( clip ) ->
 	if clip\match "[%-%d%.]+, *[%-%d%.]+"
@@ -357,16 +357,18 @@ prepareLines = ( lineCollection ) ->
 
 		-- Add any tags we need that are missing from the line.
 		line\runCallbackOnFirstOverride ( tagBlock ) =>
-			return appendMissingTags tagBlock, options.main, lineStyle
+			tags = getMissingTags tagBlock, options.main, lineStyle
+			return '{' .. tags .. tagBlock\sub( 2 )
 
 		line\runCallbackOnOverrides ( tagBlock ) =>
 			tagBlock\gsub "\\org%([%.%d%-]+,[%.%d%-]+%)", ->
 				@hasOrg = true
 				return nil
 
-			tagBlock\gsub "\\r([^\\}]*)", ( resetStyle ) ->
+			tagBlock = tagBlock\gsub "\\r([^\\}]*)([^}]*)", ( resetStyle, remainder ) ->
 				styleTable = styles[resetStyle] or lineStyle
-				tagBlock = appendMissingTags tagBlock, options, styleTable
+				tags = getMissingTags remainder, options.main, styleTable
+				return '\\r' .. resetStyle .. tags .. remainder
 
 			if options.main.rectClip or options.main.vectClip or options.clip.rectClip or options.clip.vectClip
 				return tagBlock\gsub "(\\i?clip%b())", ( clip ) ->
@@ -375,6 +377,7 @@ prepareLines = ( lineCollection ) ->
 					if options.main.rcToVc or options.clip.rcToVc
 						clip = rectClipToVectClip clip
 					return clip
+
 			return tagBlock
 
 		setProgress index/totalLines*100
@@ -389,10 +392,7 @@ postprocLines = ( lineCollection ) ->
 			line\dontTouchTransforms!
 		else
 			if lineCollection.options.main.killTrans
-				line\interpolateTransforms!
 				line\deduplicateTags!
-			else
-				line\detokenizeTransforms!
 
 		line\shiftKaraoke!
 		line.text = line.text\gsub "{}", ""
