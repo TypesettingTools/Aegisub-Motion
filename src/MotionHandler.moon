@@ -155,6 +155,7 @@ class MotionHandler
 		posTag = tags.allTags.pos
 		for frame = line.relativeEnd, line.relativeStart, -1
 			with line
+
 				log.checkCancellation!
 
 				newStartTime = math.floor(math.max(0, aegisub.ms_from_frame( @lineCollection.startFrame + frame - 1 ))/10)*10
@@ -162,7 +163,13 @@ class MotionHandler
 
 				timeDelta = newStartTime - math.floor(math.max(0,aegisub.ms_from_frame( @lineCollection.startFrame + .relativeStart - 1 ))/10)*10
 
-				newText = .text\gsub "\\fade(%b())", ( fade ) ->
+				local newText
+				if @options.main.killTrans
+					newText = line\interpolateTransformsCopy timeDelta, newStartTime
+				else
+					newText = line\detokenizeTransformsCopy timeDelta
+
+				newText = newText\gsub "\\fade(%b())", ( fade ) ->
 					a1, a2, a3, t1, t2, t3, t4 = fade\match("(%d+),(%d+),(%d+),(%d+),(%d+),(%d+),(%d+)")
 					t1, t2, t3, t4 = tonumber( t1 ), tonumber( t2 ), tonumber( t3 ), tonumber( t4 )
 					-- beautiful.
@@ -197,7 +204,7 @@ class MotionHandler
 					text: newText,
 					start_time: newStartTime,
 					end_time: newEndTime,
-					transformShift: timeDelta
+					transformsAreTokenized: false,
 				}
 				newLine.karaokeShift = (newStartTime - .start_time)*0.1
 
