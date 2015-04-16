@@ -49,7 +49,7 @@ class Line
 
 	splitChar:    "\\\6"
 	tPlaceholder: ( count ) -> "\\\3#{count}\\\3"
-	tTokenPattern: "\\\3(%d+)\\\3"
+	tTokenPattern: "(\\\3(%d+)\\\3)"
 
 	defaultXPosition: {
 		-- align 3, 6, 9
@@ -335,46 +335,71 @@ class Line
 					@transforms[count] = transform
 					-- create a token for the transforms
 					return token
+
 			@transformsAreTokenized = true
 
 	loopOverTokenizedTransforms: ( callback ) =>
 		if @transformsAreTokenized
 			@runCallbackOnOverrides ( tagBlock ) =>
-				return tagBlock\gsub @tTokenPattern, callback
+				return tagBlock\gsub @tTokenPattern, ( placeholder, index ) ->
+					return callback @transforms[tonumber index], placeholder
 
-			@transformsAreTokenized = false
+	detokenizeTransformsCopy: ( shift = 0 ) =>
+		if @transformsAreTokenized
+			return @text\gsub "({.-})", ( tagBlock ) ->
+				return tagBlock\gsub @tTokenPattern, ( placeholder, index ) ->
+					transform = @transforms[tonumber index]
+					transform.startTime -= shift
+					transform.endTime   -= shift
+					result = transform\toString!
+					transform.startTime += shift
+					transform.endTime   += shift
+					return result
 
-	detokenizeTransforms: =>
-		@loopOverTokenizedTransforms ( index ) ->
-			transform = @transforms[tonumber index]
-			transform.startTime -= @transformShift
-			transform.endTime -= @transformShift
+	detokenizeTransforms: ( shift = 0 ) =>
+		@loopOverTokenizedTransforms ( transform, placeholder ) ->
+			transform.startTime -= shift
+			transform.endTime   -= shift
 			result = transform\toString!
-			transform.startTime += @transformShift
-			transform.endTime += @transformShift
+			transform.startTime += shift
+			transform.endTime   += shift
 			return result
+
+		@transformsAreTokenized = false
 
 	-- detokenize using transform.rawString
 	dontTouchTransforms: =>
-		@loopOverTokenizedTransforms ( index ) ->
-			return "\\t" .. @transforms[tonumber index].rawString
+		@loopOverTokenizedTransforms ( transform, placeholder ) ->
+			return "\\t" .. transform.rawString
 
-	interpolateTransforms: =>
-		for transform in *@transforms
-			transform.startTime -= @transformShift
-			transform.endTime -= @transformShift
+		@transformsAreTokenized = false
 
+	interpolateTransformsCopy: ( shift = 0, start = @start_time ) =>
 		newText = @text
-		@loopOverTokenizedTransforms ( index ) ->
-			transform = @transforms[tonumber index]
-			frame = frameFromMs @start_time
-			newText = transform\interpolate @, newText, index, math.floor( 0.5*( msFromFrame( frame ) + msFromFrame( frame + 1 ) ) ) - @start_time
+		@loopOverTokenizedTransforms ( transform, placeholder ) ->
+			transform.startTime -= shift
+			transform.endTime   -= shift
+			frame = frameFromMs start
+			newText = transform\interpolate @, newText, placeholder, math.floor( 0.5*( msFromFrame( frame ) + msFromFrame( frame + 1 ) ) ) - start
+			transform.startTime += shift
+			transform.endTime   += shift
+			return nil
+
+		return newText
+
+	interpolateTransforms: ( shift = 0, start = @start_time ) =>
+		newText = @text
+		@loopOverTokenizedTransforms ( transform, placeholder ) ->
+			transform.startTime -= shift
+			transform.endTime   -= shift
+			frame = frameFromMs start
+			newText = transform\interpolate @, newText, placeholder, math.floor( 0.5*( msFromFrame( frame ) + msFromFrame( frame + 1 ) ) ) - start
+			transform.startTime += shift
+			transform.endTime   += shift
 			return nil
 		@text = newText
 
-		for transform in *@transforms
-			transform.startTime += @transformShift
-			transform.endTime += @transformShift
+		@transformsAreTokenized = false
 
 	shiftKaraoke: ( shift = @karaokeShift ) =>
 		karaokeTag = tags.allTags.karaoke

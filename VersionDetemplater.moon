@@ -2,7 +2,7 @@ versions = {
 	'src/ConfigHandler':     '1.1.4'
 	'src/DataHandler':       '1.0.4'
 	'src/DataWrapper':       '1.0.2'
-	'src/Line':              '1.4.3'
+	'src/Line':              '1.5.0'
 	'src/LineCollection':    '1.1.1'
 	'src/Log':               '1.0.0'
 	'src/Math':              '1.0.0'
