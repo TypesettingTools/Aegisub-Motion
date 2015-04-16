@@ -116,8 +116,7 @@ class Transform
 			return nil,
 			@index
 
-	interpolate: ( line, text, index, time ) =>
-		placeholder = line.tPlaceholder index
+	interpolate: ( line, text, placeholder, time ) =>
 		@collectPriorState line, text, placeholder
 
 		linearProgress = (time - @startTime)/(@endTime - @startTime)
