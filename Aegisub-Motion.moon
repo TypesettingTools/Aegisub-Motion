@@ -15,8 +15,8 @@ haveDepCtrl, DependencyControl = pcall require, "l0.DependencyControl"
 
 if haveDepCtrl
 	versionRecord = DependencyControl {
-		url: 'https://github.com/TypesettingCartel/Aegisub-Motion'
-		feed: 'https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json'
+		url: 'https://github.com/TypesettingTools/Aegisub-Motion'
+		feed: 'https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json'
 		{
 			'aegisub.clipboard'
 			'json'

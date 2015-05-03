@@ -9,9 +9,9 @@ if haveDepCtrl
 		:version,
 		description: 'A class for containing and manipulating a line.',
 		author: 'torque',
-		url: 'https://github.com/TypesettingCartel/Aegisub-Motion'
+		url: 'https://github.com/TypesettingTools/Aegisub-Motion'
 		moduleName: 'a-mo.Line'
-		feed: 'https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json'
+		feed: 'https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json'
 		{
 			{ 'aegisub.util' }
 			{ 'json' }

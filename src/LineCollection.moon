@@ -9,9 +9,9 @@ if haveDepCtrl
 		:version
 		description: 'A class for handling collections of lines.'
 		author: 'torque'
-		url: 'https://github.com/TypesettingCartel/Aegisub-Motion'
+		url: 'https://github.com/TypesettingTools/Aegisub-Motion'
 		moduleName: 'a-mo.LineCollection'
-		feed: 'https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json'
+		feed: 'https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json'
 		{
 			{ 'a-mo.Log',  version: '##__LOG_VERSION__##'  }
 			{ 'a-mo.Line', version: '##__LINE_VERSION__##' }

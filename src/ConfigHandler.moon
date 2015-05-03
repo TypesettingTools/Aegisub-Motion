@@ -9,9 +9,9 @@ if haveDepCtrl
 		:version,
 		description: 'A class for mapping dialogs to persistent configuration.',
 		author: 'torque',
-		url: 'https://github.com/TypesettingCartel/Aegisub-Motion'
+		url: 'https://github.com/TypesettingTools/Aegisub-Motion'
 		moduleName: 'a-mo.ConfigHandler'
-		feed: 'https://raw.githubusercontent.com/TypesettingCartel/Aegisub-Motion/DepCtrl/DependencyControl.json'
+		feed: 'https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json'
 		{
 			{ 'json' }
 			{ 'a-mo.Log', version: '##__LOG_VERSION__##' }
