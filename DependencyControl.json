@@ -1,11 +1,14 @@
 {
-  "dependencyControlFeedFormatVersion": "0.1.0",
+  "dependencyControlFeedFormatVersion": "0.2.0",
   "name": "Aegisub-Motion",
   "description": "A set of tools for simplifying the process of creating and applying motion tracking data with Aegisub.",
   "baseUrl": "https://github.com/TypesettingTools/Aegisub-Motion",
   "fileBaseUrl": "https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/@{channel}/",
   "url": "@{baseUrl}",
   "maintainer": "torque",
+  "knownFeeds": {
+    "a-mo": "https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json",
+  },
   "macros": {
     "a-mo.Aegisub-Motion": {
       "url": "@{baseUrl}",
@@ -27,42 +30,42 @@
             {
               "moduleName": "a-mo.ConfigHandler",
               "version": "##__CONFIGHANDLER_VERSION__##",
-              "feed": "https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json"
+              "feed": "@{feed:a-mo}"
             },
             {
               "moduleName": "a-mo.DataWrapper",
               "version": "##__DATAWRAPPER_VERSION__##",
-              "feed": "https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json"
+              "feed": "@{feed:a-mo}"
             },
             {
               "moduleName": "a-mo.LineCollection",
               "version": "##__LINECOLLECTION_VERSION__##",
-              "feed": "https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json"
+              "feed": "@{feed:a-mo}"
             },
             {
               "moduleName": "a-mo.Log",
               "version": "##__LOG_VERSION__##",
-              "feed": "https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json"
+              "feed": "@{feed:a-mo}"
             },
             {
               "moduleName": "a-mo.Math",
               "version": "##__MATH_VERSION__##",
-              "feed": "https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json"
+              "feed": "@{feed:a-mo}"
             },
             {
               "moduleName": "a-mo.MotionHandler",
               "version": "##__MOTIONHANDLER_VERSION__##",
-              "feed": "https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json"
+              "feed": "@{feed:a-mo}"
             },
             {
               "moduleName": "a-mo.Statistics",
               "version": "##__STATISTICS_VERSION__##",
-              "feed": "https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json"
+              "feed": "@{feed:a-mo}"
             },
             {
               "moduleName": "a-mo.TrimHandler",
               "version": "##__TRIMHANDLER_VERSION__##",
-              "feed": "https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json"
+              "feed": "@{feed:a-mo}"
             },
             { "moduleName": "aegisub.clipboard" },
             { "moduleName": "json" }
@@ -92,7 +95,7 @@
             {
               "moduleName": "a-mo.Log",
               "version": "##__LOG_VERSION__##",
-              "feed": "https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json"
+              "feed": "@{feed:a-mo}"
             },
             { "moduleName": "json" }
           ]
@@ -119,7 +122,7 @@
             {
               "moduleName": "a-mo.Log",
               "version": "##__LOG_VERSION__##",
-              "feed": "https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json"
+              "feed": "@{feed:a-mo}"
             }
           ]
         }
@@ -145,17 +148,17 @@
             {
               "moduleName": "a-mo.Log",
               "version": "##__LOG_VERSION__##",
-              "feed": "https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json"
+              "feed": "@{feed:a-mo}"
             },
             {
               "moduleName": "a-mo.DataHandler",
               "version": "##__DATAHANDLER_VERSION__##",
-              "feed": "https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json"
+              "feed": "@{feed:a-mo}"
             },
             {
               "moduleName": "a-mo.ShakeShapeHandler",
               "version": "##__SHAKESHAPEHANDLER_VERSION__##",
-              "feed": "https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json"
+              "feed": "@{feed:a-mo}"
             }
           ]
         }
@@ -181,17 +184,17 @@
             {
               "moduleName": "a-mo.Tags",
               "version": "##__TAGS_VERSION__##",
-              "feed": "https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json"
+              "feed": "@{feed:a-mo}"
             },
             {
               "moduleName": "a-mo.Transform",
               "version": "##__TRANSFORM_VERSION__##",
-              "feed": "https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json"
+              "feed": "@{feed:a-mo}"
             },
             {
               "moduleName": "a-mo.Log",
               "version": "##__LOG_VERSION__##",
-              "feed": "https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json"
+              "feed": "@{feed:a-mo}"
             },
             { "moduleName": "aegisub.util" },
             { "moduleName": "json" }
@@ -219,12 +222,12 @@
             {
               "moduleName": "a-mo.Line",
               "version": "##__LINE_VERSION__##",
-              "feed": "https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json"
+              "feed": "@{feed:a-mo}"
             },
             {
               "moduleName": "a-mo.Log",
               "version": "##__LOG_VERSION__##",
-              "feed": "https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json"
+              "feed": "@{feed:a-mo}"
             }
           ]
         }
@@ -290,32 +293,32 @@
             {
               "moduleName": "a-mo.Line",
               "version": "##__LINE_VERSION__##",
-              "feed": "https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json"
+              "feed": "@{feed:a-mo}"
             },
             {
               "moduleName": "a-mo.LineCollection",
               "version": "##__LINECOLLECTION_VERSION__##",
-              "feed": "https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json"
+              "feed": "@{feed:a-mo}"
             },
             {
               "moduleName": "a-mo.Log",
               "version": "##__LOG_VERSION__##",
-              "feed": "https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json"
+              "feed": "@{feed:a-mo}"
             },
             {
               "moduleName": "a-mo.Math",
               "version": "##__MATH_VERSION__##",
-              "feed": "https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json"
+              "feed": "@{feed:a-mo}"
             },
             {
               "moduleName": "a-mo.Tags",
               "version": "##__TAGS_VERSION__##",
-              "feed": "https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json"
+              "feed": "@{feed:a-mo}"
             },
             {
               "moduleName": "a-mo.Transform",
               "version": "##__TRANSFORM_VERSION__##",
-              "feed": "https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json"
+              "feed": "@{feed:a-mo}"
             }
           ]
         }
@@ -341,7 +344,7 @@
             {
               "moduleName": "a-mo.Log",
               "version": "##__LOG_VERSION__##",
-              "feed": "https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json"
+              "feed": "@{feed:a-mo}"
             }
           ]
         }
@@ -367,7 +370,7 @@
             {
               "moduleName": "a-mo.Log",
               "version": "##__LOG_VERSION__##",
-              "feed": "https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json"
+              "feed": "@{feed:a-mo}"
             },
             { "moduleName": "json" }
           ]
@@ -394,12 +397,12 @@
             {
               "moduleName": "a-mo.Log",
               "version": "##__LOG_VERSION__##",
-              "feed": "https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json"
+              "feed": "@{feed:a-mo}"
             },
             {
               "moduleName": "a-mo.Transform",
               "version": "##__TRANSFORM_VERSION__##",
-              "feed": "https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json"
+              "feed": "@{feed:a-mo}"
             }
           ]
         }
@@ -425,12 +428,12 @@
             {
               "moduleName": "a-mo.Log",
               "version": "##__LOG_VERSION__##",
-              "feed": "https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json"
+              "feed": "@{feed:a-mo}"
             },
             {
               "moduleName": "a-mo.Tags",
               "version": "##__TAGS_VERSION__##",
-              "feed": "https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json"
+              "feed": "@{feed:a-mo}"
             }
           ]
         }
@@ -456,7 +459,7 @@
             {
               "moduleName": "a-mo.Log",
               "version": "##__LOG_VERSION__##",
-              "feed": "https://raw.githubusercontent.com/TypesettingTools/Aegisub-Motion/DepCtrl/DependencyControl.json"
+              "feed": "@{feed:a-mo}"
             }
           ]
         }
