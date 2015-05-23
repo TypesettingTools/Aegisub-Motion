@@ -271,11 +271,15 @@ convertClipToFP = ( clip ) ->
 	return clip
 
 fadToTransform = ( fadStart, fadEnd, alpha, value, lineDuration ) ->
-	str = ""
+	str = ''
 	if fadStart > 0
-		str = ("%s&HFF&\\t(%d,%s,%s%s)")\format alpha, 0, fadStart, alpha, value
+		str = '%s&HFF&\\t(0,%d,%s%s)'\format alpha, fadStart, alpha, value
+	else
+		str = alpha .. value
+
 	if fadEnd > 0
-		str ..= ("\\t(%d,%d,%s&HFF&)")\format lineDuration - fadEnd, lineDuration, alpha
+		str ..= '\\t(%d,%d,%s&HFF&)'\format lineDuration - fadEnd, lineDuration, alpha
+
 	str
 
 prepareLines = ( lineCollection ) ->
