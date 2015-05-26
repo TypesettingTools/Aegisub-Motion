@@ -68,9 +68,12 @@ class TrimHandler
 	-- }
 	new: ( trimConfig ) =>
 		@tokens = { }
-		trimConfig.command = trimConfig.command\gsub "[\t \r\n]*$", ""
-		if trimConfig.command != nil and trimConfig.command != ""
-			@command = trimConfig.command
+		if trimConfig.command != nil
+			trimConfig.command = trimConfig.command\gsub "[\t \r\n]*$", ""
+			if trimConfig.command != ""
+				@command = trimConfig.command
+			else
+				@command = @defaults[trimConfig.preset]
 		else
 			@command = @defaults[trimConfig.preset]
 
@@ -119,7 +122,7 @@ class TrimHandler
 					-- This needs to be run from cmd or it will not work.
 					exec: 'powershell -c iex "$(gc "%s" -en UTF8)"'
 					preCom: (@makePrefix and "mkdir -Force \"#{@tokens.prefix}\"; & " or "& ")
-					postCom: (@writeLog and " 2>&1 | Out-File #{@tokens.log} -en UTF8; exit $LASTEXITCODE" or "; exit $LASTEXITCODE")
+					postCom: (@writeLog and " 2>&1 | Out-File #{@tokens.log} -en UTF8; if(!$?) {echo \"If there is no log before this, your encoder is not a working executable or your encoding command is invalid.\" | ac -en utf8 #{@tokens.log}; exit 1}" or "") .. "; exit 0"
 					execFunc: ( encodeScript ) ->
 						success = os.execute encodeScript
 						if @writeLog and not success
@@ -138,7 +141,7 @@ class TrimHandler
 					ext: ".sh"
 					exec: 'sh "%s"'
 					preCom: @makePrefix and "mkdir -p \"#{@tokens.prefix}\"\n" or ""
-					postCom: " 2>&1"
+					postCom: " 2>&1; if [[ $? -ne 0 ]]; then echo \"If there is no log before this, your encoder is not a working executable or your encoding command is invalid.\"; false; fi"
 					execFunc: ( encodeScript ) ->
 						logFile = io.popen encodeScript, 'r'
 						encodeLog = logFile\read '*a'
@@ -152,6 +155,11 @@ class TrimHandler
 							log.windowError "Encoding failed. Log has been printed to progress window."
 				}
 			})[windows]
+			-- check encoder binary exists
+			encoder = io.open @tokens.encbin, "rb"
+			unless encoder
+				log.windowError "Encoding binary (#{@tokens.encbin}) does not appear to exist."
+			encoder\close!
 
 			encodeScript = aegisub.decode_path "#{.pre}/a-mo.encode#{.ext}"
 			encodeScriptFile = io.open encodeScript, "w+"

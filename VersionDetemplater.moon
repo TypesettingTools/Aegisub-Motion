@@ -11,7 +11,7 @@ versions = {
 	'src/Statistics':        '0.1.2'
 	'src/Tags':              '1.3.1'
 	'src/Transform':         '1.2.4'
-	'src/TrimHandler':       '1.0.2'
+	'src/TrimHandler':       '1.0.3'
 	'Aegisub-Motion':        '1.0.3'
 }
 nameMap = {
