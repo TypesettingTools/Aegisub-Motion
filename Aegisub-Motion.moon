@@ -133,11 +133,11 @@ of the currently open script. Can be a hardcoded path, too.]] }
 			psLabel:  { class: "label", x: 0, y: 3, width: 10, height: 1, label: [[
 Encoding preset. Different presets may have different output.]] }
 			eLabel:   { class: "label", x: 0, y: 5, width: 10, height: 1, label: [[
-The full path to your encoding binary (e.g. C:\x264.exe if you're
-using the x264 preset).]] }
+The currently selected encoding binary. Use the "Encoder..." button
+below to set this. Manual edits will not be saved.]] }
 			cLabel:   { class: "label", x: 0, y: 7, width: 10, height: 1, label: [[
-If you want to use a custom encoding command, write it here. If a
-custom command is set, it overrides using a default.]] }
+If you want to use a custom encoding command, write it here. Leave this
+blank to use the built-in presets (probably what you want).]] }
 			prefix:   { config: true, value: "?video", class: "textbox",  x: 0, y: 1, width: 10, height: 1,                                                             hint: "Prefix the encoded video is written. Useful values are ?video for the directory of the currently loaded video and ?script for the directory of the currently open script." }
 			makePfix: { config: true, value: false,    class: "checkbox", x: 0, y: 2, width: 10, height: 1, label: "Try to create prefix directory.",                   hint: "Try to create prefix directory." }
 			preset:   { config: true, value: "x264",   class: "dropdown", x: 0, y: 4, width: 10, height: 1, label: "Sort lines by", items: TrimHandler.existingPresets, hint: "Choose an existing preset by name." }
@@ -147,7 +147,7 @@ custom command is set, it overrides using a default.]] }
 	}
 
 	if TrimHandler.windows
-		interface.trim.writeLog = { config: true, value: true, class: "checkbox", x: 0, y: 12, width: 10, height: 1, label: "Write encode log.", hint: "Write encode log. Allows aegisub-motion to print information if an encode fails. Only matters on windows." }
+		interface.trim.writeLog = { config: true, value: true, class: "checkbox", x: 0, y: 12, width: 10, height: 1, label: "Write encode log.", hint: "Write encode log. Allows aegisub-motion to print information if an encode fails. Only matters on Windows." }
 
 	interface
 
@@ -549,13 +549,26 @@ applyProcessor = ( subtitles, selectedLines ) ->
 	stats\write!
 
 trimConfigDialog = ( options ) ->
-	options\updateInterface "trim"
-	button, config = aegisub.dialog.display interface.trim
-	if button
-		options\updateConfiguration config, "trim"
-		options\write!
-	else
-		aegisub.cancel!
+	buttons = {
+		{ "&Save", "&Encoder...", "&Cancel" },
+		{ ok: "&Save", enc: "&Encoder...", cancel: "&Cancel" }
+	}
+	while true
+		options\updateInterface "trim"
+		button, config = aegisub.dialog.display interface.trim, buttons[1], buttons[2]
+		switch button
+			when buttons[2].ok
+				-- only update encBin when the open dialog is shown.
+				config.encBin = nil
+				options\updateConfiguration config, "trim"
+				options\write!
+				break
+			when buttons[2].enc
+				encoder = aegisub.dialog.open "Choose an Encoding Binary", "", "", "All Files (*.*)|.", false, true
+				if encoder
+					options\updateConfiguration { encBin: encoder }, "trim"
+			else
+				aegisub.cancel!
 
 trimConfigurator = ->
 	initializeInterface!
