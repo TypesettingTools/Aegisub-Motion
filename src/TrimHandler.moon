@@ -122,14 +122,20 @@ class TrimHandler
 					-- This needs to be run from cmd or it will not work.
 					exec: 'powershell -c iex "$(gc "%s" -en UTF8)"'
 					preCom: (@makePrefix and "mkdir -Force \"#{@tokens.prefix}\"; & " or "& ")
-					postCom: (@writeLog and " 2>&1 | Out-File #{@tokens.log} -en UTF8; if(!$?) {echo \"If there is no log before this, your encoder is not a working executable or your encoding command is invalid.\" | ac -en utf8 #{@tokens.log}; exit 1}" or "") .. "; exit 0"
+					postCom: (@writeLog and " 2>&1 | Out-File #{@tokens.log} -en UTF8; if($LASTEXITCODE -ne 0) {echo \"If there is no log before this, your encoder is not a working executable or your encoding command is invalid.\" | ac -en utf8 #{@tokens.log}; exit 1}" or "") .. "; exit 0"
 					execFunc: ( encodeScript ) ->
+						-- clear out old logfile because it doesn't get overwritten
+						-- when certain errors occur.
+						if @writeLog
+							logFile = io.open @tokens.log, 'wb'
+							logFile\close! if logFile
 						success = os.execute encodeScript
 						if @writeLog and not success
 							logFile = io.open @tokens.log, 'r'
 							unless logFile
 								log.windowError "Could not read log file #{@tokens.log}.\nSomething has gone horribly wrong."
 							encodeLog = logFile\read '*a'
+							logFile\close!
 							log.warn "\nEncoding error:"
 							log.warn encodeLog
 							log.windowError "Encoding failed. Log has been printed to progress window."
