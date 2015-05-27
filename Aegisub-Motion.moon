@@ -564,7 +564,7 @@ trimConfigDialog = ( options ) ->
 				options\write!
 				break
 			when buttons[2].enc
-				encoder = aegisub.dialog.open "Choose an Encoding Binary", "", "", "All Files (*.*)|.", false, true
+				encoder = aegisub.dialog.open "Choose an Encoding Binary", "", "", "", false, true
 				if encoder
 					options\updateConfiguration { encBin: encoder }, "trim"
 			else
