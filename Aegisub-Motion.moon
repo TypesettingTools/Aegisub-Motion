@@ -556,19 +556,19 @@ trimConfigDialog = ( options ) ->
 	while true
 		options\updateInterface "trim"
 		button, config = aegisub.dialog.display interface.trim, buttons[1], buttons[2]
-		switch button
-			when buttons[2].ok
-				-- only update encBin when the open dialog is shown.
-				config.encBin = nil
-				options\updateConfiguration config, "trim"
+		if button == buttons[2].ok or button == buttons[2].enc
+			-- only update encBin when the open dialog is shown.
+			config.encBin = nil
+			options\updateConfiguration config, "trim"
+			if button == buttons[2].ok
 				options\write!
 				break
-			when buttons[2].enc
+			else
 				encoder = aegisub.dialog.open "Choose an Encoding Binary", "", "", "", false, true
 				if encoder
 					options\updateConfiguration { encBin: encoder }, "trim"
-			else
-				aegisub.cancel!
+		else
+			aegisub.cancel!
 
 trimConfigurator = ->
 	initializeInterface!
@@ -585,8 +585,8 @@ trimProcessor = ( subtitles, selectedLines, activeLine, eachFlag ) ->
 
 	stats = initStats!
 	options\read!
-	-- Check if encBin has been set.
 
+	-- Check if encBin has been set.
 	if options.configuration.trim.encBin == ""
 		interface.trim.pLabel.label = [[
 You must specify the path to your encoding binary.
