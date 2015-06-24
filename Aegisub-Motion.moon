@@ -324,7 +324,7 @@ prepareLines = ( lineCollection ) ->
 		fadWasFound = false
 		fadStart, fadEnd = 0, 0
 		line\runCallbackOnOverrides ( tagBlock ) =>
-			return tagBlock\gsub "\\fad%((%d+),(%d+)%)", ( start, finish ) ->
+			return tagBlock\gsub "\\fade?%((%d+),(%d+)%)", ( start, finish ) ->
 				unless fadWasFound
 					fadStart = tonumber start
 					fadEnd   = tonumber finish
