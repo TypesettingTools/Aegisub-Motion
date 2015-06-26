@@ -171,6 +171,12 @@ class MotionHandler
 
 				newText = newText\gsub "\\fade(%b())", ( fade ) ->
 					a1, a2, a3, t1, t2, t3, t4 = fade\match("(%d+),(%d+),(%d+),(%d+),(%d+),(%d+),(%d+)")
+					if t1 == nil
+						message = "There is a malformed \\fade you must fix.\n\\fade requires 7 integer arguments.\nLine: #{.number}, tag: \\fade(#{fade})."
+						if fade\match("(%d+),(%d+)")
+							message ..= "\nPerhaps you meant to use \\fad."
+						log.windowError message
+
 					t1, t2, t3, t4 = tonumber( t1 ), tonumber( t2 ), tonumber( t3 ), tonumber( t4 )
 					-- beautiful.
 					t1 -= timeDelta

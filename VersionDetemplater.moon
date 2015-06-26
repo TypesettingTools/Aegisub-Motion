@@ -6,7 +6,7 @@ versions = {
 	'src/LineCollection':    '1.1.2'
 	'src/Log':               '1.0.0'
 	'src/Math':              '1.0.0'
-	'src/MotionHandler':     '1.1.5'
+	'src/MotionHandler':     '1.1.6'
 	'src/ShakeShapeHandler': '1.0.1'
 	'src/Statistics':        '0.1.2'
 	'src/Tags':              '1.3.2'
