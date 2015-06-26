@@ -113,7 +113,7 @@ allTags = {
 	fontSize: { pattern: "\\fs(%d+)"         , tag: "\\fs"   , format: formatInt   , style: "fontsize", transformable: true , convert: convertNumberValue, interpolate: interpolateNumber }
 	fontSp:   { pattern: "\\fsp([%.%d%-]+)"  , tag: "\\fsp"  , format: formatFloat , style: "spacing" , transformable: true , convert: convertNumberValue, interpolate: interpolateNumber }
 	xscale:   { pattern: "\\fscx([%d%.]+)"   , tag: "\\fscx" , format: formatFloat , style: "scale_x" , transformable: true , convert: convertNumberValue, interpolate: interpolateNumber }
-	yscale:   { pattern: "\\fscy([%d%.]+)"   , tag: "\\fscx" , format: formatFloat , style: "scale_y" , transformable: true , convert: convertNumberValue, interpolate: interpolateNumber }
+	yscale:   { pattern: "\\fscy([%d%.]+)"   , tag: "\\fscy" , format: formatFloat , style: "scale_y" , transformable: true , convert: convertNumberValue, interpolate: interpolateNumber }
 	zrot:     { pattern: "\\frz?([%-%d%.]+)" , tag: "\\frz"  , format: formatFloat , style: "angle"   , transformable: true , convert: convertNumberValue, interpolate: interpolateNumber }
 	xrot:     { pattern: "\\frx([%-%d%.]+)"  , tag: "\\frx"  , format: formatFloat                    , transformable: true , convert: convertNumberValue, interpolate: interpolateNumber }
 	yrot:     { pattern: "\\fry([%-%d%.]+)"  , tag: "\\fry"  , format: formatFloat                    , transformable: true , convert: convertNumberValue, interpolate: interpolateNumber }

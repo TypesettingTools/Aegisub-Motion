@@ -9,7 +9,7 @@ versions = {
 	'src/MotionHandler':     '1.1.5'
 	'src/ShakeShapeHandler': '1.0.1'
 	'src/Statistics':        '0.1.2'
-	'src/Tags':              '1.3.1'
+	'src/Tags':              '1.3.2'
 	'src/Transform':         '1.2.4'
 	'src/TrimHandler':       '1.0.3'
 	'Aegisub-Motion':        '1.0.5'
