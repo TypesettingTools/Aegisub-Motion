@@ -48,11 +48,11 @@ class Statistics
 	merge = ( memory, disk, seenTables ) ->
 		unless seenTables[memory]
 			seenTables[memory] = true
-			for k, v in pairs memory
+			for k, memVal in pairs memory
 				if ("table" == type( disk )) and (nil != disk[k])
 					diskVal = disk[k]
-					if ("table" == type( diskVal )) and ("table" == type( v ))
-						merge v, diskVal, seenTables
+					if ("table" == type( diskVal )) and ("table" == type( memVal ))
+						merge memVal, diskVal, seenTables
 					else
 						memory[k] = diskVal
 

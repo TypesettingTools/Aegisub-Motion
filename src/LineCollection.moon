@@ -49,7 +49,7 @@ class LineCollection
 			line.parentCollection = @
 			line.inserted = false
 			line.selected = selectLine
-			line.number = index==true and line.number or index or nil
+			line.number = index == true and line.number or index or nil
 			frame_from_ms = aegisub.frame_from_ms
 
 			-- if @startTime is unset, @endTime should damn well be too.
