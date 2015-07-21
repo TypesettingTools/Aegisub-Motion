@@ -58,8 +58,13 @@ class Statistics
 
 	read: =>
 		if fileHandle = io.open @fileName, 'r'
-			serializedStats = json.decode fileHandle\read '*a'
+			success, serializedStats = pcall json.decode, fileHandle\read '*a'
 			fileHandle\close!
+			unless success
+				log.warn "Couldn't parse stats from #{@filename} as valid json. This file will be overwritten."
+				@write!
+				return
+
 			if serializedStats
 				merge @stats, serializedStats, {}
 
