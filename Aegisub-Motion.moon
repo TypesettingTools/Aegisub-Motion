@@ -611,6 +611,7 @@ You must specify the path to your encoding binary.
 		lineCollection = LineCollection subtitles, selectedLines
 		trim\calculateTrimLength lineCollection
 		trim\performTrim!
+		stats\incrementValue "trim.clipsCreated"
 		stats\incrementValue "trim.runCount"
 
 	stats\write!
