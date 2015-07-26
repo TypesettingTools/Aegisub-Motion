@@ -176,11 +176,12 @@ class LineCollection
 	-- The index that is passed to the callback is intended for progress
 	-- reporting only.
 	runCallback: ( callback, reverse ) =>
+		lineCount = #@lines
 		if reverse
-			for index = #@lines, 1, -1
-				callback @, @lines[index], #@lines - index + 1
+			for index = lineCount, 1, -1
+				callback @, @lines[index], lineCount - index + 1
 		else
-			for index = 1, #@lines
+			for index = 1, lineCount
 				callback @, @lines[index], index
 
 	deleteLines: ( lines = @lines, doShift = true ) =>
