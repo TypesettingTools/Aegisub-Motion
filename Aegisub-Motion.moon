@@ -351,7 +351,7 @@ prepareLines = ( lineCollection ) ->
 		lineStyle = line.styleRef
 		unless line\extraMetrics lineStyle
 			-- unless line\moveToPosition math.floor(0.5*(aegisub.ms_from_frame(lineCollection.startFrame + options.main.startFrame - 1) + aegisub.ms_from_frame(lineCollection.startFrame + options.main.startFrame))) - line.start_time
-			line\ensureLeadingOverrideBlockExists
+			line\ensureLeadingOverrideBlockExists!
 
 			-- Note that we are repeatedly shadowing @, so in this function it
 			-- refers to the line. This is interestingly the opposite of how
