@@ -107,8 +107,8 @@ class TrimHandler
 
 	calculateTrimLength: ( lineCollection ) =>
 		with @tokens
-			.startt = lineCollection.startTime
-			.endt   = lineCollection.endTime
+			.startt = lineCollection.startTime / 1000
+			.endt   = lineCollection.endTime / 1000
 			.lent   = .endt - .startt
 			.startf = lineCollection.startFrame
 			.endf   = lineCollection.endFrame - 1
