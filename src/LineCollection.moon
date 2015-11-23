@@ -226,9 +226,12 @@ class LineCollection
 			line.inserted = true
 			@lastLineNumber = math.max @lastLineNumber, line.number
 
-		unless #tailLines == 0
-			@sub.insert @lastLineNumber + 1, unpack tailLines
-			@lastLineNumber = math.max @lastLineNumber, tailLines[#tailLines].number
+		tailLineCnt, chunkSize = #tailLines, 1000
+		if tailLineCnt > 0
+			for i = 1, tailLineCnt, chunkSize
+				chunkSize = math.min chunkSize, tailLineCnt - i + 1
+				@sub.insert @lastLineNumber + i, unpack tailLines, i, i+chunkSize-1
+			@lastLineNumber = math.max @lastLineNumber, tailLines[tailLineCnt].number
 
 	replaceLines: =>
 		if @shouldInsertLines
