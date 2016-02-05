@@ -95,9 +95,6 @@ class Transform
 
 		i = 1
 		text\gsub "({.-})", ( tagBlock ) ->
-			if i == count
-				tagBlock = tagBlock\gsub "(.+)#{placeholder}", "%1"
-
 			for tag, _ in pairs @effectTags
 				if tag.affectedBy
 					newTagBlock = tagBlock\gsub ".-"..tag.pattern, ( value ) ->

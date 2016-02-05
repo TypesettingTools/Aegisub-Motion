@@ -99,7 +99,7 @@ formatColor = ( color ) =>
 	return ("%s&H%02X%02X%02X&")\format @tag, color.b, color.g, color.r
 
 formatKaraoke = ( time ) =>
-	result = ("%s%d")\format @tag, value
+	result = ("%s%d")\format @tag, time
 	return result
 
 formatTransform = ( transform ) =>

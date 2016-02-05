@@ -116,6 +116,8 @@ class MotionHandler
 		return @resultingCollection
 
 	linear = ( line ) =>
+		moveTag = tags.allTags.move
+		posTag = tags.allTags.pos
 		with line
 			startFrameTime = aegisub.ms_from_frame aegisub.frame_from_ms .start_time
 			frameAfterStartTime = aegisub.ms_from_frame aegisub.frame_from_ms( .start_time ) + 1

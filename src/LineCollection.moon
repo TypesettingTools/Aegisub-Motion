@@ -24,7 +24,6 @@ else
 	Line = require 'a-mo.Line'
 
 frameFromMs = aegisub.frame_from_ms
-msFromFrame = aegisub.ms_from_frame
 
 class LineCollection
 	@version: version
@@ -50,7 +49,6 @@ class LineCollection
 			line.inserted = false
 			line.selected = selectLine
 			line.number = index == true and line.number or index or nil
-			frame_from_ms = aegisub.frame_from_ms
 
 			-- if @startTime is unset, @endTime should damn well be too.
 			if @startTime
@@ -145,20 +143,6 @@ class LineCollection
 	callMethodOnAllLines: ( methodName, ... ) =>
 		for line in *@lines
 			line[methodName] line, ...
-
-	sortLines: =>
-		sortF = ({
-			Time:   (l, n) -> { key: l.start_time, num: n, data: l }
-			Actor:  (l, n) -> { key: l.actor,      num: n, data: l }
-			Effect: (l, n) -> { key: l.effect,     num: n, data: l }
-			Style:  (l, n) -> { key: l.style,      num: n, data: l }
-			Layer:  (l, n) -> { key: l.layer,      num: n, data: l }
-		})[sor]
-
-		table.sort lines, (a, b) -> a.key < b.key or (a.key == b.key and a.num < b.num)
-
-		strt = sel[1] + origselcnt - 1
-		newsel = [i for i = strt, strt + #lines - 1]
 
 	combineIdenticalLines: =>
 		lastLine = @lines[1]

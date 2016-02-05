@@ -169,7 +169,6 @@ class Line
 		-- \move, \org, \an) can only appear once and only the first
 		-- instance in the entire line is used.
 		tagCollection = { }
-		positions = { }
 		@runCallbackOnOverrides ( tagBlock, major ) =>
 			for tag in *tags.oneTimeTags
 				tagBlock = tagBlock\gsub tag.pattern, ( value ) ->
@@ -222,18 +221,18 @@ class Line
 	-- startIndex.
 	-- Arguments:
 	-- tag [table]: A well-formatted tag table, probably taken from tags.allTags.
+	-- text [string]: The text that will be searched for the tag.
+	--   Default: @text, the entire line text.
 	-- startIndex [number]: A number specifying the point at which the
 	--   search should start.
 	--   Default: 1, the beginning of the provided text block.
-	-- text [string]: The text that will be searched for the tag.
-	--   Default: @text, the entire line text.
 
 	-- Returns:
 	-- - The value of the tag.
 	-- On error:
 	-- - nil
 	-- - A string containing an error message.
-	getTagValue: ( tag, text = @text ) =>
+	getTagValue: ( tag, text = @text, startIndex = 1 ) =>
 		unless tag
 			return nil, "No tag table was supplied."
 
@@ -288,7 +287,7 @@ class Line
 		major = 0
 		@text = @text\gsub "({.-})", ( tagBlock ) ->
 			major += 1
-			return callback @, tagBlock, i,
+			return callback @, tagBlock, major,
 			count
 
 	-- Runs the provided callback on the first override tag block in the
