@@ -447,6 +447,9 @@ class Line
 		return @defaultXPosition[align%3+1]( @parentCollection.meta.PlayResX, leftMargin, rightMargin ), @defaultYPosition[math.ceil align/3]( @parentCollection.meta.PlayResY, verticalMargin )
 
 	setExtraData: ( field, data ) =>
+		if "table" != type @extra
+			@extra = {}
+
 		switch type data
 			when "table"
 				@extra[field] = json.encode data
@@ -456,6 +459,9 @@ class Line
 				@extra[field] = tostring data
 
 	getExtraData: ( field ) =>
+		if "table" != type @extra
+			return nil
+
 		value = @extra[field]
 		success, res = pcall json.decode, value
 		-- Should probably add something for luabins here but it is
