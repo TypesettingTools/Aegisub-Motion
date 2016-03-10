@@ -75,10 +75,15 @@ class Line
 			return verticalMargin
 	}
 
-	new: ( line, @parentCollection, overrides = { } ) =>
+	new: ( line, @parentCollection, overrides ) =>
 		for field in *@fieldsToDeepCopy
 			if "table" == type line[field]
-				@[field] = util.deep_copy overrides[field] or line[field]
+				-- safe to assume that all fields to be deep copied are expected
+				-- to be tables, otherwise they wouldn't be being deep copied
+				if "table" == type( overrides ) and "table" == type overrides[field]
+						@[field] = util.deep_copy overrides[field]
+				else
+					@[field] = util.deep_copy line[field]
 			else
 				if overrides[field] != nil
 					@[field] = overrides[field]
