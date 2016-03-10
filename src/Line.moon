@@ -91,7 +91,7 @@ class Line
 					@[field] = line[field]
 
 		for field in *@fieldsToCopy
-			if overrides[field] != nil
+			if "table" = type overrides and overrides[field] != nil
 				@[field] = overrides[field]
 			else
 				@[field] = line[field]
