@@ -70,8 +70,14 @@ class DataHandler
 		section = 0
 		for _index, line in ipairs @rawData
 			unless line\match("^[\t ]+")
-				if line == "Position" or line == "Scale" or line == "Rotation"
-					section += 1
+				if line == "Position"
+					section = 1
+				elseif line == "Scale"
+					section = 2
+				elseif line == "Rotation"
+					section = 3
+				else
+					section = 0
 			else
 				line\gsub "^[\t ]+([%d%.%-]+)[\t ]+([%d%.%-e%+]+)(.*)", ( value1, value2, remainder ) ->
 					switch section
