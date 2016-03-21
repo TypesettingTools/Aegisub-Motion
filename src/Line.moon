@@ -90,10 +90,14 @@ class Line
 				else
 					@[field] = line[field]
 
-		for field in *@fieldsToCopy
-			if "table" = type overrides and overrides[field] != nil
-				@[field] = overrides[field]
-			else
+		if "table" == type overrides
+			for field in *@fieldsToCopy
+				if overrides[field] != nil
+					@[field] = overrides[field]
+				else
+					@[field] = line[field]
+		else
+			for field in *@fieldsToCopy
 				@[field] = line[field]
 
 		@duration = @end_time - @start_time
