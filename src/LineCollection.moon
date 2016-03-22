@@ -28,9 +28,15 @@ frameFromMs = aegisub.frame_from_ms
 class LineCollection
 	@version: version
 
-	new: ( @sub, sel, validationCb, selectLines=true ) =>
+	@fromAllLines: ( sub, validationCb, selectLines ) =>
+		sel = { }
+		for i = 1, #@sub
+			table.insert( sel, i ) if @sub[i].class == "dialogue"
+		@ sub, sel, validationCb, selectLines
+
+	new: ( @sub, sel, validationCb, selectLines = true ) =>
 		@lines = { }
-		if sel and #sel > 0
+		if type( sel ) == "table" and #sel > 0
 			@collectLines sel, validationCb, selectLines
 			if frameFromMs 0
 				@getFrameInfo!
@@ -43,7 +49,7 @@ class LineCollection
 
 	-- This method should update various properties such as
 	-- (start|end)(Time|Frame).
-	addLine: ( line, validationCb = (-> return true), selectLine=true, index=false ) =>
+	addLine: ( line, validationCb = (-> return true), selectLine = true, index = false ) =>
 		if validationCb line
 			line.parentCollection = @
 			line.inserted = false
@@ -95,7 +101,7 @@ class LineCollection
 
 		@hasMetaStyles = true
 
-	collectLines: ( sel, validationCb = ( ( line ) -> return not line.comment), selectLines=true ) =>
+	collectLines: ( sel, validationCb = (( line ) -> return not line.comment), selectLines = true ) =>
 		unless @hasMetaStyles
 			@generateMetaAndStyles!
 
