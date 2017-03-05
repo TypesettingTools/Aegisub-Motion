@@ -9,7 +9,7 @@ export script_namespace   = "a-mo.Aegisub-Motion"
 
 local interface, setProgress, setTask
 local versionRecord, clipboard, json, ConfigHandler, DataWrapper
-local LineCollection, log, Math, MotionHandler, Statistics, TrimHandler
+local LineCollection, log, Math, MotionHandler, Statistics, TrimHandler, Tags
 
 haveDepCtrl, DependencyControl = pcall require, "l0.DependencyControl"
 
@@ -28,6 +28,7 @@ if haveDepCtrl
 			{ 'a-mo.MotionHandler',  version: '##__MOTIONHANDLER_VERSION__##'  }
 			{ 'a-mo.Statistics' ,    version: '##__STATISTICS_VERSION__##'     }
 			{ 'a-mo.TrimHandler',    version: '##__TRIMHANDLER_VERSION__##'    }
+			{ 'a-mo.Tags',           version: '##__TAGS_VERSION__##'           }
 		}
 	}
 	clipboard, json, ConfigHandler, DataWrapper, LineCollection, log, Math, MotionHandler, Statistics, TrimHandler = versionRecord\requireModules!
@@ -43,6 +44,7 @@ else
 	MotionHandler  = require 'a-mo.MotionHandler'
 	Statistics     = require 'a-mo.Statistics'
 	TrimHandler    = require 'a-mo.TrimHandler'
+	Tags           = require 'a-mo.Tags'
 
 statsTemplate = {
 	apply: {
@@ -216,31 +218,56 @@ prepareConfig = ( config, mainData, clipData, lineCollection ) ->
 
 	return rectClipData, vectClipData
 
+-- Used in getMissingTags, for fade handling when killTrans is used
+getMissingAlphas = ( block, properties ) ->
+	-- makes sure every necessary alpha tag exists in the first block
+	alpha = Tags.allTags.alpha
+	alpha1, alpha2, alpha3, alpha4 = Tags.allTags.alpha1, Tags.allTags.alpha2, Tags.allTags.alpha3, Tags.allTags.alpha4
+	outline, shadow = Tags.allTags.border, Tags.allTags.shadow
+
+	if block\find alpha.pattern
+		return ''
+	if ( properties[alpha1] == 0 and properties[alpha2] == 0 and
+		 properties[alpha3] == 0 and properties[alpha4] == 0 )
+		return alpha\format 0
+
+	alphas = { }
+	if not block\find alpha1.pattern
+		table.insert alphas, alpha1\format properties[alpha1]
+	if ( not block\find alpha2.pattern ) and ( block\find Tags.allTags.karaoke.pattern )
+		table.insert alphas, alpha2\format properties[alpha2]
+	if ( not block\find alpha3.pattern ) and ( ( block\find "\\[xy]?bord([%d%.]+)" ) or ( properties[outline] > 0 ) )
+		table.insert alphas, alpha3\format properties[alpha3]
+	if ( not block\find alpha4.pattern ) and ( ( block\find "\\[xy]?shad([%d%.]+)" ) or ( properties[shadow] > 0 ) )
+		table.insert alphas, alpha4\format properties[alpha4]
+
+	return table.concat alphas, ''
+
 -- This table is used to verify that style defaults are inserted at
 -- the beginning the selected line(s) if the corresponding options are
--- selected. The structure is: [tag] = { opt:"opt", key:"style key",
--- skip:val } where "opt" is the option that must be enabled, "style
--- key" is the key to get the value from the style, and skip specifies
+-- selected. The structure is: tag = { opt:"opt", skip:val } where
+-- "opt" is the option that must be enabled and skip specifies
 -- not to write the tag if the style default is that value.
 importantTags = {
-	"\\fscx": { opt: "xScale",    key: "scale_x", skip: 0 }
-	"\\fscy": { opt: "xScale",    key: "scale_y", skip: 0 }
-	"\\bord": { opt: "border",    key: "outline", skip: 0 }
-	"\\shad": { opt: "shadow",    key: "shadow",  skip: 0 }
-	"\\frz":  { opt: "zRotation", key: "angle" }
+	xscale: { opt: "xScale", skip: 0 }
+	yscale: { opt: "xScale", skip: 0 }
+	border: { opt: "border", skip: 0 }
+	shadow: { opt: "shadow", skip: 0 }
+	zrot:   { opt: "zRotation" }
 }
-
 -- A style table is passed to this function so that it can cope with
 -- \r.
-getMissingTags = ( block, options, styleTable ) ->
-	result = ""
-	for tag, tab in pairs importantTags
+getMissingTags = ( block, options, properties ) ->
+	result = { }
+	for key, tab in pairs importantTags
+		tag = Tags.allTags[key]
 		if options[tab.opt]
-			if not block\match tag .. "[%-%d%.]+"
-				styleDefault = styleTable[tab.key]
-				if tonumber( styleDefault ) != tab.skip
-					result ..= tag .. ("%g")\format styleDefault
-	return result
+			if not block\match tag.pattern
+				if properties[tag] != tab.skip
+					table.insert result, tag\format properties[tag]
+	if options.killTrans
+		table.insert result, getMissingAlphas block, properties
+	return table.concat result, ''
 
 rectClipToVectClip = ( clip ) ->
 	if clip\match "[%-%d%.]+, *[%-%d%.]+"
@@ -269,18 +296,6 @@ convertClipToFP = ( clip ) ->
 					("%g %g")\format x, y
 			return '(' .. points .. ')'
 	return clip
-
-fadToTransform = ( fadStart, fadEnd, alpha, value, lineDuration ) ->
-	str = ''
-	if fadStart > 0
-		str = '%s&HFF&\\t(0,%d,%s%s)'\format alpha, fadStart, alpha, value
-	else
-		str = alpha .. value
-
-	if fadEnd > 0
-		str ..= '\\t(%d,%d,%s&HFF&)'\format lineDuration - fadEnd, lineDuration, alpha
-
-	str
 
 prepareLines = ( lineCollection ) ->
 	setProgress 0
@@ -321,23 +336,9 @@ prepareLines = ( lineCollection ) ->
 		-- retokenize transforms.
 		line\tokenizeTransforms!
 
-		fadWasFound = false
-		fadStart, fadEnd = 0, 0
 		line\runCallbackOnOverrides ( tagBlock ) =>
 			return tagBlock\gsub "\\fade?%((%d+),(%d+)%)", ( start, finish ) ->
-				unless fadWasFound
-					fadStart = tonumber start
-					fadEnd   = tonumber finish
-					fadWasFound = true
-				return ""
-
-		if fadWasFound
-			line\runCallbackOnOverrides ( tagBlock ) =>
-				return tagBlock\gsub "(\\[1234]?a[lpha]-)(&H%x%x&)", ( alpha, value ) ->
-					return fadToTransform fadStart, fadEnd, alpha, value, @duration
-
-			line\runCallbackOnFirstOverride ( tagBlock ) =>
-				return "{" .. fadToTransform( fadStart, fadEnd, "\\alpha", "&H00&", @duration ) .. tagBlock\sub 2
+				return "\\fade(255,0,255,0,%d,%d,%d)"\format start, @duration - finish, @duration
 
 		-- retokenize the transforms to simplify later processing.
 		line\dontTouchTransforms!
@@ -361,7 +362,7 @@ prepareLines = ( lineCollection ) ->
 
 		-- Add any tags we need that are missing from the line.
 		line\runCallbackOnFirstOverride ( tagBlock ) =>
-			tags = getMissingTags tagBlock, options.main, lineStyle
+			tags = getMissingTags tagBlock, options.main, line.properties
 			return '{' .. tags .. tagBlock\sub( 2 )
 
 		line\runCallbackOnOverrides ( tagBlock ) =>
@@ -369,18 +370,28 @@ prepareLines = ( lineCollection ) ->
 				@hasOrg = true
 				return nil
 
+			savestyle = line.styleRef
+			reset = false
 			tagBlock = tagBlock\gsub "\\r([^\\}]*)([^}]*)", ( resetStyle, remainder ) ->
-				styleTable = styles[resetStyle] or lineStyle
-				tags = getMissingTags remainder, options.main, styleTable
+				if styles[resetStyle]
+					line.styleRef = styles[resetStyle]
+					line\getPropertiesFromStyle!
+					reset = true
+				tags = getMissingTags remainder, options.main, line.properties
 				return '\\r' .. resetStyle .. tags .. remainder
+			if reset
+				line.styleRef = savestyle
+				line\getPropertiesFromStyle!
 
 			if options.main.rectClip or options.main.vectClip or options.clip.rectClip or options.clip.vectClip
-				return tagBlock\gsub "(\\i?clip%b())", ( clip ) ->
+				tagBlock = tagBlock\gsub "(\\i?clip%b())", ( clip ) ->
 					@hasClip = true
 					clip = convertClipToFP clip
 					if options.main.rcToVc or options.clip.rcToVc
 						clip = rectClipToVectClip clip
 					return clip
+				unless @hasClip
+					tagBlock = "{\\clip()" .. tagBlock\sub 2
 
 			return tagBlock
 

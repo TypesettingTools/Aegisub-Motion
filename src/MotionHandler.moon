@@ -167,25 +167,51 @@ class MotionHandler
 
 				local newText
 				if @options.main.killTrans
-					newText = line\interpolateTransformsCopy timeDelta, newStartTime
+					newText = \interpolateTransformsCopy timeDelta, newStartTime
 				else
-					newText = line\detokenizeTransformsCopy timeDelta
+					newText = \detokenizeTransformsCopy timeDelta
 
-				newText = newText\gsub "\\fade(%b())", ( fade ) ->
-					a1, a2, a3, t1, t2, t3, t4 = fade\match("(%d+),(%d+),(%d+),(%d+),(%d+),(%d+),(%d+)")
-					if t1 == nil
-						message = "There is a malformed \\fade you must fix.\n\\fade requires 7 integer arguments.\nLine: #{.number}, tag: \\fade(#{fade})."
-						if fade\match("(%d+),(%d+)")
-							message ..= "\nPerhaps you meant to use \\fad."
-						log.windowError message
+				fadeTag = tags.allTags.fade
+				if @options.main.killTrans
+					local fade
+					newText = newText\gsub "({.-})", ( tagBlock ) -> tagBlock\gsub fadeTag.pattern, ( value ) ->
+						fade = fadeTag\convert value
+						return ""
 
-					t1, t2, t3, t4 = tonumber( t1 ), tonumber( t2 ), tonumber( t3 ), tonumber( t4 )
-					-- beautiful.
-					t1 -= timeDelta
-					t2 -= timeDelta
-					t3 -= timeDelta
-					t4 -= timeDelta
-					("\\fade(%s,%s,%s,%d,%d,%d,%d)")\format a1, a2, a3, t1, t2, t3, t4
+					if fade
+						-- multiplies every alpha tag by a scaling factor determined by the fade envelope
+						local fadeFactor
+						-- Piecewise function done with logicals :)
+						-- probably should go in fadeTag\interpolate, but I dunno how that whole section is supposed to work
+						f = { k, tonumber v for k, v in pairs fade }
+						fadeFactor = (
+							(timeDelta < f.t1) and f.a1 or
+							(timeDelta < f.t2) and f.a1 + (f.a2 - f.a1) * (timeDelta - f.t1) / (f.t2 - f.t1) or
+							(timeDelta < f.t3) and f.a2 or
+							(timeDelta < f.t4) and f.a2 + (f.a3 - f.a2) * (timeDelta - f.t3) / (f.t4 - f.t3) or
+							f.a3
+						)
+						-- factor between 0 and 1 representing opacity of fade line
+						fadeFactor = (255 - fadeFactor) / 255
+
+						-- apply the opacity factor to all alpha tags
+						newText = newText\gsub "({.-})", ( tagBlock ) -> tagBlock\gsub "(\\[1234]?a[lpha]-)&H(%x%x)&", ( alpha, value ) ->
+								value = Math.round( 255 - ( fadeFactor * (255 - tonumber value, 16) ) )
+								return alpha .. "&H%02X&"\format value
+
+				else
+					-- modified each fade tag in every override block
+					newText = newText\gsub "({.-})", ( tagBlock ) -> tagBlock\gsub fadeTag.pattern, ( value ) ->
+						fade = fadeTag\convert value
+						-- Erroneous fade tags are being ignored and left sitting around as long as they doesn't have 2 or 7 arguments.
+						-- if t1 == nil
+						-- 	message = "There is a malformed \\fade you must fix.\n\\fade requires 7 integer arguments.\nLine: #{.number}, tag: \\fade(#{fade})."
+						-- 	if fade\match("(%d+),(%d+)")
+						-- 		message ..= "\nPerhaps you meant to use \\fad."
+						-- 	log.windowError message
+						for i = 4, 7  -- t1 - t4
+							fade[i] -= timeDelta
+						return fadeTag\format fade
 
 				if .move
 					newText = newText\gsub moveTag.pattern, ->
