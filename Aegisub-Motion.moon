@@ -390,10 +390,12 @@ prepareLines = ( lineCollection ) ->
 					if options.main.rcToVc or options.clip.rcToVc
 						clip = rectClipToVectClip clip
 					return clip
-				unless @hasClip
-					tagBlock = "{\\clip()" .. tagBlock\sub 2
 
 			return tagBlock
+
+		unless line.hasClip
+			line\runCallbackOnFirstOverride ( tagBlock ) =>
+				"{\\clip()" .. tagBlock\sub 2
 
 		setProgress index/totalLines*100
 

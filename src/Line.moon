@@ -225,6 +225,7 @@ class Line
 		-- transforms.
 		@text = @text\gsub @splitChar, "}{"
 		@text = @text\gsub "{}", ""
+		@text = @text\gsub "\\clip%(%)", ""  -- useless even inside transforms
 
 	-- Find the first instance of an override tag in a line following
 	-- startIndex.
