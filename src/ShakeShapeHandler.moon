@@ -75,23 +75,41 @@ class ShakeShapeHandler
 			else
 				curve[field] = args[index]
 
+	processSegment = ( curveState, prevCurve, currCurve ) ->
+		result = ''
+		if ( prevCurve.vx == prevCurve.rx and prevCurve.vy == prevCurve.ry and
+			 currCurve.lx == currCurve.vx and currCurve.ly == currCurve.vy )
+			unless curveState == 'l'
+				curveState = 'l'
+				result ..= 'l '
+			return curveState, result .. "#{currCurve.vx} #{currCurve.vy} "
+		else
+			unless curveState == 'b'
+				curveState = 'b'
+				result ..= 'b '
+			return curveState, result .. "#{prevCurve.rx} #{prevCurve.ry} #{currCurve.lx} #{currCurve.ly} #{currCurve.vx} #{currCurve.vy} "
+
+
 	convertVertex = ( vertex, scriptHeight ) ->
+		curveState = 'm'
 		drawString = {'m '}
 		prevCurve = { }
 		currCurve = { }
 		vertex = vertex\gsub "vertex_data ([%-%.%d]+) ([%-%.%d]+) ([%-%.%d]+) ([%-%.%d]+) ([%-%.%d]+) ([%-%.%d]+) [%-%.%d]+ [%-%.%d]+ [%-%.%d]+ [%-%.%d]+ [%-%.%d]+ [%-%.%d]+", ( ... ) ->
 			updateCurve prevCurve, scriptHeight, { ... }
-			table.insert drawString, "#{prevCurve.vx} #{prevCurve.vy} b "
+			table.insert drawString, "#{prevCurve.vx} #{prevCurve.vy} "
 			return ""
 
 		firstCurve = { k, v for k, v in pairs prevCurve }
 
 		vertex\gsub "([%-%.%d]+) ([%-%.%d]+) ([%-%.%d]+) ([%-%.%d]+) ([%-%.%d]+) ([%-%.%d]+) [%-%.%d]+ [%-%.%d]+ [%-%.%d]+ [%-%.%d]+ [%-%.%d]+ [%-%.%d]+", ( ... ) ->
 			updateCurve currCurve, scriptHeight, { ... }
-			table.insert drawString, "#{prevCurve.rx} #{prevCurve.ry} #{currCurve.lx} #{currCurve.ly} #{currCurve.vx} #{currCurve.vy} "
+			curveState, segment = processSegment curveState, prevCurve, currCurve
+			table.insert drawString, segment
 			prevCurve, currCurve = currCurve, prevCurve
 
-		table.insert drawString, "#{prevCurve.rx} #{prevCurve.ry} #{firstCurve.lx} #{firstCurve.ly} #{firstCurve.vx} #{firstCurve.vy}"
+		curveState, segment = processSegment curveState, prevCurve, firstCurve
+		table.insert drawString, segment
 		return table.concat drawString
 
 	-- A function stub because I am too lazy to do this sort of thing
