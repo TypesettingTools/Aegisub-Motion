@@ -78,7 +78,7 @@ class MotionHandler
 
 		if @vectClipData
 			if 'SRS' == vectClipData.type
-				@callbacks['(\\i?clip)(%([^,]-%))'] = vectorClipSRS
+				@callbacks['(\\i?clip)%(([^,]-)%)'] = vectorClipSRS
 			else
 				@callbacks['(\\i?clip)(%([^,]-%))'] = vectorClip
 
@@ -304,7 +304,7 @@ class MotionHandler
 			("%g %g")\format Math.round( x, 2 ), Math.round( y, 2 )
 
 	vectorClipSRS = ( clip, frame ) =>
-		return '(' .. @vectClipData.data[frame] .. ')'
+		return '(' .. clip .. ' ' .. @vectClipData.data[frame]\sub( 1, -2 ) .. ')'
 
 if haveDepCtrl
 	return version\register MotionHandler
