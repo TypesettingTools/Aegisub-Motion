@@ -40,6 +40,8 @@ class ShakeShapeHandler
 		return false
 
 	parseFile: ( fileName ) =>
+		if fileName\match "^\"[^\"]-\"$"
+			fileName = fileName\sub 2, -2
 		if file = io.open fileName, 'r'
 			return @parseRawDataString file\read '*a'
 
