@@ -31,7 +31,7 @@ if haveDepCtrl
 			{ 'a-mo.Tags',           version: '##__TAGS_VERSION__##'           }
 		}
 	}
-	clipboard, json, ConfigHandler, DataWrapper, LineCollection, log, Math, MotionHandler, Statistics, TrimHandler = versionRecord\requireModules!
+	clipboard, json, ConfigHandler, DataWrapper, LineCollection, log, Math, MotionHandler, Statistics, TrimHandler, Tags = versionRecord\requireModules!
 
 else
 	clipboard      = require 'aegisub.clipboard'
