@@ -3,7 +3,7 @@ versions = {
 	'src/DataHandler':       '1.0.5'
 	'src/DataWrapper':       '1.0.2'
 	'src/Line':              '1.5.3'
-	'src/LineCollection':    '1.2.0'
+	'src/LineCollection':    '1.3.0'
 	'src/Log':               '1.0.0'
 	'src/Math':              '1.0.0'
 	'src/MotionHandler':     '1.1.8'
