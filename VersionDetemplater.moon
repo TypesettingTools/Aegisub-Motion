@@ -31,6 +31,9 @@ nameMap = {
 	'AEGISUB-MOTION':  'Aegisub-Motion'
 }
 
+pathSep = package.config\sub( 1, 1 )
+windows = pathSep == '\\'
+
 for name, version in pairs versions
 	filename = name .. '.moon'
 	file = io.open filename
@@ -55,9 +58,16 @@ contents = contents\gsub '##__([A-Z-]+)_VERSION__##', ( template ) ->
 
 contents = contents\gsub '##__([A-Z-]+)_HASH__##', ( template ) ->
 	hashFilename = nameMap[template] .. '.moon'
-	hashFile = io.popen 'shasum ' .. hashFilename
-	hash = hashFile\read '*a'
-	hash = hash\sub( 1, 40 )\upper!
+	local hashFile, hash
+	if windows
+		hashFile = io.popen 'CertUtil -hashfile ' .. hashFilename .. ' SHA1'
+		-- the hash itself is actually on the second line
+		hashFile\read '*l'
+		hash = hashFile\read( '*l' )\upper!
+	else
+		hashFile = io.popen 'shasum ' .. hashFilename
+		hash = hashFile\read '*a'
+		hash = hash\sub( 1, 40 )\upper!
 	hashFile\close!
 	print "#{filename}: replacing #{template}_HASH with #{hash}"
 	return hash
