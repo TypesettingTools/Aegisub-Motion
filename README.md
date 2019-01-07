@@ -59,7 +59,7 @@ I fully recommend finding something better to waste your time.
 
 #### Help! I need somebody! Help! Not just anybody! ####
 
-If you use IRC, I'm `torque` on `freenode` and `rizon`. Feel free to ask
+If you use IRC, I'm `CoffeeFlux` on `freenode` and `rizon`. Feel free to ask
 questions. Also, this repository has an [issues page][issues] if you
 want to be formal about it.
 
