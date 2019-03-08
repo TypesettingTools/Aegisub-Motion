@@ -46,6 +46,8 @@ class LineCollection
 				else
 					metaIndex[index]
 
+		@generateMetaAndStyles!
+
 		if type( sel ) == "table" and #sel > 0
 			@collectLines sel, validationCb, selectLines
 			if frameFromMs 0
@@ -112,9 +114,6 @@ class LineCollection
 		@hasMetaStyles = true
 
 	collectLines: ( sel, validationCb = (( line ) -> return not line.comment), selectLines = true ) =>
-		unless @hasMetaStyles
-			@generateMetaAndStyles!
-
 		dialogueStart = 0
 		for x = 1, #@sub
 			if @sub[x].class == "dialogue"
