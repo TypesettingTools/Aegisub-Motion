@@ -30,8 +30,8 @@ class LineCollection
 
 	@fromAllLines: ( sub, validationCb, selectLines ) =>
 		sel = { }
-		for i = 1, #@sub
-			table.insert( sel, i ) if @sub[i].class == "dialogue"
+		for i = 1, #sub
+			table.insert( sel, i ) if sub[i].class == "dialogue"
 		@ sub, sel, validationCb, selectLines
 
 	new: ( @sub, sel, validationCb, selectLines = true ) =>
