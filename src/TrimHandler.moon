@@ -98,7 +98,7 @@ class TrimHandler
 		with @tokens
 			video = aegisub.project_properties!.video_file
 			if video\len! == 0
-				log.windowError "Aegisub thinks your video is 0 frames long.\nTheoretically it should be impossible to get this error."
+				log.windowError "Aegisub thinks you have no attached video file, yet this script somehow passed the validation macro.\nTheoretically it should be impossible to get this error."
 			if video\match "^?dummy"
 				log.windowError "I can't encode that dummy video for you."
 			.input = video\gsub( "^[A-Z]:\\", "", 1 )\gsub ".+[^\\/]-[\\/]", "", 1
