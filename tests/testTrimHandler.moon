@@ -24,6 +24,10 @@ testTrimHandler = ( subtitles, selectedLines, activeLine ) ->
 
 	ourTrimHandler = TrimHandler trimSettings
 	ourTrimHandler\calculateTrimLength ourLineCollection
+	assert ourTrimHandler.tokens.startt == aegisub.ms_from_frame( ourLineCollection.startFrame ) / 1000,
+		"startt must be derived from the selected video frame"
+	assert ourTrimHandler.tokens.endt == aegisub.ms_from_frame( ourLineCollection.endFrame ) / 1000,
+		"endt must be derived from the exclusive ending video frame"
 	ourTrimHandler\performTrim!
 
 	otherTrimHandler = TrimHandler otherTrimSettings
