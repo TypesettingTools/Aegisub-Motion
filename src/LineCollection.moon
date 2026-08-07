@@ -108,6 +108,16 @@ class LineCollection
 			elseif line.class == "dialogue"
 				break
 
+		x, y = tonumber( @meta.PlayResX ) or 0, tonumber( @meta.PlayResY ) or 0
+		-- Match Aegisub's fallback for omitted script resolution values.
+		if x == 0 and y == 0
+			x, y = 384, 288
+		elseif x == 0
+			x = y == 1024 and 1280 or math.floor( y*4/3 )
+		elseif y == 0
+			y = x == 1280 and 1024 or math.floor( x*3/4 )
+		@meta.PlayResX, @meta.PlayResY = x, y
+
 		unless next @styles
 			log.windowError "No styles could be found and I guarantee that's gonna break something."
 
