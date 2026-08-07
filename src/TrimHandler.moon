@@ -107,12 +107,14 @@ class TrimHandler
 
 	calculateTrimLength: ( lineCollection ) =>
 		with @tokens
-			.startt = lineCollection.startTime / 1000
-			.endt   = lineCollection.endTime / 1000
-			.lent   = .endt - .startt
 			.startf = lineCollection.startFrame
 			.endf   = lineCollection.endFrame - 1
 			.lenf   = lineCollection.totalFrames
+
+			-- Derive times from video frames to avoid subtitle-time rounding errors.
+			.startt = aegisub.ms_from_frame( .startf ) / 1000
+			.endt   = aegisub.ms_from_frame( lineCollection.endFrame ) / 1000
+			.lent   = .endt - .startt
 
 	performTrim: =>
 		with platform = ({
