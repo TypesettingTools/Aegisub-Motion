@@ -90,7 +90,9 @@ formatInt = ( value ) =>
 	return ("%s%d")\format @tag, value
 
 formatFloat = ( value ) =>
-	return ("%s%g")\format @tag, value
+	value = ("%.15f")\format value
+	value = value\gsub( "0+$", "" )\gsub( "%.$", "" )
+	return @tag .. value
 
 formatAlpha = ( alpha ) =>
 	return ("%s&H%02X&")\format @tag, alpha
