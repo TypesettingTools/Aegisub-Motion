@@ -173,6 +173,13 @@ class Line
 	deduplicateTags: =>
 		-- Combine contiguous override blocks.
 		@text = @text\gsub "}{", @splitChar
+		deduplicateRepeatedTags = ( tagBlock ) ->
+			for tag in *tags.repeatTags
+				-- Replace all instances except the last one.
+				_, num = tagBlock\gsub tag.pattern, ""
+				tagBlock = tagBlock\gsub tag.pattern, "", num - 1
+			return tagBlock
+
 		-- note: most tags can appear multiple times in a line and only the
 		-- last instance in a given tag block is used. Some tags (\pos,
 		-- \move, \org, \an) can only appear once and only the first
@@ -213,16 +220,20 @@ class Line
 						tagBlock = tagBlock\gsub tags.allTags[v[1]].pattern, ""
 
 		@runCallbackOnOverrides ( tagBlock ) =>
-			for tag in *tags.repeatTags
-				-- Calculates the number of times the pattern will be replaced.
-				_, num = tagBlock\gsub tag.pattern, ""
-				-- Replaces all instances except the last one.
-				tagBlock = tagBlock\gsub tag.pattern, "", num - 1
+			transforms = { }
+			tagBlock = tagBlock\gsub tags.allTags.transform.pattern, ( transform ) ->
+				table.insert transforms, "\\t" .. transform
+				return @.tPlaceholder #transforms
+			tagBlock = deduplicateRepeatedTags tagBlock
+			tagBlock = tagBlock\gsub @tTokenPattern, ( _, index ) ->
+				return transforms[tonumber index]
 
 			return tagBlock
 
-		-- Now the whole thing has to be rerun on the contents of all
-		-- transforms.
+		-- Tags inside each transform form a separate scope.
+		@text = @text\gsub tags.allTags.transform.pattern, ( transform ) ->
+			return "\\t" .. deduplicateRepeatedTags transform
+
 		@text = @text\gsub @splitChar, "}{"
 		@text = @text\gsub "{}", ""
 		@text = @text\gsub "\\clip%(%)", ""  -- useless even inside transforms

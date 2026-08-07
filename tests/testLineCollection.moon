@@ -20,6 +20,8 @@ ourLines = {
 		  text: "{\\fad(150,300)}I am fading out of existence.{\\fad(150,305)}" }
 		{ start_time: 2000, end_time:3000
 		  text: "{\\t(\\1c&HFF0000&)}I {\\t(0,0,\\1c&H00FF00&)}am {\\t(2.345,\\1c&H0000FF&)}transforming." }
+		{ actor: "issue69", start_time: 3000, end_time:4000
+		  text: "{\\c&H1C3724&\\3c&H0C2C0C&\\t(2984,3860,\\c&H09140C&\\3c&H041605&)}Text" }
 		{ start_time: 4000, end_time:5000
 		  text: "We are Identical." }
 		{ start_time: 3500, end_time:4000
@@ -72,6 +74,9 @@ testLineCollection = ( subtitles, selectedLines, activeLine ) ->
 	ourLineCollection = LineCollection subtitles, newSelLines
 
 	ourLineCollection\callMethodOnAllLines "deduplicateTags"
+	for line in *ourLineCollection.lines
+		if line.actor == "issue69"
+			assert line.text == "{\\c&H1C3724&\\3c&H0C2C0C&\\t(2984,3860,\\c&H09140C&\\3c&H041605&)}Text"
 
 	-- Do an in-place replace of the lines we have just abused.
 	ourLineCollection\replaceLines!
