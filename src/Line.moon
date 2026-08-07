@@ -314,6 +314,10 @@ class Line
 			return callback @, tagBlock
 
 	getPropertiesFromStyle: ( styleRef = @styleRef ) =>
+		unless styleRef
+			lineNumber = @humanizedNumber or @number or "unknown"
+			log.windowError "Line #{lineNumber} uses the nonexistent style \"#{@style}\"."
+
 		@properties = { }
 		for tag in *tags.styleTags
 			switch tag.type
