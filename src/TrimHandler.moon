@@ -1,4 +1,5 @@
 local log
+local lfs = require 'lfs'
 version = '##__TRIMHANDLER_VERSION__##'
 
 haveDepCtrl, DependencyControl = pcall require, 'l0.DependencyControl'
@@ -35,7 +36,7 @@ class TrimHandler
 	-- Set up encoder presets.
 	defaults: {
 		x264:    '"#{encbin}" --crf 16 --tune fastdecode -i 250 --fps 24000/1001 --sar 1:1 --index "#{prefix}/#{index}.index" --seek #{startf} --frames #{lenf} --output-depth 8 --output-csp i420 -o "#{prefix}/#{output}[#{startf}-#{endf}].mp4" "#{inpath}/#{input}"'
-		ffmpeg:  '"#{encbin}" -ss #{startt} -an -sn -i "#{inpath}/#{input}" -q:v 1 -fps_mode passthrough -frames:v #{lenf} "#{prefix}/#{output}[#{startf}-#{endf}]-%05d.jpg"'
+		ffmpeg:  '"#{encbin}" -ss #{startt} -an -sn -i "#{inpath}/#{input}" -q:v 1 -fps_mode passthrough -frames:v #{lenf} "#{prefix}/#{startf}-#{endf}/%05d.jpg"'
 		-- avs2pipe: 'echo FFVideoSource("#{inpath}#{input}",cachefile="#{prefix}#{index}.index").trim(#{startf},#{endf}).ConvertToRGB.ImageWriter("#{prefix}/#{output}-[#{startf}-#{endf}]\\",type="png").ConvertToYV12 > "#{temp}/a-mo.encode.avs"\nmkdir "#{prefix}#{output}-[#{startf}-#{endf}]"\n"#{encbin}" video "#{temp}/a-mo.encode.avs"\ndel "#{temp}/a-mo.encode.avs"'
 		-- vapoursynth:
 	}
@@ -68,6 +69,7 @@ class TrimHandler
 	-- }
 	new: ( trimConfig ) =>
 		@tokens = { }
+		@preset = trimConfig.preset
 		if trimConfig.command != nil
 			trimConfig.command = trimConfig.command\gsub "[\t \r\n]*$", ""
 			if trimConfig.command != ""
@@ -116,7 +118,19 @@ class TrimHandler
 			.endt   = aegisub.ms_from_frame( lineCollection.endFrame ) / 1000
 			.lent   = .endt - .startt
 
+	createDirectory: ( path ) =>
+		return if lfs.attributes(path, 'mode') == 'directory'
+		success, errorMessage = lfs.mkdir path
+		unless success
+			log.windowError "Could not create output directory #{path}.\n#{errorMessage}"
+
+	prepareOutputDirectory: =>
+		@createDirectory @tokens.prefix if @makePrefix
+		if @preset == 'ffmpeg'
+			@createDirectory "#{@tokens.prefix}/#{@tokens.startf}-#{@tokens.endf}"
+
 	performTrim: =>
+		@prepareOutputDirectory!
 		with platform = ({
 				[true]:  {
 					pre: @tokens.temp
