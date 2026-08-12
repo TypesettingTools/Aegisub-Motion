@@ -216,13 +216,14 @@ class Line
 			return left.offset < right.offset
 
 		@runCallbackOnOverrides ( tagBlock, major ) =>
+			originalTagBlock = tagBlock
 			for tag in *tags.oneTimeTags
 				tagBlock = tagBlock\gsub dedupPattern(tag), ( value ) ->
 					return nil unless validDedupMatch tag, value
 					unless tagCollection[tag.name]
 						tagCollection[tag.name] = {
 							block: major
-							offset: firstValidMatch tagBlock, tag
+							offset: firstValidMatch originalTagBlock, tag
 						}
 						return nil
 					else

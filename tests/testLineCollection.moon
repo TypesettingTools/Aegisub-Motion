@@ -222,6 +222,16 @@ testConflictingOneTimeTags = ( style ) ->
 		line\deduplicateTags!
 		assertEqual fixture[2], line.text, "A first-wins tag conflict was resolved incorrectly."
 
+	originalOneTimeTags = Tags.oneTimeTags
+	Tags.oneTimeTags = { Tags.allTags.move, Tags.allTags.org, Tags.allTags.pos }
+	orderSensitiveLine = Line makeDialogue style, {
+		text: "{\\org(1,1)\\org(1,1)\\org(1,1)\\org(1,1)\\move(0,0,5,5,0,100)\\pos(0,0)}Position"
+	}
+	orderSensitiveLine\deduplicateTags!
+	Tags.oneTimeTags = originalOneTimeTags
+	assertEqual "{\\org(1,1)\\move(0,0,5,5,0,100)}Position", orderSensitiveLine.text,
+		"Removing earlier duplicate tags changed the first-wins source order."
+
 	sequentialRectClips = {
 		"{\\clip(0,0,10,10)\\clip(1,1,9,9)}Rectangle"
 		"{\\clip(0,0,10,10)\\iclip(1,1,9,9)}Rectangle"
