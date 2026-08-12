@@ -178,13 +178,62 @@ testTransformIgnoresTagsAfterTransform = ( style ) ->
 	assertEqual 1, transform.priorValues[border], "A tag after the transform overwrote the transform's prior state."
 
 testConflictingOneTimeTags = ( style ) ->
-	line = Line makeDialogue style, {
-		text: "{\\pos(1,2)\\bord1\\move(1,2,3,4,0,100)}Position"
+	firstWins = {
+		{
+			"{\\pos(1,2)\\bord1\\move(1,2,3,4,0,100)}Position"
+			"{\\pos(1,2)\\bord1}Position"
+		}
+		{
+			"{\\move(1,2,3,4,0,100)\\bord1\\pos(1,2)}Position"
+			"{\\move(1,2,3,4,0,100)\\bord1}Position"
+		}
+		{
+			"{\\pos(1,2)\\bord1\\move(1,2,3,4)}Position"
+			"{\\pos(1,2)\\bord1}Position"
+		}
+		{
+			"{\\move(1,2,3,4)\\bord1\\pos(1,2)}Position"
+			"{\\move(1,2,3,4)\\bord1}Position"
+		}
+		{
+			"{\\fad(100,200)\\bord1\\fade(0,255,0,0,100,200,300)}Fade"
+			"{\\fad(100,200)\\bord1}Fade"
+		}
+		{
+			"{\\fade(0,255,0,0,100,200,300)\\bord1\\fad(100,200)}Fade"
+			"{\\fade(0,255,0,0,100,200,300)\\bord1}Fade"
+		}
+		{
+			"{\\clip(m 0 0 l 10 0 10 10 0 10)\\bord1\\iclip(m 2 2 l 8 2 8 8 2 8)}Vector"
+			"{\\clip(m 0 0 l 10 0 10 10 0 10)\\bord1}Vector"
+		}
+		{
+			"{\\iclip(m 2 2 l 8 2 8 8 2 8)\\bord1\\clip(m 0 0 l 10 0 10 10 0 10)}Vector"
+			"{\\iclip(m 2 2 l 8 2 8 8 2 8)\\bord1}Vector"
+		}
+		{
+			"{\\clip(2,m 0 0 l 10 0 10 10 0 10)\\bord1\\iclip(3,m 2 2 l 8 2 8 8 2 8)}Vector"
+			"{\\clip(2,m 0 0 l 10 0 10 10 0 10)\\bord1}Vector"
+		}
 	}
-	line\deduplicateTags!
 
-	assert line.text\find("\\pos", 1, true), "The first conflicting one-time tag was removed."
-	assert not line.text\find("\\move", 1, true), "The later conflicting one-time tag was not removed."
+	for fixture in *firstWins
+		line = Line makeDialogue style, { text: fixture[1] }
+		line\deduplicateTags!
+		assertEqual fixture[2], line.text, "A first-wins tag conflict was resolved incorrectly."
+
+	sequentialRectClips = {
+		"{\\clip(0,0,10,10)\\clip(1,1,9,9)}Rectangle"
+		"{\\clip(0,0,10,10)\\iclip(1,1,9,9)}Rectangle"
+		"{\\iclip(1,1,9,9)\\clip(0,0,10,10)}Rectangle"
+		"{\\clip(0,0,10,10)\\t(0,1000,\\iclip(1,1,9,9))}Rectangle"
+		"{\\clip(0,0,10,10)\\iclip(m 2 2 l 8 2 8 8 2 8)}Mixed clips"
+	}
+
+	for text in *sequentialRectClips
+		line = Line makeDialogue style, { :text }
+		line\deduplicateTags!
+		assertEqual text, line.text, "Sequential rectangular clips were discarded or reordered."
 
 testCommentSelections = ( subtitles, style ) ->
 	start0 = aegisub.ms_from_frame 0
