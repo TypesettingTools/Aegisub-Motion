@@ -1,3 +1,7 @@
+package.loaded['l0.DependencyControl'] = nil
+package.preload['l0.DependencyControl'] = ->
+	error 'DependencyControl is intentionally disabled by the test suite.'
+
 TrimHandler = require 'a-mo.TrimHandler'
 LineCollection = require 'a-mo.LineCollection'
 log = require 'a-mo.Log'
