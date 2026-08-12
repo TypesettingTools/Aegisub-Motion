@@ -184,12 +184,58 @@ testCommentSelections = ( subtitles, style ) ->
 
 		assert #problems == 0, table.concat problems, "; "
 
+testLineMergingPreservesProperties = ( style ) ->
+	control = Line makeDialogue style, {
+		start_time: 0
+		end_time: 100
+		text: "Control"
+	}
+	controlContinuation = Line makeDialogue style, {
+		start_time: 100
+		end_time: 200
+		text: "Control"
+	}
+	assert control\combineWithLine(controlContinuation), "Otherwise identical adjacent lines were not merged."
+	assertEqual 200, control.end_time, "The positive-control merge did not extend the line timing."
+
+	variants = {
+		{ "layer", 1 }
+		{ "margin_l", 10 }
+		{ "margin_r", 10 }
+		{ "margin_t", 10 }
+		{ "effect", "different" }
+		{ "extra", { ['a-mo']: "different uuid" } }
+	}
+	merged = { }
+
+	for variant in *variants
+		field, value = variant[1], variant[2]
+		left = Line makeDialogue style, {
+			start_time: 0
+			end_time: 100
+			text: "Identical"
+			extra: { ['a-mo']: "first uuid" }
+		}
+		right = Line makeDialogue style, {
+			start_time: 100
+			end_time: 200
+			text: "Identical"
+			extra: { ['a-mo']: "first uuid" }
+			[field]: value
+		}
+
+		if left\combineWithLine right
+			merged[#merged+1] = field
+
+	assert #merged == 0, "Lines with different properties were merged: #{table.concat merged, ', '}"
+
 tests = {
 	{ "#1 TrimHandler loads", (_, _) -> testTrimHandlerLoads! }
 	{ "#4 Clip-only tracking works without main data", testClipOnlyTrackingWithoutMainData }
 	{ "#5 Transform prior state stops at the transform", (_, style) -> testTransformIgnoresTagsAfterTransform style }
 	{ "#6 Conflicting one-time tags are removed", (_, style) -> testConflictingOneTimeTags style }
 	{ "#7 Comment selections do not create invalid ranges", testCommentSelections }
+	{ "#8 Lines with different properties do not merge", (_, style) -> testLineMergingPreservesProperties style }
 }
 
 runRegressionTests = ( subtitles, selectedLines, activeLine ) ->

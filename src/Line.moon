@@ -33,6 +33,16 @@ else
 frameFromMs = aegisub.frame_from_ms
 msFromFrame = aegisub.ms_from_frame
 
+tablesEqual = ( left, right ) ->
+	return true if left == right
+	return false unless type(left) == "table" and type(right) == "table"
+
+	for key, value in pairs left
+		return false unless right[key] == value
+	for key, value in pairs right
+		return false unless left[key] == value
+	return true
+
 class Line
 	@version: version
 
@@ -456,11 +466,18 @@ class Line
 					return nil
 
 	combineWithLine: ( line ) =>
-		if @text == line.text and @style == line.style and (@start_time == line.end_time or @end_time == line.start_time)
-			@start_time = math.min @start_time, line.start_time
-			@end_time = math.max @end_time, line.end_time
-			return true
-		return false
+		for field in *{
+			'actor', 'class', 'comment', 'effect', 'layer', 'margin_l',
+			'margin_r', 'margin_t', 'section', 'style', 'text'
+		}
+			return false unless @[field] == line[field]
+
+		return false unless tablesEqual @extra, line.extra
+		return false unless @start_time == line.end_time or @end_time == line.start_time
+
+		@start_time = math.min @start_time, line.start_time
+		@end_time = math.max @end_time, line.end_time
+		return true
 
 	delete: ( sub = @parentCollection.sub ) =>
 		unless sub
