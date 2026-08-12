@@ -50,7 +50,7 @@ class LineCollection
 
 		if type( sel ) == "table" and #sel > 0
 			@collectLines sel, validationCb, selectLines
-			if frameFromMs 0
+			if #@lines > 0 and frameFromMs 0
 				@getFrameInfo!
 		else
 			for i = #@sub, 1, -1
@@ -130,8 +130,8 @@ class LineCollection
 				dialogueStart = x - 1 -- start line of dialogue subs
 				break
 
-		@startTime  = @sub[sel[1]].start_time
-		@endTime    = @sub[sel[1]].end_time
+		@startTime  = nil
+		@endTime    = nil
 		@lastLineNumber = 0
 
 		for i = #sel, 1, -1
@@ -146,15 +146,20 @@ class LineCollection
 					.humanizedNumber = .number - dialogueStart
 					.styleRef = @styles[.style]
 
-					if .start_time < @startTime
-						@startTime = .start_time
+					if @startTime
+						if .start_time < @startTime
+							@startTime = .start_time
 
-					if .end_time > @endTime
+						if .end_time > @endTime
+							@endTime = .end_time
+					else
+						@startTime = .start_time
 						@endTime = .end_time
 
 					table.insert @lines, line
 
 	getFrameInfo: =>
+		return if #@lines == 0
 
 		for line in *@lines
 			line.startFrame = frameFromMs line.start_time

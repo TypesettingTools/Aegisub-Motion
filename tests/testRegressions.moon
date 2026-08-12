@@ -152,11 +152,44 @@ testConflictingOneTimeTags = ( style ) ->
 	assert line.text\find("\\pos", 1, true), "The first conflicting one-time tag was removed."
 	assert not line.text\find("\\move", 1, true), "The later conflicting one-time tag was not removed."
 
+testCommentSelections = ( subtitles, style ) ->
+	start0 = aegisub.ms_from_frame 0
+	start1 = aegisub.ms_from_frame 1
+	start2 = aegisub.ms_from_frame 2
+	lines = {
+		makeDialogue style, {
+			comment: true
+			start_time: start0
+			end_time: start1
+			text: "Comment"
+		}
+		makeDialogue style, {
+			start_time: start1
+			end_time: start2
+			text: "Dialogue"
+		}
+	}
+
+	withFixtures subtitles, lines, ( first ) ->
+		problems = { }
+
+		commentOnly = LineCollection subtitles, { first }
+		if (#commentOnly.lines != 0 or commentOnly.startTime != nil or commentOnly.endTime != nil or
+			commentOnly.startFrame != nil or commentOnly.endFrame != nil)
+			problems[#problems+1] = "a comment-only selection retained a timing range"
+
+		mixed = LineCollection subtitles, { first, first + 1 }
+		if mixed.startTime != start1 or mixed.endTime != start2
+			problems[#problems+1] = "a leading comment changed the selected dialogue range"
+
+		assert #problems == 0, table.concat problems, "; "
+
 tests = {
 	{ "#1 TrimHandler loads", (_, _) -> testTrimHandlerLoads! }
 	{ "#4 Clip-only tracking works without main data", testClipOnlyTrackingWithoutMainData }
 	{ "#5 Transform prior state stops at the transform", (_, style) -> testTransformIgnoresTagsAfterTransform style }
 	{ "#6 Conflicting one-time tags are removed", (_, style) -> testConflictingOneTimeTags style }
+	{ "#7 Comment selections do not create invalid ranges", testCommentSelections }
 }
 
 runRegressionTests = ( subtitles, selectedLines, activeLine ) ->
