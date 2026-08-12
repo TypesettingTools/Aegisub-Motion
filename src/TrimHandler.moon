@@ -1,5 +1,5 @@
 local log
-local lfs = require 'lfs'
+lfs = require 'lfs'
 version = '##__TRIMHANDLER_VERSION__##'
 
 haveDepCtrl, DependencyControl = pcall require, 'l0.DependencyControl'
