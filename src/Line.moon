@@ -185,14 +185,22 @@ class Line
 		-- \move, \org, \an) can only appear once and only the first
 		-- instance in the entire line is used.
 		tagCollection = { }
+		comesBefore = ( left, right ) ->
+			return left.block < right.block if left.block != right.block
+			return left.offset < right.offset
+
 		@runCallbackOnOverrides ( tagBlock, major ) =>
 			for tag in *tags.oneTimeTags
 				tagBlock = tagBlock\gsub tag.pattern, ( value ) ->
 					unless tagCollection[tag.name]
-						tagCollection[tag.name] = @.generateTagIndex major, tagBlock\find tag.pattern
+						tagCollection[tag.name] = {
+							block: major
+							offset: tagBlock\find tag.pattern
+						}
 						return nil
 					else
-						log.debug "#{tag.name} previously found at #{tagCollection[tag.name]}"
+						position = tagCollection[tag.name]
+						log.debug "#{tag.name} previously found in block #{position.block} at #{position.offset}"
 						return ""
 			return tagBlock
 
@@ -210,14 +218,16 @@ class Line
 				{ "vectClip", "vectiClip" }
 			}
 			if tagCollection[v[1]] and tagCollection[v[2]]
-				if tagCollection[v[1]] < tagCollection[v[2]]
+				if comesBefore tagCollection[v[1]], tagCollection[v[2]]
 					-- get rid of tagCollection[v[2]]
 					@runCallbackOnOverrides ( tagBlock ) =>
 						tagBlock = tagBlock\gsub tags.allTags[v[2]].pattern, ""
+						return tagBlock
 				else
 					-- get rid of tagCollection[v[1]]
 					@runCallbackOnOverrides ( tagBlock ) =>
 						tagBlock = tagBlock\gsub tags.allTags[v[1]].pattern, ""
+						return tagBlock
 
 		@runCallbackOnOverrides ( tagBlock ) =>
 			transforms = { }

@@ -143,10 +143,20 @@ testTransformIgnoresTagsAfterTransform = ( style ) ->
 	transform\collectPriorState line, line.text, transform.token
 	assertEqual 1, transform.priorValues[border], "A tag after the transform overwrote the transform's prior state."
 
+testConflictingOneTimeTags = ( style ) ->
+	line = Line makeDialogue style, {
+		text: "{\\pos(1,2)\\bord1\\move(1,2,3,4,0,100)}Position"
+	}
+	line\deduplicateTags!
+
+	assert line.text\find("\\pos", 1, true), "The first conflicting one-time tag was removed."
+	assert not line.text\find("\\move", 1, true), "The later conflicting one-time tag was not removed."
+
 tests = {
 	{ "#1 TrimHandler loads", (_, _) -> testTrimHandlerLoads! }
 	{ "#4 Clip-only tracking works without main data", testClipOnlyTrackingWithoutMainData }
 	{ "#5 Transform prior state stops at the transform", (_, style) -> testTransformIgnoresTagsAfterTransform style }
+	{ "#6 Conflicting one-time tags are removed", (_, style) -> testConflictingOneTimeTags style }
 }
 
 runRegressionTests = ( subtitles, selectedLines, activeLine ) ->
