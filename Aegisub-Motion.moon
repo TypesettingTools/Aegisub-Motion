@@ -650,7 +650,7 @@ revertProcessor = ( subtitles, selectedLines ) ->
 				unless uuids[data.uuid]
 					.text = data.originalText
 					.number = index
-					.extra = {}
+					.extra['a-mo'] = nil
 					uuids[data.uuid] = line
 
 	indicesToNuke = { }
