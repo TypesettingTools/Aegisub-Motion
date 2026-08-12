@@ -300,9 +300,10 @@ class Line
 	setAllTagValues: ( tag, values ) =>
 		replacements = 1
 		@runCallbackOnOverrides ( tagBlock ) =>
-			tagBlock, count = tagBlock\gsub tag.pattern, ->
-				tag.format\format values[replacements]
+			tagBlock = tagBlock\gsub tag.pattern, ->
+				value = values[replacements]
 				replacements += 1
+				return tag\format value
 
 			return tagBlock
 

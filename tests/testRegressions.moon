@@ -229,6 +229,13 @@ testLineMergingPreservesProperties = ( style ) ->
 
 	assert #merged == 0, "Lines with different properties were merged: #{table.concat merged, ', '}"
 
+testSetAllTagValues = ( style ) ->
+	line = Line makeDialogue style, {
+		text: "{\\bord1}One{\\bord2}Two"
+	}
+	line\setAllTagValues Tags.allTags.border, { 3, 4 }
+	assertEqual "{\\bord3}One{\\bord4}Two", line.text, "setAllTagValues did not replace each tag value."
+
 tests = {
 	{ "#1 TrimHandler loads", (_, _) -> testTrimHandlerLoads! }
 	{ "#4 Clip-only tracking works without main data", testClipOnlyTrackingWithoutMainData }
@@ -236,6 +243,7 @@ tests = {
 	{ "#6 Conflicting one-time tags are removed", (_, style) -> testConflictingOneTimeTags style }
 	{ "#7 Comment selections do not create invalid ranges", testCommentSelections }
 	{ "#8 Lines with different properties do not merge", (_, style) -> testLineMergingPreservesProperties style }
+	{ "#10 setAllTagValues replaces values", (_, style) -> testSetAllTagValues style }
 }
 
 runRegressionTests = ( subtitles, selectedLines, activeLine ) ->
