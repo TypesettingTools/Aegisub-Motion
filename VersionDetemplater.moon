@@ -6,12 +6,12 @@ versions = {
 	'src/LineCollection':    '1.4.0'
 	'src/Log':               '1.0.0'
 	'src/Math':              '1.0.0'
-	'src/MotionHandler':     '1.1.8'
+	'src/MotionHandler':     '1.1.9'
 	'src/ShakeShapeHandler': '1.0.2'
 	'src/Statistics':        '0.1.3'
 	'src/Tags':              '1.3.5'
 	'src/Transform':         '1.2.4'
-	'src/TrimHandler':       '1.1.0'
+	'src/TrimHandler':       '1.2.0'
 	'Aegisub-Motion':        '1.1.0'
 }
 nameMap = {
