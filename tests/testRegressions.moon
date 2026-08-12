@@ -129,9 +129,24 @@ testClipOnlyTrackingWithoutMainData = ( subtitles, style ) ->
 		assert #result.lines > 0, "Clip-only tracking produced no output lines."
 		assert result.lines[1].text\find("\\clip(5,7,15,17)", 1, true), "Clip-only tracking did not apply the clip data."
 
+testTransformIgnoresTagsAfterTransform = ( style ) ->
+	parentCollection = { meta: { PlayResX: 1280, PlayResY: 720 } }
+	line = Line makeDialogue(style, {
+		text: "{\\bord1\\t(0,1000,\\bord3)\\bord9}Transform"
+	}), parentCollection
+	border = Tags.allTags.border
+	line.properties = { [border]: 0 }
+	line\tokenizeTransforms!
+
+	transform = line.transforms[1]
+	assert transform, "The transform fixture was not tokenized."
+	transform\collectPriorState line, line.text, transform.token
+	assertEqual 1, transform.priorValues[border], "A tag after the transform overwrote the transform's prior state."
+
 tests = {
 	{ "#1 TrimHandler loads", (_, _) -> testTrimHandlerLoads! }
 	{ "#4 Clip-only tracking works without main data", testClipOnlyTrackingWithoutMainData }
+	{ "#5 Transform prior state stops at the transform", (_, style) -> testTransformIgnoresTagsAfterTransform style }
 }
 
 runRegressionTests = ( subtitles, selectedLines, activeLine ) ->
