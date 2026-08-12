@@ -76,8 +76,62 @@ testTrimHandlerLoads = ->
 	ok, result = pcall require, 'a-mo.TrimHandler'
 	assert ok, "TrimHandler failed to load through Aegisub's MoonScript module loader:\n#{tostring result}"
 
+testClipOnlyTrackingWithoutMainData = ( subtitles, style ) ->
+	startTime = aegisub.ms_from_frame 0
+	endTime = aegisub.ms_from_frame 2
+
+	line = makeDialogue style, {
+		start_time: startTime
+		end_time: endTime
+		text: "{\\pos(0,0)\\clip(0,0,10,10)}Clip only"
+	}
+
+	withFixtures subtitles, { line }, ( first ) ->
+		collection = LineCollection subtitles, { first }
+		collection.options = {
+			main: {
+				absPos: false
+				blur: false
+				blurScale: 1
+				border: false
+				clipOnly: false
+				killTrans: false
+				linear: false
+				origin: false
+				shadow: false
+				xPosition: false
+				xScale: false
+				yPosition: false
+				zRotation: false
+			}
+		}
+
+		collection.lines[1]\tokenizeTransforms!
+
+		trackingData = {
+			xCurrentPosition: 5
+			xRatio: 1
+			xStartPosition: 0
+			yCurrentPosition: 7
+			yRatio: 1
+			yStartPosition: 0
+			zRotationDiff: 0
+			calculateCurrentState: ( frame ) =>
+				@xCurrentPosition = 5
+				@yCurrentPosition = 7
+				@xRatio = 1
+				@yRatio = 1
+				@zRotationDiff = 0
+		}
+
+		handler = MotionHandler collection, { }, { type: "TSR", dataObject: trackingData }
+		result = handler\applyMotion!
+		assert #result.lines > 0, "Clip-only tracking produced no output lines."
+		assert result.lines[1].text\find("\\clip(5,7,15,17)", 1, true), "Clip-only tracking did not apply the clip data."
+
 tests = {
 	{ "#1 TrimHandler loads", (_, _) -> testTrimHandlerLoads! }
+	{ "#4 Clip-only tracking works without main data", testClipOnlyTrackingWithoutMainData }
 }
 
 runRegressionTests = ( subtitles, selectedLines, activeLine ) ->
