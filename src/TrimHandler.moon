@@ -108,6 +108,8 @@ class TrimHandler
 			.output = .index
 
 	calculateTrimLength: ( lineCollection ) =>
+		return false unless lineCollection.startFrame and lineCollection.endFrame
+
 		with @tokens
 			.startf = lineCollection.startFrame
 			.endf   = lineCollection.endFrame - 1
@@ -117,6 +119,8 @@ class TrimHandler
 			.startt = aegisub.ms_from_frame( .startf ) / 1000
 			.endt   = aegisub.ms_from_frame( lineCollection.endFrame ) / 1000
 			.lent   = .endt - .startt
+
+		return true
 
 	createDirectory: ( path ) =>
 		return if lfs.attributes(path, 'mode') == 'directory'

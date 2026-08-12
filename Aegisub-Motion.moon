@@ -611,10 +611,10 @@ You must specify the path to your encoding binary.
 		seenRanges = { }
 		for lineIndex in *selectedLines
 			lineCollection = LineCollection subtitles, { lineIndex }
+			continue unless trim\calculateTrimLength lineCollection
 			collectionRange = "#{lineCollection.startFrame}-#{lineCollection.endFrame}"
 			unless seenRanges[collectionRange]
 				seenRanges[collectionRange] = true
-				trim\calculateTrimLength lineCollection
 				trim\performTrim!
 				stats\incrementValue "trim.clipsCreated"
 		stats\incrementValue "trimEach.runCount"
