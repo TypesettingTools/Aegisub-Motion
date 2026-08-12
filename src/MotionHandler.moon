@@ -31,6 +31,10 @@ else
 	tags           = require 'a-mo.Tags'
 	Transform      = require 'a-mo.Transform'
 
+-- ASS timestamps have centisecond precision.
+assTimeFromFrame = ( frame ) ->
+	math.floor((math.max(0, aegisub.ms_from_frame frame) + 5)/10)*10
+
 class MotionHandler
 	@version: version
 
@@ -160,10 +164,9 @@ class MotionHandler
 
 				log.checkCancellation!
 
-				newStartTime = math.floor(math.max(0, aegisub.ms_from_frame( @lineCollection.startFrame + frame - 1 ))/10)*10
-				newEndTime   = math.floor(aegisub.ms_from_frame( @lineCollection.startFrame + frame )/10)*10
-
-				timeDelta = newStartTime - math.floor(math.max(0,aegisub.ms_from_frame( @lineCollection.startFrame + .relativeStart - 1 ))/10)*10
+				newStartTime = assTimeFromFrame @lineCollection.startFrame + frame - 1
+				newEndTime = assTimeFromFrame @lineCollection.startFrame + frame
+				timeDelta = newStartTime - assTimeFromFrame(@lineCollection.startFrame + .relativeStart - 1)
 
 				local newText
 				if @options.main.killTrans
