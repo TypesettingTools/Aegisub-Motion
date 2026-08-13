@@ -611,10 +611,10 @@ You must specify the path to your encoding binary.
 		seenRanges = { }
 		for lineIndex in *selectedLines
 			lineCollection = LineCollection subtitles, { lineIndex }
+			continue unless trim\calculateTrimLength lineCollection
 			collectionRange = "#{lineCollection.startFrame}-#{lineCollection.endFrame}"
 			unless seenRanges[collectionRange]
 				seenRanges[collectionRange] = true
-				trim\calculateTrimLength lineCollection
 				trim\performTrim!
 				stats\incrementValue "trim.clipsCreated"
 		stats\incrementValue "trimEach.runCount"
@@ -650,7 +650,7 @@ revertProcessor = ( subtitles, selectedLines ) ->
 				unless uuids[data.uuid]
 					.text = data.originalText
 					.number = index
-					.extra = {}
+					.extra['a-mo'] = nil
 					uuids[data.uuid] = line
 
 	indicesToNuke = { }
@@ -700,7 +700,13 @@ canRun = ( sub, selectedLines ) ->
 		return false, "You must have a video loaded to run this macro."
 	elseif 0 == #selectedLines
 		return false, "You must have lines selected to use this macro."
-	true
+
+	for index in *selectedLines
+		line = sub[index]
+		if line.class == "dialogue" and not line.comment
+			return true
+
+	return false, "You must have at least one uncommented dialogue line selected to use this macro."
 
 if haveDepCtrl
 	versionRecord\registerMacros {

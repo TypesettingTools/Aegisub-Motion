@@ -146,7 +146,8 @@ class MotionHandler
 				.text = .text\gsub pattern, ( tag, value ) ->
 					values = { }
 					for frame in *{ .relativeStart, .relativeEnd }
-						@lineTrackingData\calculateCurrentState frame
+						if @lineTrackingData
+							@lineTrackingData\calculateCurrentState frame
 						values[#values+1] = callback @, value, frame
 					("%s%s\\t(%d,%d,%s%s)")\format tag, values[1], beginTime, endTime, tag, values[2]
 
@@ -230,7 +231,8 @@ class MotionHandler
 				-- inserting lines into the resultingCollection would need to be
 				-- more clever to compensate for the fact that lines would no
 				-- longer be added to it in order.
-				@lineTrackingData\calculateCurrentState frame
+				if @lineTrackingData
+					@lineTrackingData\calculateCurrentState frame
 
 				-- iterate through the necessary operations
 				for pattern, callback in pairs @callbacks

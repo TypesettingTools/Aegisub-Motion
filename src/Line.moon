@@ -33,6 +33,16 @@ else
 frameFromMs = aegisub.frame_from_ms
 msFromFrame = aegisub.ms_from_frame
 
+tablesEqual = ( left, right ) ->
+	return true if left == right
+	return false unless type(left) == "table" and type(right) == "table"
+
+	for key, value in pairs left
+		return false unless right[key] == value
+	for key, value in pairs right
+		return false unless left[key] == value
+	return true
+
 class Line
 	@version: version
 
@@ -184,40 +194,60 @@ class Line
 		-- last instance in a given tag block is used. Some tags (\pos,
 		-- \move, \org, \an) can only appear once and only the first
 		-- instance in the entire line is used.
+		dedupPattern = ( tag ) -> tag.deduplicatePattern or tag.pattern
+		validDedupMatch = ( tag, value ) ->
+			return not tag.deduplicateValid or tag.deduplicateValid value
+		firstValidMatch = ( text, tag ) ->
+			startIndex = 1
+			while true
+				matchStart, matchEnd, value = text\find dedupPattern(tag), startIndex
+				return nil unless matchStart
+				return matchStart if validDedupMatch tag, value
+				startIndex = matchEnd + 1
+		removeTag = ( tagBlock, tag ) ->
+			tagBlock = tagBlock\gsub dedupPattern(tag), ( value ) ->
+				return nil unless validDedupMatch tag, value
+				return ""
+			return tagBlock
+
 		tagCollection = { }
+		comesBefore = ( left, right ) ->
+			return left.block < right.block if left.block != right.block
+			return left.offset < right.offset
+
 		@runCallbackOnOverrides ( tagBlock, major ) =>
+			originalTagBlock = tagBlock
 			for tag in *tags.oneTimeTags
-				tagBlock = tagBlock\gsub tag.pattern, ( value ) ->
+				tagBlock = tagBlock\gsub dedupPattern(tag), ( value ) ->
+					return nil unless validDedupMatch tag, value
 					unless tagCollection[tag.name]
-						tagCollection[tag.name] = @.generateTagIndex major, tagBlock\find tag.pattern
+						tagCollection[tag.name] = {
+							block: major
+							offset: firstValidMatch originalTagBlock, tag
+						}
 						return nil
 					else
-						log.debug "#{tag.name} previously found at #{tagCollection[tag.name]}"
+						position = tagCollection[tag.name]
+						log.debug "#{tag.name} previously found in block #{position.block} at #{position.offset}"
 						return ""
 			return tagBlock
 
-		-- Quirks: 2 clips are allowed, as long as one is vector and one is
-		-- rectangular. Move and pos obviously conflict, and whichever is
-		-- the first is the one that's used. The same happens with fad and
-		-- fade. And again, the same with clip and iclip. Also, rectangular
-		-- clips can exist inside of transforms. If a rect clip exists in a
-		-- transform, its type (i or not) dictates the type of all rect
-		-- clips in the line.
+		-- These pairs share renderer state, and only the first valid tag is used.
+		-- Rectangular clips are excluded because renderers apply them sequentially.
 		for _, v in ipairs {
 				{ "move", "pos" }
 				{ "fade", "fad" }
-				{ "rectClip", "rectiClip" }
 				{ "vectClip", "vectiClip" }
 			}
 			if tagCollection[v[1]] and tagCollection[v[2]]
-				if tagCollection[v[1]] < tagCollection[v[2]]
+				if comesBefore tagCollection[v[1]], tagCollection[v[2]]
 					-- get rid of tagCollection[v[2]]
 					@runCallbackOnOverrides ( tagBlock ) =>
-						tagBlock = tagBlock\gsub tags.allTags[v[2]].pattern, ""
+						return removeTag tagBlock, tags.allTags[v[2]]
 				else
 					-- get rid of tagCollection[v[1]]
 					@runCallbackOnOverrides ( tagBlock ) =>
-						tagBlock = tagBlock\gsub tags.allTags[v[1]].pattern, ""
+						return removeTag tagBlock, tags.allTags[v[1]]
 
 		@runCallbackOnOverrides ( tagBlock ) =>
 			transforms = { }
@@ -280,9 +310,10 @@ class Line
 	setAllTagValues: ( tag, values ) =>
 		replacements = 1
 		@runCallbackOnOverrides ( tagBlock ) =>
-			tagBlock, count = tagBlock\gsub tag.pattern, ->
-				tag.format\format values[replacements]
+			tagBlock = tagBlock\gsub tag.pattern, ->
+				value = values[replacements]
 				replacements += 1
+				return tag\format value
 
 			return tagBlock
 
@@ -446,11 +477,18 @@ class Line
 					return nil
 
 	combineWithLine: ( line ) =>
-		if @text == line.text and @style == line.style and (@start_time == line.end_time or @end_time == line.start_time)
-			@start_time = math.min @start_time, line.start_time
-			@end_time = math.max @end_time, line.end_time
-			return true
-		return false
+		for field in *{
+			'actor', 'class', 'comment', 'effect', 'layer', 'margin_l',
+			'margin_r', 'margin_t', 'section', 'style', 'text'
+		}
+			return false unless @[field] == line[field]
+
+		return false unless tablesEqual @extra, line.extra
+		return false unless @start_time == line.end_time or @end_time == line.start_time
+
+		@start_time = math.min @start_time, line.start_time
+		@end_time = math.max @end_time, line.end_time
+		return true
 
 	delete: ( sub = @parentCollection.sub ) =>
 		unless sub

@@ -1,3 +1,7 @@
+package.loaded['l0.DependencyControl'] = nil
+package.preload['l0.DependencyControl'] = ->
+	error 'DependencyControl is intentionally disabled by the test suite.'
+
 TrimHandler = require 'a-mo.TrimHandler'
 LineCollection = require 'a-mo.LineCollection'
 log = require 'a-mo.Log'
@@ -8,31 +12,25 @@ export script_description = "Tests TrimHandler class."
 
 testTrimHandler = ( subtitles, selectedLines, activeLine ) ->
 	trimSettings = {
-		prefix: "?video/"
-		encbin: "/usr/local/bin/x264"
-		enccom: '"#{encbin}" --crf 16 --tune fastdecode -i 250 --fps 23.976 --sar 1:1 --index "#{prefix}#{index}.index" --seek #{startf} --frames #{lenf} -o "#{prefix}#{output}[#{startf}-#{endf}].mp4" "#{inpath}#{input}"'
-		encpre: "x264"
+		prefix: "?video"
+		preset: "ffmpeg"
+		encBin: "ffmpeg"
+		command: ""
+		makePfix: false
+		writeLog: false
 	}
 
-	otherTrimSettings = {
-		prefix: "?video/"
-		encbin: "/usr/local/bin/ffmpeg"
-		encpre: "ffmpeg"
-	}
-
-	ourLineCollection = LineCollection subtitles, nil, selectedLines
+	ourLineCollection = LineCollection subtitles, selectedLines
 
 	ourTrimHandler = TrimHandler trimSettings
-	ourTrimHandler\calculateTrimLength ourLineCollection
+	assert ourTrimHandler\calculateTrimLength(ourLineCollection), "a selected dialogue range must be trimmable"
 	assert ourTrimHandler.tokens.startt == aegisub.ms_from_frame( ourLineCollection.startFrame ) / 1000,
 		"startt must be derived from the selected video frame"
 	assert ourTrimHandler.tokens.endt == aegisub.ms_from_frame( ourLineCollection.endFrame ) / 1000,
 		"endt must be derived from the exclusive ending video frame"
-	ourTrimHandler\performTrim!
 
-	otherTrimHandler = TrimHandler otherTrimSettings
-	otherTrimHandler\calculateTrimLength ourLineCollection
-	-- otherTrimHandler\performTrim!
+	emptyLineCollection = LineCollection subtitles, selectedLines, -> false
+	assert not ourTrimHandler\calculateTrimLength(emptyLineCollection), "an empty line collection must be skipped"
 
 	selectedLines
 

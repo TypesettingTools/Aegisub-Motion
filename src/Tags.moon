@@ -110,6 +110,10 @@ formatTransform = ( transform ) =>
 formatMulti = ( value ) =>
 	return ("%s(%s)")\format @tag, table.concat value, ','
 
+validMoveForDeduplication = ( value ) ->
+	_, commas = value\gsub ',', ''
+	return commas == 3 or commas == 5
+
 allTags = {
 	fontName: { pattern: "\\fn([^\\}]+)"     , tag: "\\fn"   , format: formatString, style: "fontname"                      , convert: convertStringValue                                 }
 	fontSize: { pattern: "\\fs(%d+)"         , tag: "\\fs"   , format: formatInt   , style: "fontsize", transformable: true , convert: convertNumberValue, interpolate: interpolateNumber }
@@ -152,11 +156,11 @@ allTags = {
 	pos:      { fieldnames: { "x", "y" }        , output: "multi", pattern: "\\pos%(([%.%d%-]+,[%.%d%-]+)%)", tag: "\\pos"  , format: formatMulti, convert: convertMultiValue, global: true }
 	org:      { fieldnames: { "x", "y" }        , output: "multi", pattern: "\\org%(([%.%d%-]+,[%.%d%-]+)%)", tag: "\\org"  , format: formatMulti, convert: convertMultiValue, global: true }
 	fad:      { fieldnames: { "in", "out" }     , output: "multi", pattern: "\\fade?%((%d+,%d+)%)"          , tag: "\\fad"  , format: formatMulti, convert: convertMultiValue, global: true }
-	vectClip: { fieldnames: { "scale", "shape" }, output: "multi", pattern: "\\clip%((%d+,)?([^,]-)%)"      , tag: "\\clip" , format: formatMulti, convert: convertMultiValue, global: true }
-	vectiClip:{ fieldnames: { "scale", "shape" }, output: "multi", pattern: "\\iclip%((%d+,)?([^,]-)%)"     , tag: "\\iclip", format: formatMulti, convert: convertMultiValue, global: true }
-	rectClip: { fieldnames: { "xLeft", "yTop", "xRight", "yBottom" }    , output: "multi", pattern: "\\clip%(([%-%d%.]+,[%-%d%.]+,[%-%d%.]+,[%-%d%.]+)%)?" , transformable: true, tag: "\\clip" , format: formatMulti, convert: convertMultiValue, interpolate: interpolateMulti,    global: true }
-	rectiClip:{ fieldnames: { "xLeft", "yTop", "xRight", "yBottom" }    , output: "multi", pattern: "\\iclip%(([%-%d%.]+,[%-%d%.]+,[%-%d%.]+,[%-%d%.]+)%)?", transformable: true, tag: "\\iclip", format: formatMulti, convert: convertMultiValue, interpolate: interpolateMulti,    global: true }
-	move:     { fieldnames: { "x1", "y1", "x2", "y2", "start", "end" }  , output: "multi", pattern: "\\move%(([%.%d%-]+,[%.%d%-]+,[%.%d%-]+,[%.%d%-]+,[%d%-]+,[%d%-]+)%)"       , tag: "\\move" , format: formatMulti, convert: convertMultiValue, interpolate: interpolatePosition, global: true }
+	vectClip: { fieldnames: { "scale", "shape" }, output: "multi", pattern: "\\clip%((%d*,?%s*[mnlbspc][^,]-)%)" , tag: "\\clip" , format: formatMulti, convert: convertMultiValue, global: true }
+	vectiClip:{ fieldnames: { "scale", "shape" }, output: "multi", pattern: "\\iclip%((%d*,?%s*[mnlbspc][^,]-)%)", tag: "\\iclip", format: formatMulti, convert: convertMultiValue, global: true }
+	rectClip: { fieldnames: { "xLeft", "yTop", "xRight", "yBottom" }    , output: "multi", pattern: "\\clip%(([%-%d%.]+,[%-%d%.]+,[%-%d%.]+,[%-%d%.]+)%)?" , transformable: true, tag: "\\clip" , format: formatMulti, convert: convertMultiValue, interpolate: interpolateMulti,    global: true, deduplicate: false }
+	rectiClip:{ fieldnames: { "xLeft", "yTop", "xRight", "yBottom" }    , output: "multi", pattern: "\\iclip%(([%-%d%.]+,[%-%d%.]+,[%-%d%.]+,[%-%d%.]+)%)?", transformable: true, tag: "\\iclip", format: formatMulti, convert: convertMultiValue, interpolate: interpolateMulti,    global: true, deduplicate: false }
+	move:     { fieldnames: { "x1", "y1", "x2", "y2", "start", "end" }  , output: "multi", pattern: "\\move%(([%.%d%-]+,[%.%d%-]+,[%.%d%-]+,[%.%d%-]+,[%d%-]+,[%d%-]+)%)"       , deduplicatePattern: "\\move%(([%d%.,%-]+)%)", deduplicateValid: validMoveForDeduplication, tag: "\\move" , format: formatMulti, convert: convertMultiValue, interpolate: interpolatePosition, global: true }
 	fade:     { fieldnames: { "a1", "a2", "a3", "t1", "t2", "t3", "t4" }, output: "multi", pattern: "\\fade%((%d+,%d+,%d+,[%d%-]+,[%d%-]+,[%d%-]+,[%d%-]+)%)"                   , tag: "\\fade" , format: formatMulti, convert: convertMultiValue, global: true }
 }
 
@@ -167,10 +171,11 @@ transformTags = { }
 
 for k, v in pairs allTags
 	v.name = k
-	unless v.global
-		table.insert repeatTags, v
-	else
-		table.insert oneTimeTags, v
+	if v.deduplicate != false
+		unless v.global
+			table.insert repeatTags, v
+		else
+			table.insert oneTimeTags, v
 
 	if v.style
 		table.insert styleTags, v
