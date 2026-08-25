@@ -125,6 +125,8 @@ class TrimHandler
 	createDirectory: ( path ) =>
 		return if lfs.attributes(path, 'mode') == 'directory'
 		success, errorMessage = lfs.mkdir path
+		-- Compatibility workaround; remove once Aegisub 3.5 is widely available.
+		return if not success and lfs.attributes(path, 'mode') == 'directory'
 		unless success
 			log.windowError "Could not create output directory #{path}.\n#{errorMessage}"
 
