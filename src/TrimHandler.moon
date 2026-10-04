@@ -193,7 +193,7 @@ class TrimHandler
 			encodeScriptFile = io.open encodeScript, "w+"
 			unless encodeScriptFile
 				log.windowError "Encoding script could not be written.\nSomething is wrong with your temp dir (#{.pre})."
-			encodeString = .preCom .. @command\gsub( "#{(.-)}", ( token ) -> @tokens[token] ) .. .postCom
+			encodeString = .preCom .. @command\gsub( '#{(.-)}', ( token ) -> @tokens[token] ) .. .postCom
 			if windows
 				encodeString = encodeString\gsub "`", "``"
 			log.debug encodeString
