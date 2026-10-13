@@ -27,7 +27,7 @@ if haveDepCtrl
 			{ 'a-mo.Math' ,          version: '1.0.0'           }
 			{ 'a-mo.MotionHandler',  version: '1.1.10'  }
 			{ 'a-mo.Statistics' ,    version: '0.1.3'     }
-			{ 'a-mo.TrimHandler',    version: '1.2.3'    }
+			{ 'a-mo.TrimHandler',    version: '1.2.4'    }
 			{ 'a-mo.Tags',           version: '1.3.6'           }
 		}
 	}

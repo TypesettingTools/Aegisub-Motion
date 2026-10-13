@@ -23,7 +23,7 @@
 						{
 							"name": ".moon",
 							"url": "@{fileBaseUrl}a-mo.Aegisub-Motion@{fileName}",
-							"sha1": "1E914E83EBA668A5CE752AA510BB9D18F8EAD0ED"
+							"sha1": "E00C3D4E4E3105518DEB18C37469091C59E965E1"
 						}
 					],
 					"requiredModules": [
@@ -64,7 +64,7 @@
 						},
 						{
 							"moduleName": "a-mo.TrimHandler",
-							"version": "1.2.3",
+							"version": "1.2.4",
 							"feed": "@{feed:a-mo}"
 						},
 						{ "moduleName": "aegisub.clipboard" },
@@ -444,15 +444,20 @@
 			"author": "torque",
 			"name": "TrimHandler",
 			"description": "A class for encoding video clips.",
+			"changelog": {
+				"1.2.4": [
+					"Fixed TrimHandler loading with Aegisub 3.5.0's bundled MoonScript compiler."
+				]
+			},
 			"channels": {
 				"DepCtrl": {
-					"version": "1.2.3",
+					"version": "1.2.4",
 					"default": true,
 					"files": [
 						{
 							"name": ".moon",
 							"url": "@{fileBaseUrl}src/TrimHandler@{fileName}",
-							"sha1": "9FAB41D88A98B5D0C4616CC881EE08AAC6F33119"
+							"sha1": "39B88E376359AAD806E68A195F65C888703EBB25"
 						}
 					],
 					"requiredModules": [
