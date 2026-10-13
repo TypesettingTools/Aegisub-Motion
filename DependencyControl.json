@@ -444,6 +444,11 @@
 			"author": "torque",
 			"name": "TrimHandler",
 			"description": "A class for encoding video clips.",
+			"changelog": {
+				"1.2.4": [
+					"Fixed TrimHandler loading with Aegisub 3.5.0's bundled MoonScript compiler."
+				]
+			},
 			"channels": {
 				"DepCtrl": {
 					"version": "##__TRIMHANDLER_VERSION__##",
