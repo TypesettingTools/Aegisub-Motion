@@ -588,6 +588,17 @@ trimConfigurator = ->
 	options\read!
 	trimConfigDialog options
 
+-- Comments define the trim range only when no uncommented dialogue is
+-- selected, so a stray comment can't distort the timing of the
+-- surrounding dialogue.
+trimValidationCallback = ( subtitles, selectedLines ) ->
+	for index in *selectedLines
+		line = subtitles[index]
+		if line.class == "dialogue" and not line.comment
+			return nil
+
+	return ( line ) -> line.class == "dialogue"
+
 trimProcessor = ( subtitles, selectedLines, activeLine, eachFlag ) ->
 	setTask     = aegisub.progress.task
 	setProgress = aegisub.progress.set
@@ -607,10 +618,11 @@ You must specify the path to your encoding binary.
 		trimConfigDialog options
 
 	trim = TrimHandler options.configuration.trim
+	trimValidation = trimValidationCallback subtitles, selectedLines
 	if eachFlag
 		seenRanges = { }
 		for lineIndex in *selectedLines
-			lineCollection = LineCollection subtitles, { lineIndex }
+			lineCollection = LineCollection subtitles, { lineIndex }, trimValidation
 			continue unless trim\calculateTrimLength lineCollection
 			collectionRange = "#{lineCollection.startFrame}-#{lineCollection.endFrame}"
 			unless seenRanges[collectionRange]
@@ -620,7 +632,7 @@ You must specify the path to your encoding binary.
 		stats\incrementValue "trimEach.runCount"
 
 	else
-		lineCollection = LineCollection subtitles, selectedLines
+		lineCollection = LineCollection subtitles, selectedLines, trimValidation
 		trim\calculateTrimLength lineCollection
 		trim\performTrim!
 		stats\incrementValue "trim.clipsCreated"
@@ -708,12 +720,27 @@ canRun = ( sub, selectedLines ) ->
 
 	return false, "You must have at least one uncommented dialogue line selected to use this macro."
 
+-- Trimming only needs a time range, which commented dialogue lines still
+-- provide, so trim macros accept selections that contain only comments.
+canTrim = ( sub, selectedLines ) ->
+	if not aegisub.frame_from_ms 0
+		return false, "You must have a video loaded to run this macro."
+	elseif 0 == #selectedLines
+		return false, "You must have lines selected to use this macro."
+
+	for index in *selectedLines
+		line = sub[index]
+		if line.class == "dialogue"
+			return true
+
+	return false, "You must have at least one dialogue line selected to use this macro."
+
 if haveDepCtrl
 	versionRecord\registerMacros {
 		{ "Apply", "Applies properly formatted motion tracking data to selected subtitles.", applyProcessor, canRun }
 		{ "Revert", "Removes properly formatted motion tracking data from selected subtitles.", revertProcessor }
-		{ "Trim", "Cuts and encodes the current scene for use with motion tracking software.", trimProcessor, canRun }
-		{ "Trim Each", "Cuts and encodes selected scenes for use with motion tracking software.", trimProcessorEach, canRun }
+		{ "Trim", "Cuts and encodes the current scene for use with motion tracking software.", trimProcessor, canTrim }
+		{ "Trim Each", "Cuts and encodes selected scenes for use with motion tracking software.", trimProcessorEach, canTrim }
 		{ "Trim Settings", "Opens a gui to configure the trim tool.", trimConfigurator }
 	}
 else
@@ -724,10 +751,10 @@ else
 		revertProcessor
 
 	aegisub.register_macro "#{script_name}/Trim", "Cuts and encodes the current scene for use with motion tracking software.",
-		trimProcessor, canRun
+		trimProcessor, canTrim
 
 	aegisub.register_macro "#{script_name}/Trim Each", "Cuts and encodes selected scenes for use with motion tracking software.",
-		trimProcessorEach, canRun
+		trimProcessorEach, canTrim
 
 	aegisub.register_macro "#{script_name}/Trim Settings", "Opens a gui to configure the trim tool.",
 		trimConfigurator
