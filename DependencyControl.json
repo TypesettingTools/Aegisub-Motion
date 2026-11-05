@@ -17,13 +17,13 @@
 			"description": "The main macro.",
 			"channels": {
 				"DepCtrl": {
-					"version": "1.1.1",
+					"version": "1.1.2",
 					"default": true,
 					"files": [
 						{
 							"name": ".moon",
 							"url": "@{fileBaseUrl}a-mo.Aegisub-Motion@{fileName}",
-							"sha1": "E00C3D4E4E3105518DEB18C37469091C59E965E1"
+							"sha1": "3ADBCB0BB4A4CAFCF8647540485DD9D6D2FB9069"
 						}
 					],
 					"requiredModules": [
