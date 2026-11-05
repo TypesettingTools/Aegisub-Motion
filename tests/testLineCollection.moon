@@ -271,6 +271,15 @@ testCommentSelections = ( subtitles, style ) ->
 		mixed = LineCollection subtitles, { first, first + 1 }
 		assert mixed.startTime == start1 and mixed.endTime == start2, "A leading comment changed the selected dialogue range."
 
+		-- Trimming comment-only selections regressed in 1.1.1 when comments
+		-- stopped contributing to selection ranges (issue #98); the trim
+		-- macros now fall back to a permissive validation callback, which
+		-- must yield a timing range from comment-only selections.
+		acceptComments = ( line ) -> line.class == "dialogue"
+		commentTrim = LineCollection subtitles, { first }, acceptComments
+		assert (#commentTrim.lines == 1 and commentTrim.startTime == start0 and commentTrim.endTime == start1 and
+			commentTrim.startFrame != nil and commentTrim.endFrame != nil), "A comment-only selection with permissive validation lost its timing range."
+
 testLineMergingPreservesProperties = ( style ) ->
 	control = Line makeDialogue style, { start_time: 0, end_time: 100, text: "Control" }
 	continuation = Line makeDialogue style, { start_time: 100, end_time: 200, text: "Control" }
